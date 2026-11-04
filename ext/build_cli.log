@@ -1,0 +1,40 @@
+In file included from src/kickmix/sim/fuzzer.cc:1:
+src/kickmix/sim/fuzzer.h:75:5: warning: explicitly defaulted copy constructor is implicitly deleted [-Wdefaulted-function-deleted]
+   75 |     CircuitFuzzer(const CircuitFuzzer &) = default;
+      |     ^
+src/kickmix/sim/fuzzer.h:52:20: note: copy constructor of 'CircuitFuzzer' is implicitly deleted because field 'builder' has a deleted copy constructor
+   52 |     CircuitBuilder builder;
+      |                    ^
+src/kickmix/build/circuit_builder.h:134:20: note: copy constructor of 'CircuitBuilder' is implicitly deleted because field 'pattern' has a deleted copy constructor
+  134 |     CircuitPattern pattern;
+      |                    ^
+src/kickmix/build/circuit_pattern.h:43:5: note: copy constructor is implicitly deleted because 'CircuitPattern' has a user-declared move constructor
+   43 |     CircuitPattern(CircuitPattern &&) noexcept = default;
+      |     ^
+src/kickmix/sim/fuzzer.h:75:44: note: replace 'default' with 'delete'
+   75 |     CircuitFuzzer(const CircuitFuzzer &) = default;
+      |                                            ^~~~~~~
+      |                                            delete
+src/kickmix/sim/fuzzer.h:77:20: warning: explicitly defaulted copy assignment operator is implicitly deleted [-Wdefaulted-function-deleted]
+   77 |     CircuitFuzzer &operator=(const CircuitFuzzer &) = default;
+      |                    ^
+src/kickmix/sim/fuzzer.h:52:20: note: copy assignment operator of 'CircuitFuzzer' is implicitly deleted because field 'builder' has a deleted copy assignment operator
+   52 |     CircuitBuilder builder;
+      |                    ^
+src/kickmix/build/circuit_builder.h:134:20: note: copy assignment operator of 'CircuitBuilder' is implicitly deleted because field 'pattern' has a deleted copy assignment operator
+  134 |     CircuitPattern pattern;
+      |                    ^
+src/kickmix/build/circuit_pattern.h:43:5: note: copy assignment operator is implicitly deleted because 'CircuitPattern' has a user-declared move constructor
+   43 |     CircuitPattern(CircuitPattern &&) noexcept = default;
+      |     ^
+src/kickmix/sim/fuzzer.h:77:55: note: replace 'default' with 'delete'
+   77 |     CircuitFuzzer &operator=(const CircuitFuzzer &) = default;
+      |                                                       ^~~~~~~
+      |                                                       delete
+2 warnings generated.
+ld: open() failed, errno=2 (No such file or directory) for '../../../bin/kickmix'
+clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+
+real	0m40.178s
+user	0m36.558s
+sys	0m3.324s

@@ -1,0 +1,38 @@
+{
+  "id": "kirilltym/quantum-circuits-exact-gauge-5-word-qrom",
+  "id_no": 140275741,
+  "title": "Quantum Circuits | Exact Gauge + 5-Word QROM",
+  "code_file": "quantum-circuits-exact-gauge-5-word-qrom.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": false,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [],
+  "dataset_sources": [
+    "busyaprime/33-qcc-v8-members",
+    "hengck23/hengck23-dqi-59-57",
+    "mrmeows/qcc-1375-open-circuits",
+    "heliosli/qcc-circuits-live",
+    "kirilltym/quantum-circuits-exact-gauge-research-assets",
+    "ahmedberatozer/vqcc-v8-components"
+  ],
+  "kernel_sources": [
+    "rudrabhaskar/highest-public-score-direct-polynomial-phasing",
+    "phucthaiv02/qcc-verified-portfolio-df-thc-retraining-study",
+    "lightningv08/bezout-schur-5-word-qrom",
+    "kozykappa/lb-21-38884-quantum-ai-q-circuits",
+    "muchat007/895q-streamed-decoder-measured-node-choices",
+    "atakanaldemir/quantum-circuits-iso-gap-dqi-h5",
+    "somejoint/quantum-circuits-22-77-local-gm-889-qubit-dqi",
+    "ahmedberatozer/quantum-ai-df-thc-group-compression",
+    "atakanaldemir/qcc-888q-repair-and-native-chemistry-co-design"
+  ],
+  "competition_sources": [
+    "google-verifiable-quantum-circuit-compilation"
+  ],
+  "model_sources": [],
+  "docker_image": "gcr.io/kaggle-images/python@sha256:17b2fc7f27c25c6c2fd4230ec8e66097ab2b89fc88e1e4d6f338b72e1ee0bc3e",
+  "machine_shape": "None"
+}

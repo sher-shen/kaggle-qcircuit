@@ -1,0 +1,1 @@
+Our scripts: Apache-2.0. Upstream components retain their terms; see CREDITS.md and bundled notices.

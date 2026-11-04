@@ -1,0 +1,7 @@
+Resolved 2 packages in 444ms
+   Building kickmix @ file:///Users/shenhuaiyu/Desktop/CLAUDE-HUB/kaggle-qcircuit/ext/Qualtran/kickmix
+      Built kickmix @ file:///Users/shenhuaiyu/Desktop/CLAUDE-HUB/kaggle-qcircuit/ext/Qualtran/kickmix
+Prepared 1 package in 27.91s
+Installed 1 package in 2ms
+ + kickmix==0.1.dev0 (from file:///Users/shenhuaiyu/Desktop/CLAUDE-HUB/kaggle-qcircuit/ext/Qualtran/kickmix)
+uv pip install --python .venv/bin/python --no-build-isolation   191.71s user 14.31s system 723% cpu 28.472 total

@@ -1,0 +1,25 @@
+{
+  "id": "somejoint/quantum-circuits-22-77-local-gm-889-qubit-dqi",
+  "id_no": 140675727,
+  "title": "Quantum Circuits | 22.77 Local GM: 889-Qubit DQI",
+  "code_file": "quantum-circuits-22-77-local-gm-889-qubit-dqi.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": false,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [],
+  "dataset_sources": [
+    "busyaprime/33-qcc-v8-members"
+  ],
+  "kernel_sources": [
+    "heliosli/the-dataset-is-public-now-enjoy"
+  ],
+  "competition_sources": [
+    "google-verifiable-quantum-circuit-compilation"
+  ],
+  "model_sources": [],
+  "docker_image": "gcr.io/kaggle-images/python@sha256:17b2fc7f27c25c6c2fd4230ec8e66097ab2b89fc88e1e4d6f338b72e1ee0bc3e",
+  "machine_shape": "None"
+}

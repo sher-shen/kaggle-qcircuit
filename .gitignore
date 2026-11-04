@@ -1,0 +1,14 @@
+.venv/
+bin/
+__pycache__/
+*.so
+!data/kickmix/kickmix.so
+# Qualtran 是第三方克隆，云端自己 clone（commit 见 README）
+ext/Qualtran/
+ext/bin/
+# 大电路文件，可本地重新生成
+runs/ref/*.kmb
+ext/top_v12/*.kmb
+ext/top_v12/dqi.kmb.xz
+*.fcidump
+.DS_Store
