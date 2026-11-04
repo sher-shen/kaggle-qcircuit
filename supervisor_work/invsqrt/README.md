@@ -19,7 +19,7 @@ Independent improvement of the **official reference** Newton–Raphson circuit
 |---|---|---|---|---|---|---|
 | reference | 260 | 7735 | 7987.59 | 2,076,774.23 | 1.000 | PASS |
 | invsqrt_sv_A.kmb (`13,17,27,28,28 1`) | 212 | 8281 | 8530.53 | 1,808,472.20 | 1.148 | PASS |
-| invsqrt_sv_B.kmb (`13,17,27,28,28 1 1`) | 178 | 9633 | — | see SUPERVISOR.md | — | — |
+| invsqrt_sv_B.kmb (`13,17,27,28,28 1 1`) | 178 | 9633 | 9882.53 | 1,759,090.20 | 1.181 | PASS |
 
 ## Reproduce
 ```
