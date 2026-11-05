@@ -20,7 +20,7 @@ import numpy as np
 from fractions import Fraction
 import kickmix as km
 from nr_reference_circuit import _normalize, _add_row, _denormalize
-import flagpack
+import flagpack, binnorm
 
 N_P, WIDTH = 10, 22
 MAX_X = 3 * (2**N_P - 2)**2
@@ -150,11 +150,16 @@ class Design:
         k, D, deg, fy, g = self.k, self.D, self.deg, self.fy, self.guards
         b = km.CircuitBuilder()
         x = b.create_quantum_register(WIDTH, name='x')
-        flags = b.alloc_qubits(N_P)
-        with b.mark('normalize'):
-            _normalize(b, False, x, flags)
         sbp = None
-        if self.packflags:
+        if getattr(self, 'binnorm', False):
+            sbp = b.alloc_qubits(4)
+            with b.mark('normalize'):
+                binnorm.normalize(b, x, sbp, False)
+        else:
+            flags = b.alloc_qubits(N_P)
+            with b.mark('normalize'):
+                _normalize(b, False, x, flags)
+        if self.packflags and sbp is None:
             sbp = b.alloc_qubits(4); flagpack.pack(b, flags, sbp); b.free(flags)
         regs = [b.alloc_qubits(w) for w in self.widths]
         scratch = None
@@ -230,7 +235,12 @@ class Design:
             for r in ((0, 1, 2, 3) if inverse else (3, 2, 1, 0)):
                 if self.packflags:  # trimmed lane: value bits (incl. the 2^fy bit) + max shift reachable with bit r set (s <= 10)
                     L = self.widths[0] + max(v & ~((1 << r) - 1) for v in range(11) if v >> r & 1)
-                if inverse:
+                if getattr(self, 'zshift', False):  # top 2^r bits of the lane are known zero: shift, not rotate
+                    m = 2**r
+                    js = list(range(L - m - 1, -1, -1))
+                    for j in (reversed(js) if inverse else js):
+                        b.cswap(sb[r], y1[j], y1[j + m])
+                elif inverse:
                     b.right_rotate(y1[:L], 2**r, control=sb[r])
                 else:
                     b.left_rotate(y1[:L], 2**r, control=sb[r])
@@ -252,11 +262,16 @@ class Design:
             b.del_lookup(table=table, address=address, target=target)
         for r in regs + ([pad] if self.pad else []) + list(carry.values()):
             b.free(r)
-        if sbp is not None:
-            flags = b.alloc_qubits(N_P); flagpack.unpack(b, flags, sbp); b.free(sbp)
-        with b.mark('normalize_inv'):
-            _normalize(b, True, x, flags)
-        b.free(flags)
+        if getattr(self, 'binnorm', False):
+            with b.mark('normalize_inv'):
+                binnorm.normalize(b, x, sbp, True)
+            b.free(sbp)
+        else:
+            if sbp is not None:
+                flags = b.alloc_qubits(N_P); flagpack.unpack(b, flags, sbp); b.free(sbp)
+            with b.mark('normalize_inv'):
+                _normalize(b, True, x, flags)
+            b.free(flags)
         return b.finish_circuit()
 
 
@@ -270,10 +285,14 @@ if __name__ == '__main__':
     ap.add_argument('--packflags', action='store_true')
     ap.add_argument('--pad', type=int, default=0)
     ap.add_argument('--clamp', action='store_true')
+    ap.add_argument('--binnorm', action='store_true')
+    ap.add_argument('--zshift', action='store_true')
     a = ap.parse_args()
     d = Design(a.k, a.deg, a.fy, guards=[int(v) for v in a.guards.split(',')] if a.guards else None, cadd=a.cadd, binshift=a.binshift, rangeq=a.rangeq, packflags=a.packflags)
     d.pad = a.pad
     d.clamp = a.clamp
+    d.binnorm = a.binnorm
+    d.zshift = a.zshift
     e = d.calibrate()
     print('L', d.choose_L())
     print(f'k={a.k} deg={a.deg} fy={a.fy} guards={d.guards} widths={d.widths} max rel err 2^{math.log2(e):.2f}')

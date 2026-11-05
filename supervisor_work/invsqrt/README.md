@@ -11,7 +11,9 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_lut_C.kmb | **LUT + quadratic, no Newton** (`lutpoly.py --binshift --fy 28 --guards 0,1,1`) | 152 | 2853 | 3093.23 | 470,171.25 | 4.417 | PASS (`verify_lut_C.json`) |
 | invsqrt_lut_D.kmb | C + reachable-address QROM + packed flags (`--packflags --rangeq --fy 28 --guards 0,1,1`) | 146 | 2746 | 2986.23 | 435,989.86 | 4.763 | PASS (`verify_lut_D.json`) |
 | invsqrt_lut_E.kmb | D + trimmed denormalize lanes (current `lutpoly.py`, same flags as D) | 146 | 2728 | 2968.23 | 433,361.86 | 4.792 | PASS (`verify_lut_E.json`) |
-| invsqrt_lut_H.kmb | **signed-digit δ + windowed Horner** (`lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6`) | 115 | 1884 | 2136.73 | 245,724.03 | **8.452** | PASS (`verify_lut_H.json`) |
+| invsqrt_lut_H.kmb | **signed-digit δ + windowed Horner** (`lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6`) | 115 | 1884 | 2136.73 | 245,724.03 | 8.452 | PASS (`verify_lut_H.json`) |
+| invsqrt_lut_I.kmb | H + `--clamp` (y < 2^fy, y register 29 bits) | 114 | 1866 | 2118.73 | 241,535.30 | 8.598 | PASS (`verify_lut_I.json`) |
+| invsqrt_lut_J.kmb | I + `--binnorm` (binary-search normalization, `binnorm.py`; no thermometer flags / flag packing) | 114 | 1780 | 2032.73 | 231,731.30 | **8.962** | PASS (`verify_lut_J.json`) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
@@ -32,6 +34,10 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 - `lutpoly4.py`: rows add only into the low `L_j` bits of the accumulator plus 2 signed carry qubits (value range checked
   exactly over all x_norm in `choose_L`), then the carries are folded into the high part once (`hi += c0`, `hi[1:] -= c1`).
   Arithmetic is identical to the unwindowed version (same model, same error); y-step adders shrink 30→22 bits, r-step 19→13.
+- `--binnorm` (`binnorm.py`): 4 stages r=3..0, s_r = [top 2^(r+1) bits zero] by an AND chain over the negated bits
+  (temporaries erased by measurement at once), then a zero-top shift by 2^(r+1) bits with 22-2^(r+1) CSWAPs; gives s in
+  binary directly. Forward 84 Toffoli, inverse ~80 (chain recomputed, s_r erased by measurement), vs 120+120+20 before.
+- `--zshift`: denormalize lanes use zero-top shifts (CSWAP chain) instead of rotations (-22 Toffoli).
 - `--clamp`: y < 2^fy (re-centred a0 for the M≈1 segment), so y needs fy bits instead of fy+1 (candidate I, see SUPERVISOR.md).
 
 ## Reproduce
@@ -39,6 +45,7 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 python3.13 supervisor_work/invsqrt/lutpoly.py --packflags --rangeq --fy 28 --guards 0,1,1 --out E.kmb   # byte-identical to invsqrt_lut_E.kmb
 PYTHONPATH=data/kickmix python3.13 data/verifiers/invsqrt/verify_submission_invsqrt.py E.kmb             # ~6 min on 4 cores
 python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6 --out H.kmb   # byte-identical to invsqrt_lut_H.kmb
+python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6 --clamp --binnorm --out J.kmb   # = invsqrt_lut_J.kmb
 python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # old NR candidate B
 ```
 `data/kickmix/kickmix.so` is a CPython 3.13 Linux x86 build. Needs numpy + scipy.
