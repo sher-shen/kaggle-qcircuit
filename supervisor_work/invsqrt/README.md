@@ -21,6 +21,7 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_lut_Q.kmb | P + `--foldadd` (Horner carry fold `hi += c0 - 2c1` as ONE adder with source bits [c0, c1, c1, ...] via CX fan-out copies of c1, instead of two controlled increments) | 112 | 1648 | 1900.76 | 212,885.63 | **9.755** | PASS (`verify_lut_Q.json`, 0.931) |
 | invsqrt_lut_T.kmb | Q + `--round 1,2` (every truncated Horner row adds `(v>>k) + v_{k-1}`, i.e. rounds to nearest, via a carry-in: an extra low target bit `l` set to `v_{k-1}` by CX, `[l, acc] += [v_{k-1}, src]` leaves `l = 0`; `l` borrows an unused pad qubit when one is free) lets coarser guards 0,-3,-5 pass (model err 2^-24.14), `--pad 7 --maxq 111` | 111 | 1646 | 1896.24 | 210,482.92 | **9.867** | PASS (`verify_lut_T.json`, 0.906) |
 | invsqrt_lut_U.kmb | T's rounding carried to **fy=28**: `--fy 28 --guards=0,-2,-4 --round 1,2 --droprot 0 --pad 7 --maxq 110` (y 28 bits, model err 2^-24.01, tiny margin so rotation eps 5.5e-14) | 110 | 1604 | 1866.49 | 205,313.67 | **10.115** | PASS (`verify_lut_U.json`, 0.991, worst_x 816489) |
+| invsqrt_lut_U2.kmb | U with `--maxq 109` (kickmix trades ~14 adder ancilla-Toffolis per qubit) | 109 | 1618 | 1880.49 | 204,973.19 | **10.132** | PASS (`verify_lut_U2.json`, 0.991) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
@@ -58,7 +59,7 @@ python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --gu
 python3.13 supervisor_work/invsqrt/lutpoly7.py --packflags --rangeq --fy 29 --guards=0,-2,-4 --pad 6 --clamp --binnorm --zshift --droptop --droprot 1 --out N.kmb   # = invsqrt_lut_N.kmb (current best, ~25 s)
 python3.13 supervisor_work/invsqrt/lutpoly7.py --packflags --rangeq --fy 29 --guards=0,-2,-4 --pad 6 --clamp --binnorm --zshift --droptop --droprot 1 --smallfirst --foldadd --out Q.kmb   # = invsqrt_lut_Q.kmb (drop --foldadd for P)
 python3.13 supervisor_work/invsqrt/lutpoly7.py --packflags --rangeq --fy 29 --clamp --binnorm --zshift --droptop --droprot 1 --smallfirst --foldadd --guards=0,-3,-5 --round 1,2 --pad 7 --maxq 111 --out T.kmb   # = invsqrt_lut_T.kmb (sha e8f2d083)
-python3.13 supervisor_work/invsqrt/lutpoly7.py --packflags --rangeq --fy 28 --clamp --binnorm --zshift --droptop --smallfirst --foldadd --guards=0,-2,-4 --round 1,2 --pad 7 --maxq 110 --out U.kmb   # = invsqrt_lut_U.kmb (current best, sha a71c37df)
+python3.13 supervisor_work/invsqrt/lutpoly7.py --packflags --rangeq --fy 28 --clamp --binnorm --zshift --droptop --smallfirst --foldadd --guards=0,-2,-4 --round 1,2 --pad 7 --maxq 110 --out U.kmb   # = invsqrt_lut_U.kmb (sha a71c37df); with --maxq 109 = invsqrt_lut_U2.kmb (current best, sha 27d75c8f)
 python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # old NR candidate B
 ```
 `data/kickmix/kickmix.so` is a CPython 3.13 Linux x86 build. Needs numpy + scipy.
@@ -88,3 +89,4 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
 - fy=28 + `--round 1,2` + guards 0,-2,-4, no droprot: model 2^-24.01, verifier worst err/tol 0.991 -> PASS. pad6: 110q/1606 (205,533.67, 10.104x, full PASS);
   pad7+maxq110: 110q/1604 (205,313.67, **10.115x**, full PASS, = U). pad7 alone 111q/1592; pad8/9+maxq110 110q/1604/1606.
 - `lutpoly9.py` (search + a0 centring only over reachable x_norm): same 2^-24.01 (worst segment is at s=0 where every x_norm is reachable). No gain.
+- maxq sweep at U settings (pad 7): 111/1592, 110/1604, **109/1618 (U2, 10.132x, full PASS)**, 108/1636 (est 10.129x), 107/1658, 105/1708; pad 6 or 8 at maxq 109: 1620.
