@@ -16,7 +16,7 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_lut_J.kmb | I + `--binnorm` (binary-search normalization, `binnorm.py`; no thermometer flags / flag packing) | 114 | 1780 | 2032.73 | 231,731.30 | 8.962 | PASS (`verify_lut_J.json`) |
 | invsqrt_lut_K.kmb | J + `--zshift` (zero-top shifts in denormalize) | 114 | 1758 | 2010.73 | 229,223.30 | 9.060 | PASS (`verify_lut_K.json`) |
 | invsqrt_lut_L.kmb | K + `--droptop` (y's top bit is always 1: not stored during lookup/Horner, a fresh \|1> qubit joins the lane at denormalize) | 113 | 1754 | 2006.73 | 226,760.57 | **9.158** | PASS (`verify_lut_L.json`) |
-| invsqrt_lut_N.kmb | **per-segment integer search of (b1,b2)** (`lutpoly7.py`) lets guards 0,-2,-4 pass (model err 2^-23.92 -> 2^-24.15) + `--droprot 1` (no Z_POW on the lowest output bit) | 112 | 1708 | 1960.94 | 219,605.63 | **9.457** | PASS (`verify_lut_N.json`, worst err/tol 0.931) |
+| invsqrt_lut_N.kmb | **per-segment integer search of (b1,b2)** (`lutpoly7.py`) lets guards 0,-2,-4 pass (model err 2^-23.92 -> 2^-24.15) + `--droprot 1` (no Z_POW on the lowest output bit) | 112 | 1708 | 1960.76 | 219,605.63 | **9.457** | PASS (`verify_lut_N.json`, worst err/tol 0.931) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
