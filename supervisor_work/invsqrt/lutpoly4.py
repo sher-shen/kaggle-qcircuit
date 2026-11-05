@@ -149,6 +149,7 @@ class Design:
     def build(self):
         k, D, deg, fy, g = self.k, self.D, self.deg, self.fy, self.guards
         b = km.CircuitBuilder()
+        if getattr(self, 'maxq', None): b.set_max_qubits(self.maxq)
         x = b.create_quantum_register(WIDTH, name='x')
         sbp = None
         if getattr(self, 'binnorm', False):
@@ -161,7 +162,8 @@ class Design:
                 _normalize(b, False, x, flags)
         if self.packflags and sbp is None:
             sbp = b.alloc_qubits(4); flagpack.pack(b, flags, sbp); b.free(flags)
-        regs = [b.alloc_qubits(w) for w in self.widths]
+        dt = 1 if getattr(self, 'droptop', False) else 0  # y's top bit is always 1 (y in [2^(fy-1), 2^fy)): not stored during Horner
+        regs = [b.alloc_qubits(w - (dt if j == 0 else 0)) for j, w in enumerate(self.widths)]
         scratch = None
         pad = b.alloc_qubits(self.pad) if self.pad else []
         carry = {j: b.alloc_qubits(2) for j in range(1, deg + 1)}
@@ -171,9 +173,11 @@ class Design:
         for j, c in enumerate(self.coefs):
             for A in range(2**k):
                 v = int(c[A])
-                assert 0 <= v < 2**self.widths[j], (j, A, v)
+                if j == 0 and dt:
+                    v = (v - 2**(self.widths[0] - 1)) % 2**(self.widths[0] - 1)
+                assert 0 <= v < 2**len(regs[j]), (j, A, v)
                 table[A] |= v << off
-            off += self.widths[j]
+            off += len(regs[j])
         target = km.array([q for r in regs for q in r])
         address = x[D:]
         tbits = [x[i] for i in range(D)]
@@ -218,7 +222,10 @@ class Design:
         with b.mark('horner'):
             horner(False)
         # free the higher Horner registers early: they are restored only by uncomputing, so keep.
-        y1 = km.array(list(regs[0]) + list(b.alloc_qubits(N_P)))
+        topq = []
+        if dt:
+            topq = list(b.alloc_qubits(1)); b.x(topq[0])
+        y1 = km.array(list(regs[0]) + topq + list(b.alloc_qubits(N_P)))
         SB = {0: range(10), 1: (1, 3, 5, 7, 9), 2: (3, 7), 3: (7,)}  # binary s from thermometer flags (Clifford)
         def sbits_load(sb):
             for r, idx in SB.items():
@@ -255,7 +262,8 @@ class Design:
                     b.z_pow(y1[j], Fraction(2)**(j - F + 1))
         with b.mark('denormalize_inv'):
             denorm(True)
-        b.free(y1[self.widths[0]:])
+        if dt: b.x(topq[0])
+        b.free(y1[self.widths[0] - dt:])
         with b.mark('horner_inv'):
             horner(True)
         with b.mark('lookup_inv'):
@@ -287,12 +295,16 @@ if __name__ == '__main__':
     ap.add_argument('--clamp', action='store_true')
     ap.add_argument('--binnorm', action='store_true')
     ap.add_argument('--zshift', action='store_true')
+    ap.add_argument('--maxq', type=int, default=0)
+    ap.add_argument('--droptop', action='store_true')
     a = ap.parse_args()
     d = Design(a.k, a.deg, a.fy, guards=[int(v) for v in a.guards.split(',')] if a.guards else None, cadd=a.cadd, binshift=a.binshift, rangeq=a.rangeq, packflags=a.packflags)
     d.pad = a.pad
     d.clamp = a.clamp
     d.binnorm = a.binnorm
     d.zshift = a.zshift
+    d.maxq = a.maxq
+    d.droptop = a.droptop
     e = d.calibrate()
     print('L', d.choose_L())
     print(f'k={a.k} deg={a.deg} fy={a.fy} guards={d.guards} widths={d.widths} max rel err 2^{math.log2(e):.2f}')

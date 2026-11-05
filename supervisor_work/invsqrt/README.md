@@ -14,7 +14,8 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_lut_H.kmb | **signed-digit δ + windowed Horner** (`lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6`) | 115 | 1884 | 2136.73 | 245,724.03 | 8.452 | PASS (`verify_lut_H.json`) |
 | invsqrt_lut_I.kmb | H + `--clamp` (y < 2^fy, y register 29 bits) | 114 | 1866 | 2118.73 | 241,535.30 | 8.598 | PASS (`verify_lut_I.json`) |
 | invsqrt_lut_J.kmb | I + `--binnorm` (binary-search normalization, `binnorm.py`; no thermometer flags / flag packing) | 114 | 1780 | 2032.73 | 231,731.30 | 8.962 | PASS (`verify_lut_J.json`) |
-| invsqrt_lut_K.kmb | J + `--zshift` (zero-top shifts in denormalize) | 114 | 1758 | 2010.73 | 229,223.30 | **9.060** | PASS (`verify_lut_K.json`) |
+| invsqrt_lut_K.kmb | J + `--zshift` (zero-top shifts in denormalize) | 114 | 1758 | 2010.73 | 229,223.30 | 9.060 | PASS (`verify_lut_K.json`) |
+| invsqrt_lut_L.kmb | K + `--droptop` (y's top bit is always 1: not stored during lookup/Horner, a fresh \|1> qubit joins the lane at denormalize) | 113 | 1754 | 2006.73 | 226,760.57 | **9.158** | PASS (`verify_lut_L.json`) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
@@ -47,7 +48,13 @@ python3.13 supervisor_work/invsqrt/lutpoly.py --packflags --rangeq --fy 28 --gua
 PYTHONPATH=data/kickmix python3.13 data/verifiers/invsqrt/verify_submission_invsqrt.py E.kmb             # ~6 min on 4 cores
 python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6 --out H.kmb   # byte-identical to invsqrt_lut_H.kmb
 python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6 --clamp --binnorm --out J.kmb   # = invsqrt_lut_J.kmb
-python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6 --clamp --binnorm --zshift --out K.kmb   # = invsqrt_lut_K.kmb (current best)
+python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6 --clamp --binnorm --zshift --out K.kmb   # = invsqrt_lut_K.kmb
+python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6 --clamp --binnorm --zshift --droptop --out L.kmb   # = invsqrt_lut_L.kmb (current best)
 python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # old NR candidate B
 ```
 `data/kickmix/kickmix.so` is a CPython 3.13 Linux x86 build. Needs numpy + scipy.
+
+## Experiments that did not beat L (2026-11-05 03:xx run)
+- `--maxq N` (kickmix trades adder ancillas for Toffolis, about +1 Toffoli per adder per qubit): 114→110 q costs +82 Toffoli, 105 q +212; worse S.
+- `lutpoly5.py` (M in [1,2), 5 shift stages, parity e in a 256-entry address, x[21] borrowed as pad): lookup 383→254, but the 14th Horner row
+  pushes the error to 2^-23.97 at guards 0,-1,-4 (fails); guards 0,0,-4 gives 2^-24.31 but 114 q / 1755 Toffoli. Kept for later (needs a precision fix).
