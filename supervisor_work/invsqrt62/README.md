@@ -39,3 +39,12 @@ Note: ops.json Z_POW angles are in turns (numerator / 2^128 in `zpow_exact`); ki
 - So 61 qubits needs non-linear re-synthesis of coeff_lookup, the front decoder, lookup_c and ~33 adder carry
   windows. Break-even budget for one wire is ~26 Toffoli-eq (1/62 of C); the 63->62 step already cost 5 ANDs in
   coeff_lookup alone. Not attempted further.
+
+## Linear-AND scan (2026-11-05 23:xx UTC): any Toffoli whose product is affine in the live wires?
+- `linear_and_scan.py` (one shot per x) reported 55 "hits" (12 gates executed on >= 5% of shots, ~2.1 Toffoli mean,
+  mostly measurement-conditioned CCZ in phase_merge_repair and unnormalize whose product looked always 0).
+- `linearize.py` replaced those 12 by Clifford gates -> **official verifier FAIL** (x=3, phase error 0.5).
+  Cause: wire values depend on the HMR outcome history (classically controlled CX fix-ups), and one shot per x
+  sees only one history. Re-run with every x repeated 32 times (`linearize.py ... 0.05 3000 "" 32`): **0 gates**.
+  With minfrac 0 it only finds 40 gates that are essentially never executed (artefacts). **Direction closed.**
+- Lesson: any sampling search on this circuit must repeat each x over many outcome draws (the verifier uses 64).
