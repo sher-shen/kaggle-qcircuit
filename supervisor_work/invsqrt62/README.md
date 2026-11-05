@@ -1,0 +1,28 @@
+# invsqrt — starting from the public 62-qubit circuit (supervisor, 2026-11-05 22:xx UTC)
+
+Nothing here was submitted to Kaggle. No third-party circuit file is committed; the source op list is
+`tools/circuit-viewer/ops.json` of the public Apache-2.0 repo `manwithacat/kickmix-macos`
+(`git clone --depth 1 https://github.com/manwithacat/kickmix-macos`; the cloud git proxy serves it).
+
+## Reproduce the public frontier circuit in the cloud
+```
+python3 -I supervisor_work/invsqrt62/ops2kmx.py <kickmix-macos>/tools/circuit-viewer/ops.json p62.kmx
+PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_file('p62.kmx',format='kmx').to_file('p62.kmb',format='kmb')"
+# p62.kmb sha256 = 67482db6c53896348eadba126924868ed3011d7e1576a6d0abb6f7c137ae4997 (byte-identical to the public file)
+PYTHONPATH=data/kickmix python3.13 data/verifiers/invsqrt/verify_submission_invsqrt.py p62.kmb   # ~10 min on 4 cores
+```
+Official verifier, full 200,540,928 shots, default salt: **PASS, Q 62, Toffoli 1327.48 (mean), C 1624.07, score 100,692.58 = 20.625x**
+(`verify_public62.json`). Rotations: 41 per shot, eps 2.43e-13 -> 41 x 28.8 T = 295 Toffoli-eq (18% of C).
+Note: ops.json Z_POW angles are in turns (numerator / 2^128 in `zpow_exact`); kickmix Z_POW takes half-turns.
+
+## Analysis tools (all run on ops.json, no kickmix needed)
+- `phase_trace.py ops.json out.npz`: exact basis-state trace over all 3,133,452 x (~4 min): phase error vs the
+  verifier's target, tol, which rotation fired per x, executed Toffolis. Reproduces the verifier exactly
+  (worst ratio 0.99932377 at x=161, mean Toffoli 1327.48). Absolute min margin 5.86e7 (2^-64 turns) at x=52229.
+- `angle_lp.py trace.npz deltas.npy`: cutting-plane LP re-fitting the 41 free rotation angles to maximise the
+  min margin (which sets eps). **Result: no gain (x1.0000000)** — the published angles are already minimax-optimal.
+  Upper bound of this direction anyway: margin <= min tol (~10x) -> at most ~20 Toffoli-eq (1.2%).
+- `peephole_scan.py ops.json [N]`: Toffoli-class gates with constant / equal / complementary controls on every
+  execution. **Result: none that run on more than 1.6% of inputs** (only rare measurement-conditioned CCZs; < 0.1 Toffoli total).
+- `pair_scan.py ops.json`: static scan for two ANDs into one target sharing a control (yoyobar's 3->2 AND trick)
+  with nothing in between. **Result: 0 pairs left.**
