@@ -1,33 +1,31 @@
 # invsqrt — supervisor work branch
 
-Independent improvement of the **official reference** Newton–Raphson circuit
-(`data/verifiers/invsqrt/nr_reference_circuit.py`), with my own code only (no third-party notebook code).
+Own code only (no third-party notebook code). Nothing here was submitted to Kaggle.
 
-## Changes vs reference
-1. **Precision search** (`prec_search.py`): coordinate descent over `Precision` widths, scored with an
-   exact replica of the verifier cost formula (matches the official reference cost to 1e-6).
-   Best: `delta=13, coef=17, square=27, product=28, result=28` (worst err/tol 0.789).
-2. **Lazy allocation** (`variant.py`): registers allocated just before use and freed right after;
-   `c3` is Clifford-loaded only for Horner step 1 and unloaded immediately.
-3. **drop_square**: `y0^2` is uncomputed right after `z = M*y0^2` and recomputed before uncomputing `z`
-   (−28 qubits at the peak, +2 squaring passes).
-4. **drop_horner**: Horner intermediates `r2`, `r1` are uncomputed once `y0` is known (−34 qubits,
-   +4 Horner steps).
+## Results (official verifier `data/verifiers/invsqrt/verify_submission_invsqrt.py`, 200,540,928 shots, default salt, 4-core Linux)
+| file | design | Q | Toffoli | C | cost (Q·C) | × ref | verifier |
+|---|---|---|---|---|---|---|---|
+| reference | NR (official) | 260 | 7735 | 7987.59 | 2,076,774.23 | 1.000 | PASS |
+| invsqrt_sv_A.kmb | NR, precision search + lazy alloc | 212 | 8281 | 8530.53 | 1,808,472.20 | 1.148 | PASS |
+| invsqrt_sv_B.kmb | A + drop Horner intermediates | 178 | 9633 | 9882.53 | 1,759,090.20 | 1.181 | PASS |
+| invsqrt_lut_C.kmb | **LUT + quadratic, no Newton** (`lutpoly.py --binshift --fy 28 --guards 0,1,1`) | 152 | 2853 | 3093.23 | 470,171.25 | 4.417 | PASS (`verify_lut_C.json`) |
+| invsqrt_lut_D.kmb | C + reachable-address QROM + packed flags (`--packflags --rangeq --fy 28 --guards 0,1,1`) | 146 | 2746 | 2986.23 | 435,989.86 | **4.763** | PASS (`verify_lut_D.json`) |
 
-## Results (official verifier, 200,540,928 shots, default salt, run on 4-core Linux)
-| file | Q | Toffoli | C | cost | × ref | verifier |
-|---|---|---|---|---|---|---|
-| reference | 260 | 7735 | 7987.59 | 2,076,774.23 | 1.000 | PASS |
-| invsqrt_sv_A.kmb (`13,17,27,28,28 1`) | 212 | 8281 | 8530.53 | 1,808,472.20 | 1.148 | PASS |
-| invsqrt_sv_B.kmb (`13,17,27,28,28 1 1`) | 178 | 9633 | 9882.53 | 1,759,090.20 | 1.181 | PASS |
+## LUT design (`lutpoly.py`)
+1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
+2. Optional `--packflags` (`flagpack.py`): thermometer flags (10 q) -> binary `s` (4 q) with a CX network
+   plus 10 Toffolis; reversed before the inverse normalize. Exhaustively tested for s = 0..10.
+3. QROM on the top k=9 bits of `x_norm` loads `(a0, b1, b2)` for 384 reachable segments
+   (`--rangeq`: unary iteration over `range(128, 512)` instead of `init_lookup` over 512).
+4. Horner in place: `r = b1 - T(b2 t)`, `y = a0 - T(r t)`, `t` = low 13 bits of `x_norm`, rows via reference `_add_row`.
+   Coefficients: Chebyshev-node quadratic fit per segment, then `a0` re-centred with the exact integer model.
+   Worst model error over all x in [1, max_x]: 2^-24.73 (verifier worst err/tol 0.603).
+5. Denormalize `y1 = y 2^s` with four controlled rotations by 8,4,2,1 (`--binshift`), Z_POW per bit, uncompute all.
 
 ## Reproduce
 ```
-python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # B; drop last arg for A
-PYTHONPATH=data/kickmix python3.13 data/verifiers/invsqrt/verify_submission_invsqrt.py OUT.kmb
+python3.13 supervisor_work/invsqrt/lutpoly.py --packflags --rangeq --fy 28 --guards 0,1,1 --out D.kmb   # byte-identical to invsqrt_lut_D.kmb
+PYTHONPATH=data/kickmix python3.13 data/verifiers/invsqrt/verify_submission_invsqrt.py D.kmb             # ~6 min on 4 cores
+python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # old NR candidate B
 ```
-`data/kickmix/kickmix.so` is a CPython 3.13 Linux x86 build (fails to import on 3.11/3.12). Needs numpy+scipy.
-Builds are byte-for-byte deterministic (A sha256 8a1faebe…9be4b).
-
-This is far from the public best (≈20×, 63 qubits; QROM 256-segment + addition/lookup design). See SUPERVISOR.md
-on branch `claude/supervisor` for next directions. Nothing here was submitted to Kaggle.
+`data/kickmix/kickmix.so` is a CPython 3.13 Linux x86 build. Needs numpy + scipy.
