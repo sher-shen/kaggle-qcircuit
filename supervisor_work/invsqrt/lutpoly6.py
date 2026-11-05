@@ -87,7 +87,10 @@ class Design:
             for i in range(D):
                 e = i - D - sh  # weight of row: t bit i -> 2^(i-D); convert units
                 sg = 2 * ((t >> i) & 1) - 1  # signed digit +-1
-                acc += sg * (regs[j] >> -e if e < 0 else regs[j] << e)
+                v = regs[j] >> -e if e < 0 else regs[j] << e
+                if e < 0 and j in getattr(self, 'round', ()):  # --round: carry-in = next-lower src bit (round to nearest)
+                    v = v + ((regs[j] >> (-e - 1)) & 1)
+                acc += sg * v
             regs[j - 1] = regs[j - 1] - acc
             self._steps[j] = (init, regs[j - 1])
             W = self.widths[j - 1] if hasattr(self, 'widths') else 64
@@ -212,12 +215,26 @@ class Design:
                     assert all(p == lo + n for n, (_, p) in enumerate(terms))
                     tgt = acc[lo:]
                     srcq = [q for q, _ in terms]
-                    srcq += list(pad[:max(0, len(tgt) - len(srcq))])
+                    npad = max(0, len(tgt) - len(srcq))
+                    srcq += list(pad[:npad])
                     src_slice = km.array(srcq)
+                    rnd = e < 0 and j in getattr(self, 'round', ())
+                    if rnd:  # carry-in cb via an extra low bit l = cb: [l, tgt] += [cb, src] leaves l = 0
+                        cb = src[-e - 1]
+                        own = npad >= len(pad)
+                        l = b.alloc_qubits(1)[0] if own else pad[npad]
+                        tgt_r = km.array([l] + list(tgt)); src_r = km.array([cb] + srcq)
                     # acc -= (2d-1) v  ==  d ? ~(~acc + v) : acc + v   (inverse: isub)
                     for q in tgt: b.cx(tbits[i], q)
-                    (b.isub if inverse else b.iadd)(src_slice, target=tgt)
+                    if rnd and not inverse:
+                        b.cx(cb, l); b.iadd(src_r, target=tgt_r)
+                    elif rnd:
+                        b.isub(src_r, target=tgt_r); b.cx(cb, l)
+                    else:
+                        (b.isub if inverse else b.iadd)(src_slice, target=tgt)
                     for q in tgt: b.cx(tbits[i], q)
+                    if rnd and own:
+                        b.free(km.array([l]))
                 if not inverse and foldadd:
                     fold(False)
                 elif not inverse:
@@ -324,7 +341,9 @@ def main(Design=Design):
     ap.add_argument('--droprot', type=int, default=0)
     ap.add_argument('--smallfirst', action='store_true')
     ap.add_argument('--foldadd', action='store_true')
+    ap.add_argument('--round', default='')
     a = ap.parse_args()
+    if a.round: Design.round = tuple(int(v) for v in a.round.split(','))  # class-level: the coefficient search in __init__ must see it
     d = Design(a.k, a.deg, a.fy, guards=[int(v) for v in a.guards.split(',')] if a.guards else None, cadd=a.cadd, binshift=a.binshift, rangeq=a.rangeq, packflags=a.packflags)
     d.pad = a.pad
     d.clamp = a.clamp
