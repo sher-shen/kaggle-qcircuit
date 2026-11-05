@@ -191,7 +191,16 @@ class Design:
                 L = self.L[j]
                 acc = km.array(list(accfull[:L]) + list(carry[j]))
                 hi = accfull[L:]
-                if inverse:
+                def fold(inv):  # --foldadd: hi += c0 - 2 c1 as one adder, source bits [c0, c1, c1, ...] (fan-out copies of c1)
+                    fan = b.alloc_qubits(len(hi) - 1)
+                    for q in fan: b.cx(carry[j][1], q)
+                    (b.isub if inv else b.iadd)(km.array([carry[j][0]] + list(fan)), target=hi)
+                    for q in fan: b.cx(carry[j][1], q)
+                    b.free(fan)
+                foldadd = getattr(self, 'foldadd', False)
+                if inverse and foldadd:
+                    fold(True)
+                elif inverse:
                     b.iadd(1, target=accfull[L + 1:], control=carry[j][1])
                     b.isub(1, target=hi, control=carry[j][0])
                 for i in range(D):
@@ -209,7 +218,9 @@ class Design:
                     for q in tgt: b.cx(tbits[i], q)
                     (b.isub if inverse else b.iadd)(src_slice, target=tgt)
                     for q in tgt: b.cx(tbits[i], q)
-                if not inverse:
+                if not inverse and foldadd:
+                    fold(False)
+                elif not inverse:
                     b.iadd(1, target=hi, control=carry[j][0])
                     b.isub(1, target=accfull[L + 1:], control=carry[j][1])
 
@@ -240,6 +251,18 @@ class Design:
             else:
                 sb = b.alloc_qubits(4); sbits_load(sb)
             L = len(y1)
+            if getattr(self, 'smallfirst', False):  # shift by 1,2,4,8 in that order: lanes stay short (122 vs 132 CSWAPs)
+                fwd = (0, 1, 2, 3)
+                for i, r in enumerate(reversed(fwd) if inverse else fwd):
+                    m = 2**r
+                    prev = sum(2**q for q in fwd[:fwd.index(r)])
+                    nb = self.widths[0] + max(v & prev for v in range(11) if v >> r & 1)
+                    js = list(range(nb - 1, -1, -1))
+                    for j in (reversed(js) if inverse else js):
+                        b.cswap(sb[r], y1[j], y1[j + m])
+                if sbp is None:
+                    sbits_load(sb); b.free(sb)
+                return
             for r in ((0, 1, 2, 3) if inverse else (3, 2, 1, 0)):
                 if self.packflags:  # trimmed lane: value bits (incl. the 2^fy bit) + max shift reachable with bit r set (s <= 10)
                     L = self.widths[0] + max(v & ~((1 << r) - 1) for v in range(11) if v >> r & 1)
@@ -299,6 +322,8 @@ def main(Design=Design):
     ap.add_argument('--maxq', type=int, default=0)
     ap.add_argument('--droptop', action='store_true')
     ap.add_argument('--droprot', type=int, default=0)
+    ap.add_argument('--smallfirst', action='store_true')
+    ap.add_argument('--foldadd', action='store_true')
     a = ap.parse_args()
     d = Design(a.k, a.deg, a.fy, guards=[int(v) for v in a.guards.split(',')] if a.guards else None, cadd=a.cadd, binshift=a.binshift, rangeq=a.rangeq, packflags=a.packflags)
     d.pad = a.pad
@@ -308,6 +333,8 @@ def main(Design=Design):
     d.maxq = a.maxq
     d.droptop = a.droptop
     d.droprot = a.droprot
+    d.smallfirst = a.smallfirst
+    d.foldadd = a.foldadd
     e = d.calibrate()
     print('L', d.choose_L())
     print(f'k={a.k} deg={a.deg} fy={a.fy} guards={d.guards} widths={d.widths} max rel err 2^{math.log2(e):.2f}')

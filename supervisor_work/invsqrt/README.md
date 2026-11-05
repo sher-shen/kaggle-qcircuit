@@ -17,6 +17,8 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_lut_K.kmb | J + `--zshift` (zero-top shifts in denormalize) | 114 | 1758 | 2010.73 | 229,223.30 | 9.060 | PASS (`verify_lut_K.json`) |
 | invsqrt_lut_L.kmb | K + `--droptop` (y's top bit is always 1: not stored during lookup/Horner, a fresh \|1> qubit joins the lane at denormalize) | 113 | 1754 | 2006.73 | 226,760.57 | **9.158** | PASS (`verify_lut_L.json`) |
 | invsqrt_lut_N.kmb | **per-segment integer search of (b1,b2)** (`lutpoly7.py`) lets guards 0,-2,-4 pass (model err 2^-23.92 -> 2^-24.15) + `--droprot 1` (no Z_POW on the lowest output bit) | 112 | 1708 | 1960.76 | 219,605.63 | **9.457** | PASS (`verify_lut_N.json`, worst err/tol 0.931) |
+| invsqrt_lut_P.kmb | N + `--smallfirst` (denormalize shifts by 1,2,4,8 in that order, so each CSWAP stage only spans the bits that can be occupied: 122 instead of 132 CSWAPs per direction) | 112 | 1688 | 1940.76 | 217,365.63 | 9.554 | PASS (`verify_lut_P.json`, 0.931) |
+| invsqrt_lut_Q.kmb | P + `--foldadd` (Horner carry fold `hi += c0 - 2c1` as ONE adder with source bits [c0, c1, c1, ...] via CX fan-out copies of c1, instead of two controlled increments) | 112 | 1648 | 1900.76 | 212,885.63 | **9.755** | PASS (`verify_lut_Q.json`, 0.931) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
@@ -52,6 +54,7 @@ python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --gu
 python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6 --clamp --binnorm --zshift --out K.kmb   # = invsqrt_lut_K.kmb
 python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6 --clamp --binnorm --zshift --droptop --out L.kmb   # = invsqrt_lut_L.kmb (current best)
 python3.13 supervisor_work/invsqrt/lutpoly7.py --packflags --rangeq --fy 29 --guards=0,-2,-4 --pad 6 --clamp --binnorm --zshift --droptop --droprot 1 --out N.kmb   # = invsqrt_lut_N.kmb (current best, ~25 s)
+python3.13 supervisor_work/invsqrt/lutpoly7.py --packflags --rangeq --fy 29 --guards=0,-2,-4 --pad 6 --clamp --binnorm --zshift --droptop --droprot 1 --smallfirst --foldadd --out Q.kmb   # = invsqrt_lut_Q.kmb (current best; drop --foldadd for P)
 python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # old NR candidate B
 ```
 `data/kickmix/kickmix.so` is a CPython 3.13 Linux x86 build. Needs numpy + scipy.
@@ -70,3 +73,9 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
 - **lutpoly5.py is wrong with `--rangeq`**: all 512 addresses (e, mantissa) are reachable there but rangeq skips 0..127
   (e=0, M<1.5); verifier fails at x=2. Without rangeq it needs k=8 to save lookup, which gives 114 q / 1755 (no gain). Dropped.
 - fy=28 cannot pass even with precise r/c2 (guards 0,2,2: 2^-23.80): the y-step truncation noise is the limit.
+
+## 2026-11-05 05:xx run
+- Toffoli breakdown of N (flame chart): normalize 78 / lookup 354 / Horner 395 / denormalize 122 / phase (35 rotations) / denormalize_inv 122 /
+  Horner_inv 395 / unlookup 38 / normalize_inv 74. Peak 112 q is inside the y-step row adders (x 22 + s 4 + y 28 + r 18 + b2 8 + pad 6 + carries 4 + adder ancilla ~22).
+- `--smallfirst` (P, 9.554x) and `--foldadd` (Q, 9.755x): both value-identical to N (same worst err/tol 0.9305), full verifier PASS. lutpoly6 old outputs still byte-identical (N rebuilt = ee3f21fc).
+- pad sweep with P+Q flags: pad 4/5/6/7/8 -> 110q 1692 / 111q 1668 / 112q 1648 / 113q 1632 / 114q 1620 Toffoli; pad 6 still best.
