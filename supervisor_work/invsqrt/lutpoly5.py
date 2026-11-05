@@ -126,13 +126,13 @@ class Design:
         shift[ok] = np.round((lo[ok] + hi[ok]) / 2).astype(np.int64)
         coefs[0] = coefs[0] - shift
         if getattr(self, 'clamp', False):  # keep y < 2^fy so y needs fy bits (only M ~ 1 touches 2^fy)
-            self.widths = [w - (1 if j == 0 else 0) for j, w in enumerate(self.widths)]
             for _ in range(8):
                 y = self.model(xn, coefs)
                 over = np.zeros(nseg, dtype=np.int64)
                 np.maximum.at(over, A, y - (2**self.fy - 1))
                 if over.max() <= 0: break
                 coefs[0] = coefs[0] - over
+            self.widths = [w - (1 if j == 0 else 0) for j, w in enumerate(self.widths)]
             self.coefs = coefs
             return self.max_rel_err()
         self.coefs = coefs
@@ -290,7 +290,7 @@ class Design:
         return b.finish_circuit()
 
 
-if __name__ == '__main__':
+def main(Design=Design):
     import argparse, hashlib
     ap = argparse.ArgumentParser()
     ap.add_argument('--k', type=int, default=9); ap.add_argument('--deg', type=int, default=2)
@@ -320,3 +320,7 @@ if __name__ == '__main__':
     if a.out:
         c.to_file(a.out, format='kmb')
         print(a.out, hashlib.sha256(open(a.out, 'rb').read()).hexdigest()[:16])
+
+
+if __name__ == '__main__':
+    main()

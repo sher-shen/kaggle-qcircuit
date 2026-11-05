@@ -16,6 +16,7 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_lut_J.kmb | I + `--binnorm` (binary-search normalization, `binnorm.py`; no thermometer flags / flag packing) | 114 | 1780 | 2032.73 | 231,731.30 | 8.962 | PASS (`verify_lut_J.json`) |
 | invsqrt_lut_K.kmb | J + `--zshift` (zero-top shifts in denormalize) | 114 | 1758 | 2010.73 | 229,223.30 | 9.060 | PASS (`verify_lut_K.json`) |
 | invsqrt_lut_L.kmb | K + `--droptop` (y's top bit is always 1: not stored during lookup/Horner, a fresh \|1> qubit joins the lane at denormalize) | 113 | 1754 | 2006.73 | 226,760.57 | **9.158** | PASS (`verify_lut_L.json`) |
+| invsqrt_lut_N.kmb | **per-segment integer search of (b1,b2)** (`lutpoly7.py`) lets guards 0,-2,-4 pass (model err 2^-23.92 -> 2^-24.15) + `--droprot 1` (no Z_POW on the lowest output bit) | 112 | 1708 | 1960.94 | 219,605.63 | **9.457** | PASS (`verify_lut_N.json`, worst err/tol 0.931) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
@@ -50,6 +51,7 @@ python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --gu
 python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6 --clamp --binnorm --out J.kmb   # = invsqrt_lut_J.kmb
 python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6 --clamp --binnorm --zshift --out K.kmb   # = invsqrt_lut_K.kmb
 python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6 --clamp --binnorm --zshift --droptop --out L.kmb   # = invsqrt_lut_L.kmb (current best)
+python3.13 supervisor_work/invsqrt/lutpoly7.py --packflags --rangeq --fy 29 --guards=0,-2,-4 --pad 6 --clamp --binnorm --zshift --droptop --droprot 1 --out N.kmb   # = invsqrt_lut_N.kmb (current best, ~25 s)
 python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # old NR candidate B
 ```
 `data/kickmix/kickmix.so` is a CPython 3.13 Linux x86 build. Needs numpy + scipy.
@@ -58,3 +60,13 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
 - `--maxq N` (kickmix trades adder ancillas for Toffolis, about +1 Toffoli per adder per qubit): 114→110 q costs +82 Toffoli, 105 q +212; worse S.
 - `lutpoly5.py` (M in [1,2), 5 shift stages, parity e in a 256-entry address, x[21] borrowed as pad): lookup 383→254, but the 14th Horner row
   pushes the error to 2^-23.97 at guards 0,-1,-4 (fails); guards 0,0,-4 gives 2^-24.31 but 114 q / 1755 Toffoli. Kept for later (needs a precision fix).
+
+## 2026-11-05 04:xx run
+- `lutpoly6.py` = lutpoly4 + `--droprot m` (+ `main()` wrapper, clamp loop reordered; old outputs byte-identical, L rebuilt = 9ce35e85).
+  L+droprot1: 9.187x (err/tol 0.833); L+droprot2: 9.190x (0.937). All PASS, full run.
+- `lutpoly7.py`: for each (d1,d2) in [-3,3]^2 runs the exact integer model on all x_norm and keeps per segment the offset with the
+  smallest relative-error spread; a0 then re-centred. guards 0,-2,-4: 112 q / 1708 Toffoli, verifier 9.432x (0.904); +droprot1 9.457x (0.931).
+  R=6 gives no further gain; the worst segments are at M~3-4 (truncation noise, y < 2^28.x there), not at M~1.
+- **lutpoly5.py is wrong with `--rangeq`**: all 512 addresses (e, mantissa) are reachable there but rangeq skips 0..127
+  (e=0, M<1.5); verifier fails at x=2. Without rangeq it needs k=8 to save lookup, which gives 114 q / 1755 (no gain). Dropped.
+- fy=28 cannot pass even with precise r/c2 (guards 0,2,2: 2^-23.80): the y-step truncation noise is the limit.
