@@ -51,3 +51,4 @@
 - 监工 11 次（22:06Z–07:06Z 起）接手：分支 claude/invsqrt-supervisor-work，draft PR #1，最佳 lut_U2 = 109q / Toffoli 1618 / cost 204,973 = **10.132×**，官方 verifier 全量 PASS（换 salt 复核一致）。结论 NOT_APPROVED；低于公开最高 ~20.3×（62–63q），自研架构降 Q 做不动。
 - 未向 Kaggle 提交，未推 main，无大文件。
 - 11/05 08:30Z 复盘：云端试用额度具体用量 RemoteTrigger/本地都读不到，只能看 claude.ai 用量页（本地 Pro 套餐 5h 15%、周 22%，是另一回事）。监工成果在 GitHub：分支 claude/invsqrt-supervisor-work（59c0844，supervisor_work/ 目录）、claude/supervisor（SUPERVISOR.md）、draft PR #1，**尚未合并/未拉到本地**。
+- 11/05 收尾：draft PR #1 已转 ready 并合并进 main（81c976d），本地 main 已拉到最新，supervisor_work/invsqrt/ 在本地；SUPERVISOR.md 存为 docs/SUPERVISOR_1105.md；记忆/docs 提交 d3a8496 已推 origin/main。云端 routine 均已结束（worker 一次性已触发，监工 07:05Z 末次后额度到期）。下一步（若继续）：从公开 62q 电路出发（tools/ops2kmx.py 可重建）再改，而不是自研 109q 架构；见 cloud_run_1104.md
