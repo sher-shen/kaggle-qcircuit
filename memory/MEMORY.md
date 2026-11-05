@@ -10,3 +10,4 @@
 - [landscape_1029.md](landscape_1029.md) — 10/29 上午审核：公榜前三≈26、dfthcsos 非蓝海（公开最高数字已被 top_public 取代）
 - [invsqrt_notes_1031.md](invsqrt_notes_1031.md) — 题1 任务本质、kickmix 工具箱与成本、榜上实际做法（加法+查表，非 Newton）、借比特、下一步
 - [invsqrt_learning_shor.md](invsqrt_learning_shor.md) — Shor 量子半边讲解记录（账簿比喻）、用户卡过的点、题1 输入 22 位/输出相位/S=Q×C
+- [cloud_run_1104.md](cloud_run_1104.md) — 11/04-05 云端 routine 结果 10.132×、成果在哪、限额/403 教训

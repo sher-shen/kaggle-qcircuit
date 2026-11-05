@@ -8,7 +8,7 @@
 - 环境 → Mac 上 venv + 自编 kickmix + 数据已就绪；invsqrt / dqi 参考验证 = 1.000；dfthcsos 缺 fcidump（128MB，用户暂不批）→ 见 env_setup.md
 - 复现 → 公开最高的 invsqrt、dqi 本地复现与作者逐位一致；dfthcsos 未复现 → 见 top_public_1029.md
 - 深挖建议（未拍板）→ dfthcsos 主攻（λ_eff·T·Q 全随分解维度变，是数值优化问题）+ invsqrt 副线（4 分钟一轮、适合 MC 搜索）；dqi 不碰 → 见 plan.md
-- 状态 → huawei-CSI 11/13 截止前它优先；本题等用户决定继续 / 放弃
+- 状态 → huawei-CSI 11/13 截止前它优先；未决定参赛；仓库已**公开**；11/04–05 云端额度已用完（07:59Z 过期）：worker 零推送，监工接手做出自研 invsqrt **10.132×**（109q，官方 verifier PASS，draft PR #1，低于公开最高 20.3×）→ 见 cloud_run_1104.md、log.md 末段
 - 规则 → AI 不替用户提交，交之前给文件 + 预期分；≥50MB 下载先问
 - invsqrt 榜上做法 → 不是 Newton，是「加法+查表」，成本大头在 8 位进 35 位出的主查表（186→172 个 AND）；省 qubit 靠借已知值的比特；工具箱里只有 Toffoli 类和旋转算钱 → 见 invsqrt_notes_1031.md
 - invsqrt 输入输出 → 输入 22 位 x∈[1,3133452]，输出=给每个 x 盖∝1/√x 相位、x 还原、草稿清零；S=Q×C（榜首 63×≈1630）→ 见 invsqrt_notes_1031.md
