@@ -26,3 +26,16 @@ Note: ops.json Z_POW angles are in turns (numerator / 2^128 in `zpow_exact`); ki
   execution. **Result: none that run on more than 1.6% of inputs** (only rare measurement-conditioned CCZs; < 0.1 Toffoli total).
 - `pair_scan.py ops.json`: static scan for two ANDs into one target sharing a control (yoyobar's 3->2 AND trick)
   with nothing in between. **Result: 0 pairs left.**
+
+## Width analysis (2026-11-05 23:xx UTC): can the public circuit drop to 61 qubits?
+- `live_trace.py ops.json live.npz [stride]`: exact liveness over **all** x (~50 s). A qubit that is 0 for every x
+  is genuinely |0> (no Hadamards outside HMR). Result: **peak 62 on 15,720 ops**, first/last at op 3823 / 36834.
+- `windows.py stages.json live_occ.npy wins.npy`: the 62-wide stretches, merged (gaps <= 3 ops) and split by stage:
+  coeff_lookup 1 window (10,578 ops), early_phase_taps 4 (627), front_decoder_compute 7 (2,090), arith_b 16 (88),
+  fine_phase_stream 7 (224), arith_c 17 (156), lookup_c 2 (1,773), late_curvature_norm 13 (218) — **67 windows**.
+- `rank_win.py ops.json wins.npy`: affine GF(2) rank of the live wires at the start/middle/end of each window
+  (10k x sample, incl. all x <= 4096). 176 of 200 probes are **full rank**: only late_curvature_norm (deficit 7..14)
+  and 3 tiny windows (ops 16630, 24269, 24746; deficit 1) could be freed with CNOTs alone.
+- So 61 qubits needs non-linear re-synthesis of coeff_lookup, the front decoder, lookup_c and ~33 adder carry
+  windows. Break-even budget for one wire is ~26 Toffoli-eq (1/62 of C); the 63->62 step already cost 5 ANDs in
+  coeff_lookup alone. Not attempted further.
