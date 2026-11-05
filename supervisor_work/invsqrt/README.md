@@ -10,7 +10,8 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_sv_B.kmb | A + drop Horner intermediates | 178 | 9633 | 9882.53 | 1,759,090.20 | 1.181 | PASS |
 | invsqrt_lut_C.kmb | **LUT + quadratic, no Newton** (`lutpoly.py --binshift --fy 28 --guards 0,1,1`) | 152 | 2853 | 3093.23 | 470,171.25 | 4.417 | PASS (`verify_lut_C.json`) |
 | invsqrt_lut_D.kmb | C + reachable-address QROM + packed flags (`--packflags --rangeq --fy 28 --guards 0,1,1`) | 146 | 2746 | 2986.23 | 435,989.86 | 4.763 | PASS (`verify_lut_D.json`) |
-| invsqrt_lut_E.kmb | D + trimmed denormalize lanes (current `lutpoly.py`, same flags as D) | 146 | 2728 | 2968.23 | 433,361.86 | **4.792** | PASS (`verify_lut_E.json`) |
+| invsqrt_lut_E.kmb | D + trimmed denormalize lanes (current `lutpoly.py`, same flags as D) | 146 | 2728 | 2968.23 | 433,361.86 | 4.792 | PASS (`verify_lut_E.json`) |
+| invsqrt_lut_H.kmb | **signed-digit δ + windowed Horner** (`lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6`) | 115 | 1884 | 2136.73 | 245,724.03 | **8.452** | PASS (`verify_lut_H.json`) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
@@ -23,10 +24,21 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
    Worst model error over all x in [1, max_x]: 2^-24.73 (verifier worst err/tol 0.603).
 5. Denormalize `y1 = y 2^s` with four controlled rotations by 8,4,2,1 (`--binshift`), Z_POW per bit, uncompute all.
 
+## Signed-digit + windowed Horner (`lutpoly3.py`, `lutpoly4.py`) — candidate H
+- Offset digits are read as ±1: δ = (2t+1-2^D)/2^D = Σ (2d_i-1) 2^(i-D). The quadratic is fit on δ∈(-1,1) (centred segment).
+  Each Horner row `acc -= (2d_i-1)·v` is `CX(d_i→acc); acc += v; CX(d_i→acc)` (d=1: ~(~acc+v) = acc-v). No AND layer, no
+  scratch register (Q 146 → 132 in `lutpoly3.py`); a small zero pad (`--pad`) extends short sources so adders avoid the
+  costly increment tail.
+- `lutpoly4.py`: rows add only into the low `L_j` bits of the accumulator plus 2 signed carry qubits (value range checked
+  exactly over all x_norm in `choose_L`), then the carries are folded into the high part once (`hi += c0`, `hi[1:] -= c1`).
+  Arithmetic is identical to the unwindowed version (same model, same error); y-step adders shrink 30→22 bits, r-step 19→13.
+- `--clamp`: y < 2^fy (re-centred a0 for the M≈1 segment), so y needs fy bits instead of fy+1 (candidate I, see SUPERVISOR.md).
+
 ## Reproduce
 ```
 python3.13 supervisor_work/invsqrt/lutpoly.py --packflags --rangeq --fy 28 --guards 0,1,1 --out E.kmb   # byte-identical to invsqrt_lut_E.kmb
 PYTHONPATH=data/kickmix python3.13 data/verifiers/invsqrt/verify_submission_invsqrt.py E.kmb             # ~6 min on 4 cores
+python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6 --out H.kmb   # byte-identical to invsqrt_lut_H.kmb
 python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # old NR candidate B
 ```
 `data/kickmix/kickmix.so` is a CPython 3.13 Linux x86 build. Needs numpy + scipy.
