@@ -181,6 +181,8 @@ class Design:
                 sb = b.alloc_qubits(4); sbits_load(sb)
             L = len(y1)
             for r in ((0, 1, 2, 3) if inverse else (3, 2, 1, 0)):
+                if self.packflags:  # trimmed lane: value bits (incl. the 2^fy bit) + max shift reachable with bit r set (s <= 10)
+                    L = self.widths[0] + max(v & ~((1 << r) - 1) for v in range(11) if v >> r & 1)
                 if inverse:
                     b.right_rotate(y1[:L], 2**r, control=sb[r])
                 else:

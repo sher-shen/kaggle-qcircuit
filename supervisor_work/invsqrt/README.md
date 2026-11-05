@@ -9,7 +9,8 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_sv_A.kmb | NR, precision search + lazy alloc | 212 | 8281 | 8530.53 | 1,808,472.20 | 1.148 | PASS |
 | invsqrt_sv_B.kmb | A + drop Horner intermediates | 178 | 9633 | 9882.53 | 1,759,090.20 | 1.181 | PASS |
 | invsqrt_lut_C.kmb | **LUT + quadratic, no Newton** (`lutpoly.py --binshift --fy 28 --guards 0,1,1`) | 152 | 2853 | 3093.23 | 470,171.25 | 4.417 | PASS (`verify_lut_C.json`) |
-| invsqrt_lut_D.kmb | C + reachable-address QROM + packed flags (`--packflags --rangeq --fy 28 --guards 0,1,1`) | 146 | 2746 | 2986.23 | 435,989.86 | **4.763** | PASS (`verify_lut_D.json`) |
+| invsqrt_lut_D.kmb | C + reachable-address QROM + packed flags (`--packflags --rangeq --fy 28 --guards 0,1,1`) | 146 | 2746 | 2986.23 | 435,989.86 | 4.763 | PASS (`verify_lut_D.json`) |
+| invsqrt_lut_E.kmb | D + trimmed denormalize lanes (current `lutpoly.py`, same flags as D) | 146 | 2728 | 2968.23 | 433,361.86 | **4.792** | PASS (`verify_lut_E.json`) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
@@ -24,8 +25,8 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 
 ## Reproduce
 ```
-python3.13 supervisor_work/invsqrt/lutpoly.py --packflags --rangeq --fy 28 --guards 0,1,1 --out D.kmb   # byte-identical to invsqrt_lut_D.kmb
-PYTHONPATH=data/kickmix python3.13 data/verifiers/invsqrt/verify_submission_invsqrt.py D.kmb             # ~6 min on 4 cores
+python3.13 supervisor_work/invsqrt/lutpoly.py --packflags --rangeq --fy 28 --guards 0,1,1 --out E.kmb   # byte-identical to invsqrt_lut_E.kmb
+PYTHONPATH=data/kickmix python3.13 data/verifiers/invsqrt/verify_submission_invsqrt.py E.kmb             # ~6 min on 4 cores
 python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # old NR candidate B
 ```
 `data/kickmix/kickmix.so` is a CPython 3.13 Linux x86 build. Needs numpy + scipy.
