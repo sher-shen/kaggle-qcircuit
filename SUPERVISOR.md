@@ -1,35 +1,32 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-06 06:45 UTC（每小时一次的监工；routine 仍在触发）
-**结论**：**NOT_APPROVED**（自研最好的仍是 lut_U2 10.132×；公开 62q 电路 20.625× 本次又全量复核 PASS。本次没有新的提升，并且第一优先方向被权限挡住了）
+**时间戳**：2026-11-06 07:25 UTC（每小时一次的监工；routine 仍在触发）
+**结论**：**NOT_APPROVED**（自研最好的仍是 lut_U2 10.132×，本次换新 salt 全量复核 PASS；公开 62q 电路 20.625× 本次重建 sha 一致。本次没有新的 cost 提升，但把上次的第 1、2 优先方向用分析关掉了）
 
 ## 1. 干活的状态
-- 远端分支：`main`（037709c）、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**，干活的从 11-04 21:24Z 起就没再推送。
-- 监工继续在 `claude/invsqrt-supervisor-work` 上接手，本次推送了 f667f7c：`lut_extract_xag.py`、`lut_xag_rank.py`、`lut_dcare.py`、`verify_public62_0606.json`，另外在 README 里加了一节。
+- 远端分支：`main`（037709c）、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**，干活的从 11-04 21:24Z 起就没再推送。用户 11-05 已经把 PR #1 合并并在 main 上收尾。
+- 监工继续在 `claude/invsqrt-supervisor-work` 上接手，本次推送了 a1993c1：`xag_affine.py`、`xag_mffc.py`、`andfree_scan.py`、`../invsqrt/verify_lut_U2_sv0706.json`，并在 README 里加了一节。
 
 ## 2. 已核实的事实
 | 电路 | Q | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|
-| 公开 62q（67482db6） | 62 | 1624.07 | 100,692.58 | 20.625 | 新容器里从 ops.json 重建，**sha 字节一致**；官方 verifier 全量重跑 **200,540,928 shot PASS**（Toffoli 1327.483、worst 0.99932 x=161、score 100,692.58，一致） |
-| lut_U2（main） | 109 | 1880.49 | 204,973.19 | 10.132 | 本次没重跑（之前已多次换 salt 全量 PASS） |
-- 硬规则检查：没有向 Kaggle 提交；没有推 main；只提交了 .py、README 和 verifier 的 json 输出（几 KB）；没有第三方电路文件（cl.v 是从第三方电路导出的，没有提交）；没有密钥，也没有比赛非公开信息。
+| lut_U2（main，sha 27d75c8f） | 109 | 1880.49 | 204,973.19 | 10.132 | **本次用新 salt sv0706 重跑官方 verifier，全量 200,540,928 shot PASS**（Toffoli 1618、35 个旋转、worst 0.99075 x=816489），和之前一致 |
+| 公开 62q（67482db6） | 62 | 1624.07 | 100,692.58 | 20.625 | 从 ops.json 重建，**sha 字节一致**；verifier 本次没重跑（06:45 那次已经全量 PASS） |
+- 硬规则检查：没有向 Kaggle 提交；没有推 main；只提交了 .py、README 和一个几 KB 的 verifier json；没有第三方电路文件，没有密钥，也没有比赛非公开信息。
 
-## 3. 本次实验
-- **指示 1（用 MC 工具重综合 coeff_lookup）**：`lut_extract_xag.py` 把 ops 238..15214 导出成 8 输入、35 输出的 XAG Verilog，177 个 AND。这段里没有条件块，15 根 payload 线（q0..q13、q23）也完全没碰过，可以直接喂给 mockturtle。**但在云端编译 mockturtle（外部代码）被 Claude Code 的 auto-mode 权限分类器拒绝了，所以没跑成。** 要继续这个方向，需要用户放行，或者在本地跑。
-- `lut_xag_rank.py`：177 个 AND 的乘积真值表彼此线性无关，也不在输入和更早乘积的张成里，XAG 层面 0 冗余。
-- **查表 don't-care（新方向，已关闭）**：发现系数线被 HMR 测掉后，相位修正都是 one-hot 查表上的纯 Z 门，代价和表的内容无关，所以理论上表值的 don't-care 可以利用。`lut_dcare.py` 在 stage 结束处翻转每根输出线，并把它后面第一次 HMR 强制成结果 0（相当于相位修正完全一致），然后按地址记录最坏误差。结果：早期 tap 的 5 根线（40、41、50、51、57）在所有地址上误差都 ≥6.6e4×tol；其余 30 根翻转后末态都不干净（系数进入了原地算术，后面又被反算），**单比特余量为 0**。
-- 后台跑了官方 verifier 全量（约 25 分钟），结果见上表。
+## 3. 本次实验（结论都是关闭方向）
+- **指示 1、2（MC 重综合 coeff_lookup）用分析关掉**：`xag_affine.py` 和 `xag_mffc.py` 显示，177 个 AND 的 **MFFC 全部是 1**（扇出 1~137，每个 AND 都作为线性项被几十个后续 AND 用到）。cut rewriting 的收益是 |MFFC| 减去新加的 AND，所以单遍要有收益，被改写节点的函数必须落在已有节点的仿射张成里，而 `lut_xag_rank.py` 已经证明这种情况为 0。所以 mockturtle 的 cut_rewriting 加 minmc 预期收益是 0，自写的局部割重综合也一样。另外每个输出的锥都覆盖 141~177 个 AND，28 个非阶梯输出单独就要用到全部 177 个，所以把 7 个阶梯状输出（转折 3~35 个，阈值 7/35/74/128/...）拆出来用比较器做，结构上省不下任何东西。
+- **指示 3（跨 stage 线分配）**：`andfree_scan.py` 在 67 个 62 宽窗口的开头和中点找满足 w = a·b ⊕ 仿射 的活线，这种线可以免费测掉、之后花 1 个 Toffoli 重算，从而腾出一根线。结果：**coeff_lookup（10,578 个 op 的窗口）和 front_decoder_compute 都是 0 个**；只有 arith_b、arith_c、fine_phase_stream 的短进位窗口里有。所以 61q 每个窗口的代价都远不止 1 个 Toffoli。另外 63q 的 2^-17 tap（63q ops 27162-27168）用的 q48 是一根**长期滚动寄存器**（之前就存着 q21·q54 ⊕ …，19% 时间非零），不是临时线；62q 在 25860-25880 一直是 62 宽，搬不过来。方向关闭。
 
 ## 4. 问题和可疑点
-- 仍然没有干活的。用户 11-05 已经收尾，这个 routine 每小时还在消耗额度。
-- 第一优先方向需要编译外部 C++ 库，在这个无人值守的会话里被权限挡住了；除此之外，剩下的方向都是大规模结构性重综合。
+- 仍然没有干活的。用户 11-05 已经收尾，这个 routine 每小时还在消耗额度。自 11-05 07:50 起，连续 11 次运行都没有 cost 提升。
+- 公开 62q 这一路剩下的方向都要做全局重综合，比如带宽度约束的精确 MC 搜索（SAT），或者重新设计系数表示。一小时的无人值守运行很难做完。
 
 ## 5. 下一步指示（按优先级，都还没做）
-1. **（需要用户放行或本地执行）mockturtle MC 重综合**：`git clone --depth 1 https://github.com/lsils/mockturtle`，用 `cut_rewriting` + `future::xag_minmc_resynthesis` + `mc_cost`（cut_size 5~6）迭代，再加 `xag_constant_fanin_optimization` 和 `exact_linear_resynthesis_optimization`，输入是 `lut_extract_xag.py` 的输出。如果降到 ≤171 AND，再做 pebbling（scratch ≤39 根，测量反算只要两个输入还在就是免费的），并且把 stage 的相位当成额外输出（只有末级 AND 是免费的 CZ）。
-2. **自写的局部 MC 重综合**（不依赖外部代码）：在 XAG 上枚举 ≤5 输入的割，对每个割的多输出真值表做小规模穷举（SAT 不能用的话就用 BFS 枚举 ≤3 个 AND 的 XAG），能用更少的 AND 实现就替换掉。先拿 7 个阶梯状高位输出（q40/41/43/44/57/59/60）试。
-3. **跨 stage 线分配**（上次的指示 2，没做）：arith_a 峰值 61、phase_merge_repair 峰值 60，看能不能在 fine_phase_stream 期间腾出一根线，整段搬 63q 版（省 4）。先跑 `stage_match.py 25425 26758` 和 `25923 27216`。
-4. **改变系数合同**：单比特没有余量，但可以考虑把系数换成别的表示（比如对 30 根进入算术的系数做 signed-digit 重编码，同时改算术），这样可能让表更"平滑"、AND 更少。工作量大，优先级最低。
-5. 已关闭的方向：之前列过的全部，再加上查表单比特 don't-care 和 XAG 层面的线性冗余。
+1. **coeff_lookup 的全局 MC 重综合，要带宽度约束**：这个 stage 里 8 根地址线、15 根 payload、35 根输出，同时最多 62 根，所以末尾只剩约 4 根 scratch。目标是 35 个 8 输入函数在 ≤4 根 scratch、并允许输出线原地累加的条件下，用不到 172 个 AND 实现。做法是把输出分组（比如按 xag_mffc 的锥重叠分成 5~7 组），每组用 SAT（如 CaDiCaL/kissat；如果权限不允许编译外部代码，就用 python-sat 的 wheel 或自写 DPLL）求精确的最少 AND 数，再拼起来对比 177。
+2. **改变系数合同**：查表的 35 个输出看上去是随机函数。可以把 30 根进入算术的系数换成 signed-digit 或"差分 + 前一段系数"的表示，同时改下游算术，让表更平滑，次数更低、ANF 项更少。先离线算：对每种重编码，看 35 个输出模仿射的秩和 ANF 项数下降了多少，有明显下降再改电路。
+3. **自研 lut_U2 一路换成公开 62q 的结构思路**：U2（109q、1618 Toffoli）比 62q（62q、1327 Toffoli）宽 47 根线，cost 的主要差距在 Q。可以从 62q 的 stage 划分（coeff_lookup → 相位 taps → 三段算术 → 归一化）出发，把 U2 的精度预算（行舍入、粗 guard）套进去，看能不能做出 ≤62q、Toffoli 更少的自研版本。
+4. 已关闭的方向：之前列过的全部，加上本次的局部 MC 重综合（MFFC=1）、阶梯输出拆分、AND 可重算线腾宽（coeff_lookup 为 0）、63q 2^-17 tap 移植。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -49,3 +46,4 @@
 - 2026-11-06 04:45 UTC：依然没有干活的分支；公开 62q 重建 sha 一致，**官方 verifier 全量 PASS（20.625×）**；求出 unnormalize 解码器的真值表，秩下界证明 5 AND 已经最优；62q 和 63q 在 unnormalize 开头的移位计数编码不是仿射关系，整段搬过来不可行；旋转放进条件块在纸面上基本不可行；推送了 8a447da 到 invsqrt-supervisor-work；NOT_APPROVED。
 - 2026-11-06 05:35 UTC：依然没有干活的分支；公开 62q 重建 sha 一致，**官方 verifier 全量 PASS（20.625×）**；coeff_lookup 求出真值表（35 个输出，近似随机，ANF 次数 7~8），双线性 4+4 分解要 225（比 177 差），177 个 AND 是一般的 XAG 电路，原地 span 检查 0 命中，自写的 flip-graph 无效；early_phase_taps 出口编码对不上，关闭；推送 73e28fd 到 invsqrt-supervisor-work；NOT_APPROVED。
 - 2026-11-06 06:45 UTC：依然没有干活的分支；公开 62q 重建 sha 一致，**官方 verifier 全量 PASS（20.625×）**；把 coeff_lookup 导出成 XAG（177 AND，按 XAG 层面看 0 冗余），但在云端编译 mockturtle 被权限分类器拦下，指示 1 没跑成；查表单比特 slack 扫描结果是没有任何余量（早期 tap 线 ≥6.6e4×tol，其余 30 根翻转后末态不干净），方向关闭；推送 f667f7c 到 invsqrt-supervisor-work；NOT_APPROVED。
+- 2026-11-06 07:25 UTC：依然没有干活的分支；U2 换 salt sv0706 全量复核 PASS（10.132×，一致）；公开 62q 重建 sha 一致；coeff_lookup 的 177 个 AND 的 MFFC 全为 1，所以 cut rewriting/局部 MC 重综合预期收益 0（关闭指示 1、2）；输出锥 141~177，阶梯输出拆分无效；AND 可重算线扫描在 coeff_lookup 为 0，63q 2^-17 tap 依赖滚动寄存器，搬不过来（关闭指示 3）；推送 a1993c1 到 invsqrt-supervisor-work；NOT_APPROVED。
