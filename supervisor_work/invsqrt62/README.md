@@ -147,3 +147,20 @@ Run from a scratch dir that has a `w/` subdir (the scripts read and write `w/cl.
   tables, so r >= ~70-85. There may be room below 172, but only a real MC search (SAT/XAG resynthesis) could reach it.
 - `lut_flip.c` + `lut_mk_tensor.py`: a GF(2) flip-graph tensor-rank walk. **It doesn't work here**: started from the trivial
   225-term decomposition, it can't even recover a planted rank-60 15x15x35 tensor in 60 s. Do not use it as-is.
+
+## coeff_lookup as XAG + table slack (2026-11-06 06:xx UTC, supervisor)
+- Re-built `p62.kmb` (sha 67482db6..., byte-identical) and re-ran the **official verifier, full 200,540,928 shots: PASS**,
+  Toffoli 1327.483, C 1624.07, score 100,692.58 (`verify_public62_0606.json`).
+- `lut_extract_xag.py ops.json 238 15214 cl.v`: exports the stage as an 8-input / 35-output XAG in Verilog (177 ANDs, no
+  conditional blocks inside, the 15 live payload wires q0..q13,q23 are never touched). Ready to feed an external MC
+  optimiser (mockturtle `cut_rewriting` + `future::xag_minmc_resynthesis`). **Compiling mockturtle in the cloud session was
+  blocked by the permission classifier (external code)**, so this was not run.
+- `lut_xag_rank.py cl.v`: none of the 177 AND products is in the GF(2) span of 1, the inputs and the earlier products
+  (XAG-level redundancy 0).
+- `lut_dcare.py ops.json 30000 5 2 out.npz`: flips each output wire right after the stage, with the first later HMR of every
+  output wire forced to outcome 0 (= a perfectly consistent phase fix-up), and records the worst error per address.
+  The fix-ups of the measured-out coefficient wires are Z-only one-hot lookups, so their Toffoli cost doesn't depend on
+  the table, and don't-cares would be usable. **But there is no slack**: the 5 early-tap wires (40, 41, 50, 51, 57) give
+  >= 6.6e4 x tolerance on every address, and the other 30 make the state dirty (the coefficient feeds in-place arithmetic
+  that is uncomputed later). A table don't-care search on single bits is **closed**. A cheaper table would have to change
+  the arithmetic contract too.
