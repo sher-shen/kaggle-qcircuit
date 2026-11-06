@@ -118,3 +118,14 @@ Note: ops.json Z_POW angles are in turns (numerator / 2^128 in `zpow_exact`); ki
   There's no single place to transplant.
 - The last two complementary condition blocks (46862-46981 under bit 318 and 46982-47211 under its inverse 8045) share a
   6-AND carry chain. Exactly one branch runs per shot, so hoisting that chain saves nothing. **Closed.**
+
+## unnormalize decoder: provably minimal; 63q stage transplant blocked (2026-11-06 04:xx UTC, supervisor)
+- `segmap.py ops.json 46753 46777 0,1,2,3,23,14,15,16,17,18,60 <same> 13000 20000 4`: exact truth table of the decoder
+  (deterministic, 29 reachable inputs). With a=q0, b=q1, c=q2, d=q3, f=q23, G=f(a|b): outputs q14=fb, q15=fa~c, q16=fac,
+  q17=G, q60=Gd, q23=f^G^q60, q0..q3 = swap(b,a,d,c) masked by ~G; extra phase = bit13000 & f & ~(a|b).
+- Rank check: over the 29 reachable inputs, {fa, fb, fac, fab, Gd} are 5-dimensional modulo affine functions, and each
+  Toffoli/CSWAP adds at most one new product, so this output contract needs **>= 5 Toffolis**. The 62q decoder uses exactly 5.
+- `stage_match.py 46744 45095 ops62.json ops63.json` (+ `simto.py`): at the start of unnormalize, 22 of the live wires map
+  1:1 onto 63q `9a8627`, but 62q's q0,q2,q3,q23 (4 wires) and 63q's q0,q2,q3,q23,q56 (5 wires) are **not affine-related**.
+  This is the shift-count compression that saved the 62nd wire. Re-expanding it costs Toffolis, so the 63q stage
+  (3 ANDs in its decoder, 0.6 cheaper in total) can't be transplanted for free. **Direction closed.**
