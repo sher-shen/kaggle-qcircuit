@@ -77,3 +77,18 @@ Note: ops.json Z_POW angles are in turns (numerator / 2^128 in `zpow_exact`); ki
 - Verifier detail relevant to future work: `n_rot` is the *mean executed* count of non-Clifford rotations
   (`num_z_pow(min_clifford_hierarchy_level=4)` / shots), so a rotation inside a measurement-conditioned block only
   costs its execution probability. All 41 rotations here are unconditioned.
+
+## 62q vs 63q stage diff: where the extra Toffolis of the 62-wide build sit (2026-11-06 02:xx UTC, supervisor)
+- `segtof.py <viewer> <stage>` counts static Toffoli-class gates between consecutive Z_POWs, 62q vs busyaprime's 63q
+  `9a8627`. early_phase_taps differs at the 2^-10 and 2^-6 rotation segments (+1 each) and in the tail; fine_phase_stream
+  in the first segment (40 vs 37) and the 2^-17 segment (+1).
+- `patch_ops.py in.json edits.json out.json`: range-replacement edits on ops.json with zpow_exact re-keying.
+  `qcheck.py out.json 20000 1 2`: sampled exact check (phase, final cleanliness, mean Toffoli), ~2.5 s.
+- **Try 1 (early_phase_taps op 15528, CCX 32 16 1)**: the 63q build erases the gated quadratic of the last coarse step by
+  HMR + conditioned CZ (0 Toffoli); the 62q build uses a Toffoli. Rewrote it as CX-chain + HMR q1 + conditioned CZ ->
+  **FAIL** (qcheck: 27% dirty). Probe: q1 is non-zero on 12.3% of inputs after op 15559 and is consumed at op 16161
+  (`CX 21 1`, `CZ 23 1`): the 62q design keeps q1 alive as a rolling register instead of a fresh wire, so the Toffoli
+  is the price of the saved wire. Closed.
+- **Try 2 (fine_phase_stream op 25874-25875)**: 62q computes `q50 = q23*a ^ q21*b` with 2 Toffolis where 63q uses 1 plus
+  an AND stored earlier on the 63rd wire. q21/q23 are mutually exclusive (q21&q23 = 0, q21 0.3 %, q23 20 %) but not
+  complementary, so `s1*a ^ s2*b` still needs 2 ANDs without the stored product. Closed unless a wire is freed.
