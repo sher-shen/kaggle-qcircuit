@@ -1,35 +1,44 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-06 22:25 UTC（每小时一次的监工，routine 仍在触发）
-**结论**：**NOT_APPROVED**（自研最好的仍是 lut_U2 10.132×，这次换新 salt 全量复核 PASS；公开 62q 是 20.625×。这次没有 cost 提升，指示 1「SAT 精确 MC」和指示 2「按最高位拆表」都用实验关掉了）
+**时间戳**：2026-11-06 23:20 UTC
+**结论**：**NOT_APPROVED**（自研最好的仍是 lut_U2 10.132×，这次又全量复核 PASS；公开 62q 是 20.625×。连续 14 次没有 cost 提升）
 
 ## 1. 干活的状态
-- 远端分支只有 `main`（037709c）、`claude/supervisor`、`claude/invsqrt-supervisor-work`，**仍然没有干活的分支 W**。干活的从 11-04 21:24Z 起就没再推送，用户 11-05 已合并 PR #1 并在 main 上收尾。
-- 监工继续在 `claude/invsqrt-supervisor-work` 上接手，这次推送了 d6a99e1：`lut_split7.py`、`lut_mcsat.py`、`lut_profile.py`、`../invsqrt/verify_lut_U2_sv0611.json`，README 里加了一节。
+- 远端分支只有 `main`（037709c）、`claude/supervisor`、`claude/invsqrt-supervisor-work`，**仍然没有干活的分支 W**（干活的从 11-04 21:24Z 起就没再推送，PR #1 已在 11-05 合并）。
+- 监工继续在 `claude/invsqrt-supervisor-work` 上接手，这次推送了 3da3570（`qubit_ledger.py`、`verify_lut_U2_sv0711.json`、README 一节）。
 
 ## 2. 已核实的事实
 | 电路 | Q | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|
-| lut_U2（main，sha 27d75c8f） | 109 | 1880.49 | 204,973.19 | 10.132 | **新容器里用 lutpoly7.py 重建，字节一致；换新 salt sv0611 重跑官方 verifier，全量 200,540,928 shot PASS**（Toffoli 1618、35 个旋转、worst 0.99075，x=816489，2 分 35 秒） |
-| 公开 62q（67482db6） | 62 | 1624.07 | 100,692.58 | 20.625 | 这次没重跑 verifier。重新 clone 了 ops.json，导出 coeff_lookup 的 XAG（177 AND、35 个输出，和之前一致） |
-- 硬规则检查：没有向 Kaggle 提交；没有推 main；只提交了 .py、README 和几 KB 的 json；没有第三方电路、密钥或比赛非公开信息。
+| lut_U2（sha 27d75c8f） | 109 | 1880.49 | 204,973.19 | 10.132 | **新容器用 lutpoly7.py 重建，字节一致；换 salt sv0711 跑官方 verifier，全量 200,540,928 shot PASS**（Toffoli 1618、35 个旋转、worst 0.99075，x=816489） |
+| 公开 62q（67482db6） | 62 | 1624.07 | 100,692.58 | 20.625 | 这次没重跑（之前已多次全量 PASS） |
+- 硬规则检查：没有向 Kaggle 提交；没有推 main；只提交了 .py、README 和小 json；没有密钥或比赛非公开信息。
 
-## 3. 本次实验
-- **指示 2（按最高位 q21 拆成两个 7 位子表）**：35 个输出用到了 8 位地址的**全部 247 个** 2 次及以上单项式。写成 f = g(x') ^ x7·h(x') 后，g 和 h 的秩都是 35，g 用到全部 120 个、h 用到全部 127 个 7 变量单项式。
-  - 只有把 35 个 h_k 同时存在 35 根额外的 scratch 线上，才能做到 120 + 35 = 155 个 AND。但 Q 会从 62 涨到约 97，cost 大约乘 1.5。
-  - 在 4 根 scratch 的宽度预算内，单项式 DFS 要 247 个 AND；"先把 h 算进输出、乘 x7、再 MBU 加相位修正 DFS" 的变体要约 275 个。**都比 177 差，关闭。**
-- **指示 1（python-sat 精确 MC）**：写了 XAG 的 SAT 编码（`lut_mcsat.py`，操作数取输入和前面 AND 的仿射组合，用 CaDiCaL）。拿最简单的单输出 row 33 测（阈值函数，ANF 次数 8，所以 MC ≥ 7，而且有 7 个 AND 的比较器）：r=6 和 r=7 **都在 200 秒内没出结果**。一个 7 AND 的单输出都解不动，24 个输出、约 150 AND 的块就更不可能。**关闭。**
-- U2 的 maxq 复查：108 → 1636 Toffoli，104 → 1734（109 是 1618），Q×C 都没有变好。
+## 3. 本次实验（指示 1 的第一步：qubit 账本）
+- U2 每个 stage 的峰值活跃 qubit 数：normalize 37，lookup 86，**horner 109**，denormalize/phase 99，lookup_inv 88。
+  - horner 的基线是 88：x 22 + sbp 4 + 系数寄存器 51 + pad 7 + carry 4，再加上约 21 个加法器 ancilla。
+- 只压 horner 最多降到 99。要再往下，denormalize/phase 那段也得一起缩：y1 有 39 位，系数寄存器从 lookup 开始一直占到最后。
+- pad 扫描，用 Q×(T+262) 估算：
+
+  | pad | maxq | Q | Toffoli | Q×(T+262) |
+  |---|---|---|---|---|
+  | 0 | 不限 | 104 | 1774 | 211.7k |
+  | 3 | 不限 | 107 | 1672 | 206.9k |
+  | 3 | 105 | 105 | 1714 | 207.5k |
+  | 5 | 不限 | 109 | 1624 | — |
+  | 5 | 105 | 105 | 1702 | — |
+
+  全都不如 U2 的 204.97k。**关闭。**
 
 ## 4. 问题和可疑点
-- 仍然没有干活的。用户已经收尾，这个 routine 每小时还在消耗额度。从 11-05 07:50 起**连续 13 次没有 cost 提升**。查表（coeff_lookup）这一路，局部、重编码、拆表、SAT 现在都关了。
-- 剩下的方向都是"结构性重写"级别，一小时的无人值守运行很难做完。**建议用户停掉这个监工 routine**，或者开一个长时间的专门会话来做第 5 节的第 1 条。
+- 仍然没有干活的，用户已经收尾，这个 routine 每小时还在消耗额度。局部调参已经穷尽，剩下的都是结构性重写，一小时的无人值守运行做不完。**强烈建议用户停掉这个监工 routine**，或者开一个长时间的专门会话来做下面第 1 条。
 
 ## 5. 下一步指示（按优先级，都还没做）
-1. **自研 U2 一路往 62q 的结构靠（降 Q）**：U2 是 109q、1618 Toffoli，62q 是 62q、1327 Toffoli，差距主要在 Q（maxq 已证明压不动，要改架构）。从 62q 的 stage 划分出发（查表 → 相位 taps → 三段算术 → 归一化），在 U2 的 lutpoly7 里：系数用"计算—用完—MBU 归还"代替常驻寄存器，Horner 中间结果做原地累加。目标 ≤75q、Toffoli ≤1750（约 15~16×）。先只做 qubit 账本（每个 stage 有多少根活线），不写电路。
-2. **在 62q 电路上改相位 tap / 精度预算（不碰查表）**：之前的 phase_trace 表明 worst error 有余量的 x 段。可以在 arith_b、arith_c 里试截掉最低 1 位（降 Toffoli），再用 verifier 全量确认。前几次只扫了单 AND 和旋转，还没扫过"整段截位"。
-3. **查表的启发式 MC 重综合（不用 SAT）**：自己实现一个小的 XAG 随机重写（对 2~3 个 AND 的窗口做等价替换，加上零收益的结构扰动，再贪心），在 177 上跑 30 分钟看能不能到 ≤175。MFFC=1 说明单遍不行，必须有零收益扰动。
-4. 已关闭的方向：之前列过的全部，加上这次的按最高位拆表和 SAT 精确 MC。
+1. **horner 后释放 b1/b2 寄存器（24 根线）**：系数寄存器 regs[1]、regs[2] 一直占到 phase 结束。改法：horner 后用 MBU 加 unlookup 只把 b2 归还（regs[1] 里存的是 b1+t·b2，需要反向乘加），然后在 denorm/phase 阶段让出线。先算账：要让 phase 段降到 ≤85q，并且能抵消多一次 lookup/反乘加的 Toffoli，再动手。
+2. **phase 和 horner 交错（借鉴 62q 的 fine_phase_stream）**：低位一旦定下来就直接打相位，省掉 y1 的整段 denormalize（来回共 236 个 CSWAP，占 Toffoli 的 14.6%）。难点是相位角依赖 s。可以考虑把 s 的移位转移到输入端（x 已经按 2^(2s) 归一化），研究"按 s 分组的相位角表"能不能用少量 controlled-rotation 合并。
+3. **加法器换成不同长度、不补 pad 的版本**：实测 kickmix 里 iadd(5 位→10 位) 是 25q/11 Toffoli，pad 到等长是 28q/9 Toffoli。逐行选 pad 或不 pad，在 maxq 约束下做整数规划，目标是 horner 峰值降到 ≤103 而 Toffoli 增加 ≤40。
+4. 查表的启发式 XAG 随机重写（177 → ≤175），收益上限约 0.1%，优先级最低。
+5. 已关闭的方向：之前列过的全部，加上这次的 pad 扫描。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -52,3 +61,4 @@
 - 2026-11-06 07:25 UTC：依然没有干活的分支；U2 换 salt sv0706 全量复核 PASS（10.132×，一致）；公开 62q 重建 sha 一致；coeff_lookup 的 177 个 AND 的 MFFC 全为 1，所以 cut rewriting/局部 MC 重综合预期收益 0（关闭指示 1、2）；输出锥 141~177，阶梯输出拆分无效；AND 可重算线扫描在 coeff_lookup 为 0，63q 2^-17 tap 依赖滚动寄存器，搬不过来（关闭指示 3）；推送 a1993c1 到 invsqrt-supervisor-work；NOT_APPROVED。
 - 2026-11-06 21:25 UTC：依然没有干活的分支；U2 换 salt sv0806 全量复核 PASS（10.132×，一致）；coeff_lookup 里找到两条计数器链（11 个输出是平滑多项式系数的低位，B 是 round(三次)），其余 24 个输出不能用便宜的仿射重编码变平滑，指示 2 关闭；确认 python-sat wheel 可以下载；推送 8361420 到 invsqrt-supervisor-work；NOT_APPROVED。
 - 2026-11-06 22:25 UTC：依然没有干活的分支；U2 在新容器里重建字节一致，换 salt sv0611 全量复核 PASS（10.132×，一致）；按最高位拆表：247 个单项式全部用到，155 只在加 35 根 scratch 时才行，宽度内要 ≥247，关闭；SAT 精确 MC 连 7 AND 的单输出都在 200 秒内解不出，关闭；maxq 108/104 没有变好；推送 d6a99e1 到 invsqrt-supervisor-work；NOT_APPROVED。
+- 2026-11-06 23:20 UTC：依然没有干活的分支；U2 新容器重建字节一致，换 salt sv0711 全量复核 PASS（10.132×，一致）；做了 U2 每个 stage 的 qubit 账本（峰值 109 只在 horner，denorm/phase 是 99）；pad 扫描 0/3/5 加 maxq 都没有变好；推送 3da3570 到 invsqrt-supervisor-work；NOT_APPROVED。
