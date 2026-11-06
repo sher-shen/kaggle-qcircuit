@@ -62,3 +62,18 @@ Note: ops.json Z_POW angles are in turns (numerator / 2^128 in `zpow_exact`); ki
   (e.g. ops 29805-29831) is AND + CCZ = 2 Toffolis evaluating a degree-4 phase polynomial, which needs >= 2 non-Clifford
   gates, so it is locally optimal. The two big ones (46862-46981 and 46982-47211, ~10 static each, p 0.5) are the only
   ones worth a closer look (<= ~5 Toffoli mean, 0.4%).
+
+## Commutation-aware AND pairs + CSWAP target scan (2026-11-06 01:xx UTC, supervisor)
+- Re-built `p62.kmb` from ops.json in a fresh container: sha 67482db6... byte-identical again.
+- `comm_pair_scan.py ops.json 1500`: generalises `pair_scan.py` with a per-qubit role model (Z = control/diagonal,
+  X = X-type target, O = other); a pair may be brought together if everything between commutes with one of them
+  (incl. CX onto the shared target, ops inside nested condition blocks, condition bit not rewritten).
+  Patterns CCX a b t/CCX a c t, CCZ sharing 2 qubits, identical CCX pairs. Checked on a synthetic case (finds it).
+  **Result on the public circuit: 0 pairs** (window 1500 ops, no early stop). Direction closed.
+- `peephole_scan2.py` (peephole_scan + CSWAP targets complementary when control=1 -> 2 CX; one target 0 is info only):
+  **0 complementary CSWAPs**. 9 CSWAPs in unnormalize (46766, 46793-46800) and 29531 always have one target 0 when
+  the control is 1, which does not save a Toffoli. A one-seed hit "47040 CCZ control const 0 (p 0.124)" disappears with
+  another seed (sampling artefact, same lesson as the linear-AND scan).
+- Verifier detail relevant to future work: `n_rot` is the *mean executed* count of non-Clifford rotations
+  (`num_z_pow(min_clifford_hierarchy_level=4)` / shots), so a rotation inside a measurement-conditioned block only
+  costs its execution probability. All 41 rotations here are unconditioned.
