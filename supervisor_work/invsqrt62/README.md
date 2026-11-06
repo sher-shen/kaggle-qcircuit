@@ -164,3 +164,21 @@ Run from a scratch dir that has a `w/` subdir (the scripts read and write `w/cl.
   >= 6.6e4 x tolerance on every address, and the other 30 make the state dirty (the coefficient feeds in-place arithmetic
   that is uncomputed later). A table don't-care search on single bits is **closed**. A cheaper table would have to change
   the arithmetic contract too.
+
+## coeff_lookup MFFC check + AND-recomputable wire scan (2026-11-06 07:xx UTC, supervisor)
+- Re-built `p62.kmb` again (sha 67482db6..., identical). Re-ran the official verifier on our own `invsqrt_lut_U2.kmb`
+  with a new salt `sv0706` (full 200,540,928 shots): **PASS, score 204,973.19 = 10.132x** (`../invsqrt/verify_lut_U2_sv0706.json`).
+- `xag_affine.py cl.v xag.json` converts the exported XAG into affine form (every signal = const ^ XOR of inputs and AND
+  outputs). `xag_mffc.py xag.json` does the AND-level fanout and MFFC analysis. **Every one of the 177 ANDs has an MFFC of size 1**
+  (fanout 1..137, most ANDs feed dozens of later ANDs as linear terms). Cut rewriting (mockturtle `cut_rewriting` +
+  `xag_minmc_resynthesis` included) gains `|MFFC| - new ANDs`, so a single pass can only win if a node's function is in
+  the affine span of existing nodes. `lut_xag_rank.py` already showed that never happens. **Local MC re-synthesis (instructions 1/2
+  of the 06:45 report) is closed: expected gain 0 without zero-gain restructuring or a global SAT/exact MC search.**
+- `andfree_scan.py ops.json wins.npy 2000 3`: at the start and middle of all 67 62-wide windows (each x repeated 3 times), looks for a live
+  wire w = (a&b) ^ affine(other live wires). Such a wire could be measured out for free and recomputed later with 1 Toffoli, freeing a line.
+  **coeff_lookup (the 10,578-op window): 0 such wires**, and also 0 in front_decoder_compute. They show up only in
+  short (4..40-op) arith_b/arith_c/fine_phase_stream carry windows. So 61q costs much more than 1 Toffoli per
+  window, and freeing a line just for fine_phase_stream does not lower Q.
+- 63q's cheaper 2^-17 tap (63q ops 27162-27168) uses q48 as a **long-lived rolling register** (holds q21*q54 ^ ... from
+  earlier in the stream, 19% non-zero), not a transient scratch wire. 62q is 62 wide at ops 25860-25880, so the trick can't be
+  transplanted (consistent with try 2 above). Closed.
