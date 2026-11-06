@@ -92,3 +92,29 @@ Note: ops.json Z_POW angles are in turns (numerator / 2^128 in `zpow_exact`); ki
 - **Try 2 (fine_phase_stream op 25874-25875)**: 62q computes `q50 = q23*a ^ q21*b` with 2 Toffolis where 63q uses 1 plus
   an AND stored earlier on the 63rd wire. q21/q23 are mutually exclusive (q21&q23 = 0, q21 0.3 %, q23 20 %) but not
   complementary, so `s1*a ^ s2*b` still needs 2 ANDs without the stored product. Closed unless a wire is freed.
+
+## Per-stage width vs Toffoli, 62q vs 63q (2026-11-06 03:xx UTC, supervisor)
+`live_trace.py` occupancy per stage (all x) next to the stage mean Toffoli of the 62q build and of 63q `9a8627`:
+
+| stage | max occ | ops at 62 | Tof 62q | Tof 63q |
+|---|---|---|---|---|
+| coeff_lookup | 62 | 10,578 | 177.0 | 172.0 |
+| early_phase_taps | 62 | 614 | 80.0 | 76.0 |
+| front_decoder_compute | 62 | 2,090 | 33.0 | 33.0 |
+| arith_a | **61** | 0 | 68.0 | 87.0 |
+| lookup_b | **56** | 0 | 43.0 | 43.0 |
+| arith_b | 62 | 86 | 198.0 | 197.0 |
+| fine_phase_stream | 62 | 210 | 133.0 | 129.0 |
+| phase_merge_repair | **60** | 0 | 6.0 | 6.0 |
+| arith_c | 62 | 154 | 248.3 | 246.3 |
+| lookup_c | 62 | 1,773 | 62.0 | 62.0 |
+| late_curvature_norm | 62 | 215 | 134.0 | 134.0 |
+| unnormalize | **36** | 0 | 67.14 | 66.53 |
+
+- Every stage where 63q is cheaper is already 62 wide in the 62q build, except `unnormalize`, which has 26 spare wires but
+  only differs by 0.6 Toffoli (0.04 %). `segpat.py` shows the differing decoder at ops 46752-46776 maps the 5 bits
+  (q0..q3, q23) to the CSWAP-ladder flags (29 patterns); a hand re-synthesis is possible but caps out at 0.6 Toffoli.
+- The arith_c difference (2.0) is spread over ~50 re-ordered blocks of the op diff, and the static counts balance out.
+  There's no single place to transplant.
+- The last two complementary condition blocks (46862-46981 under bit 318 and 46982-47211 under its inverse 8045) share a
+  6-AND carry chain. Exactly one branch runs per shot, so hoisting that chain saves nothing. **Closed.**
