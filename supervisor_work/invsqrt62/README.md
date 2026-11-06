@@ -129,3 +129,21 @@ Note: ops.json Z_POW angles are in turns (numerator / 2^128 in `zpow_exact`); ki
   1:1 onto 63q `9a8627`, but 62q's q0,q2,q3,q23 (4 wires) and 63q's q0,q2,q3,q23,q56 (5 wires) are **not affine-related**.
   This is the shift-count compression that saved the 62nd wire. Re-expanding it costs Toffolis, so the 63q stage
   (3 ANDs in its decoder, 0.6 cheaper in total) can't be transplanted for free. **Direction closed.**
+
+## coeff_lookup (177 AND) structure and bounds (2026-11-06 05:xx UTC, supervisor)
+Run from a scratch dir that has a `w/` subdir (the scripts read and write `w/cl.npz` and `w/F.npy`):
+`lut_tt.py ops.json 238 15214 w/cl.npz` (wire states at stage start/end, ~2 s) -> `lut_outputs.py w/cl.npz w/F.npy`
+(truth tables over the 8-bit address q14..q21) -> `lut_anf.py`, `lut_split_rank.py`, `lut_andlist.py`, `lut_spanchk.py`.
+- The stage computes **35 output wires** (22, 24, 29..61). Each one is an exact function of the address (all 256 covered), and the stage
+  phase is a function of the address too. ANF: every output has degree 7-8 and 103-145 monomials. All 247 non-affine
+  monomials show up, and the outputs have rank 35 modulo affine functions. So they look like random functions, except
+  q60/q41/q44/q43/q57/q40/q59 (3..35 transitions over the sorted address), which are step-like high coefficient bits.
+- **The bilinear 4+4 split doesn't help**: for f_k = sum_j m_j(hi) g_kj(lo), the sum of row ranks is **225 for all 35 splits**,
+  i.e. 22+225 = 247 ANDs, much worse than 177. The public circuit is not a monomial scheme: `lut_andlist.py` shows
+  that 170 of its 177 ANDs multiply two degree-7/8 functions, so it is a general multiplicative-complexity (XAG) circuit.
+- `lut_spanchk.py`: no CCX product is in the affine span of the wires that are live at that point (exact over 256 addresses).
+  **0 hits**, so no AND can be swapped for CNOTs in place.
+- Counting bound (non-constructive): XAG circuits with r ANDs and 35 outputs number about 2^(r^2+53r+315), against 2^8960
+  tables, so r >= ~70-85. There may be room below 172, but only a real MC search (SAT/XAG resynthesis) could reach it.
+- `lut_flip.c` + `lut_mk_tensor.py`: a GF(2) flip-graph tensor-rank walk. **It doesn't work here**: started from the trivial
+  225-term decomposition, it can't even recover a planted rank-60 15x15x35 tensor in 60 s. Do not use it as-is.
