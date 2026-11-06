@@ -182,3 +182,19 @@ Run from a scratch dir that has a `w/` subdir (the scripts read and write `w/cl.
 - 63q's cheaper 2^-17 tap (63q ops 27162-27168) uses q48 as a **long-lived rolling register** (holds q21*q54 ^ ... from
   earlier in the stream, 19% non-zero), not a transient scratch wire. 62q is 62 wide at ops 25860-25880, so the trick can't be
   transplanted (consistent with try 2 above). Closed.
+
+## coeff_lookup output re-encoding check (2026-11-06 21:xx UTC, supervisor)
+Run on `F.npy` from `lut_outputs.py` (35 x 256 truth tables, address q14 = LSB .. q21; the two 128-halves are separate regimes).
+- `lut_counter_chain.py F.npy`: toggle sets per half. Two **exact binary-counter chains** stand out (each wire toggles only where
+  the next-lower one does, and half as often): **A = q41,q57,q40,q51,q50** (MSB->LSB; 3/6/13/26/52 toggles in half 0) and
+  **B = q60,q44,q43,q59,q24,q42** (1/3/7/14/28/57). These are the 7 "step-like" outputs from the 05:35 report plus 4 more.
+- `lut_counter_fit.py F.npy`: decoded as signed integers mod 2^5 / 2^6 they are smooth decreasing sequences that wrap around.
+  B in half 0 = round(cubic(a)) (max residual 0.65), so these wires are the **low n bits of smooth polynomial coefficients**,
+  which the downstream arithmetic uses modulo 2^n.
+- `lut_counter_extend.py F.npy`: greedy search for a 7th/8th counter bit among the other 24 outputs, also allowing XOR with up to
+  2 address/counter bits (free CNOT re-encoding). **No candidate is clearly smoother than a random bit** (best 696 vs 742 random for
+  A, 747 vs 841 for B, then gains fade), so the other 24 outputs are not lower bits of A/B under any cheap affine re-encoding.
+- Consequence for "change the coefficient contract": only 11 of 35 outputs are smooth. Producing them arithmetically
+  (round(p(a)) mod 2^n needs constant-multiply adders, ~15-40 Toffolis) costs more than their amortised share of the 177-AND
+  table. The 24 random-looking bits carry the precision and have no single-bit slack (06:45 check). **Offline re-encoding gain: none
+  found.** Remaining route is global exact MC synthesis (SAT) of the 24-bit block, not re-encoding.
