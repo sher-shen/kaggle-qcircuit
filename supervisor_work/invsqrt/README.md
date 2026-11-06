@@ -90,3 +90,11 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   pad7+maxq110: 110q/1604 (205,313.67, **10.115x**, full PASS, = U). pad7 alone 111q/1592; pad8/9+maxq110 110q/1604/1606.
 - `lutpoly9.py` (search + a0 centring only over reachable x_norm): same 2^-24.01 (worst segment is at s=0 where every x_norm is reachable). No gain.
 - maxq sweep at U settings (pad 7): 111/1592, 110/1604, **109/1618 (U2, 10.132x, full PASS)**, 108/1636 (est 10.129x), 107/1658, 105/1708; pad 6 or 8 at maxq 109: 1620.
+
+## Qubit ledger + pad sweep (supervisor, 2026-11-06 23:xx UTC)
+- `qubit_ledger.py U2.kmx`: peak live qubits per top-level mark (R = alloc, HMR = free). U2: normalize 37, lookup 86,
+  **horner 109**, denormalize/phase 99, lookup_inv 88. The 109 peak is horner only (base 88 = x 22 + sbp 4 + regs 51 +
+  pad 7 + carry 4, plus ~21 adder ancillas). Getting below 99 needs the denormalize/phase stage shrunk too.
+- Pad sweep (U2 flags, static Toffoli, Q x (T+262)): pad 0 -> 104q/1774 (211.7k); pad 3 -> 107q/1672 (206.9k),
+  with maxq 105 -> 105q/1714 (207.5k); pad 5 -> 109q/1624; pad 5 maxq 105 -> 105q/1702. U2 (pad 7, maxq 109) = 204.97k stays best.
+- U2 re-verified with salt sv0711: full 200,540,928 shots PASS, 10.132x (`verify_lut_U2_sv0711.json`).
