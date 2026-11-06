@@ -45,7 +45,7 @@ def lp(fixed):
     return marg.min()
 
 base = lp({})
-nrot_shot = I.sum(0).mean()
+nrot_shot = float(nr)  # verifier counts every executed rotation op (unconditioned Z_POW: all nr per shot)
 def cost(margin_sc, nrot):
     eps = math.pi * (margin_sc / SC) / 2**64 / nrot
     return nrot * (0.56 * math.log2(1 / eps) + 5.3) / 4
@@ -60,6 +60,6 @@ for k in ks:
     if m <= 0:
         print(f'rot {k}: fires {fired[k] / nx:.4f}, angle {u / 2**64:.3e} turn -> {target / 2**64:.3f}: INFEASIBLE (margin {m / SC:.3g})', flush=True)
         continue
-    nn = nrot_shot - fired[k] / nx
-    c1 = cost(m, nn) + (fired[k] / nx) * (0.25 if target % (1 << 62) else 0)
+    nn = nrot_shot - 1
+    c1 = cost(m, nn) + (0.25 if target % (1 << 62) else 0)
     print(f'rot {k}: fires {fired[k] / nx:.4f}, margin {m / SC:.4g} ({m / base:.3f}x), cost {c1:.2f} vs {c0:.2f} -> {"GAIN" if c1 < c0 else "loss"} {c0 - c1:+.2f}', flush=True)

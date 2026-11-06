@@ -48,3 +48,17 @@ Note: ops.json Z_POW angles are in turns (numerator / 2^128 in `zpow_exact`); ki
   sees only one history. Re-run with every x repeated 32 times (`linearize.py ... 0.05 3000 "" 32`): **0 gates**.
   With minfrac 0 it only finds 40 gates that are essentially never executed (artefacts). **Direction closed.**
 - Lesson: any sampling search on this circuit must repeat each x over many outcome draws (the verifier uses 64).
+
+## Rotation drop scan + conditional-block stats (2026-11-06 00:xx UTC, supervisor)
+- Re-ran `phase_trace.py` in a fresh container: identical (worst ratio 0.99932377 at x=161, min margin 58,597,850 at
+  x=52229, mean Toffoli 1327.48). Note: the verifier counts **all 41** rotation ops per shot (unconditioned Z_POW),
+  although on average only 13.8 have their qubit = 1.
+- `drop_rot.py trace.npz [ks]`: fix one rotation to the nearest multiple of 1/8 turn (usually 0 = delete) and LP re-fit the
+  other 40 angles. Tested the smallest group-2 angles (rot 15..18, 1.4e-11..1.2e-10 turn), rot 0 (3.8e-6 turn) and the
+  rarely-firing high rotations (13, 14, 40: fire only for x <= 1023 / 255 / 252). **All INFEASIBLE** (best margin
+  -1.1e9 units for rot 15, much worse for the rest). Deleting a rotation is not possible; direction closed.
+- `cond_stats.py ops.json 3000 16` (each x repeated 16 times, ~2 s): 142 outermost PUSH_CONDITION blocks hold only
+  **51.5 of the 1327.5 mean Toffolis**, all with p ~ 0.5 (measurement-based uncompute fix-ups). The typical block
+  (e.g. ops 29805-29831) is AND + CCZ = 2 Toffolis evaluating a degree-4 phase polynomial, which needs >= 2 non-Clifford
+  gates, so it is locally optimal. The two big ones (46862-46981 and 46982-47211, ~10 static each, p 0.5) are the only
+  ones worth a closer look (<= ~5 Toffoli mean, 0.4%).
