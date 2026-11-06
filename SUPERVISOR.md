@@ -1,42 +1,34 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-05 23:15 UTC（每小时监工；routine 仍在触发）
-**结论**：**NOT_APPROVED**（自研最好 lut_U2 = 10.132×；公开 62q 电路 = 20.625×，已复核；本次两个方向都没有超过它）
+**时间戳**：2026-11-06 00:25 UTC（每小时监工；routine 仍在触发）
+**结论**：**NOT_APPROVED**（自研最好 lut_U2 = 10.132×；公开 62q 电路 = 20.625×，已复核；本次两个新方向都没有超过它）
 
 ## 1. 干活的状态
-- 远端分支仍然只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`，**没有干活的分支 W**（11-04 21:24Z 之后没有推送过）。main 没有变化（037709c）。
-- 监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2）。本次新增 2 个 commit：8d205d4、412d1ce。
-- 上次指示：4（降到 61 比特）**本次做了分析**，结论是没有便宜的路径。1~3（coeff_lookup 重综合、arith 条件块、unnormalize CSWAP）还没做。
+- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`，PR 只有 #1（已合并）和 #2（监工的 draft）。**没有干活的分支 W**（11-04 21:24Z 之后没有推送过）。main 没有变化（037709c）。
+- 监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2），本次新增 2 个 commit（ea9ea54、b97a33c）：`drop_rot.py`、`cond_stats.py`，README 也更新了。
+- 上次指示的完成情况：2（条件块）**本次做了**，结论是局部最优。1（coeff_lookup）、3（CSWAP 仿射：上次的线性 AND 扫描已经包含 CSWAP，0 命中，视为关闭）、4（借比特）都还没做。
 
 ## 2. 已核实的事实
 | 电路 | Q | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|
-| 公开 62q（67482db6） | 62 | 1624.07 | 100,692.58 | 20.625 | 在新容器里从 ops.json 重建，**sha 字节一致**。本次没重跑全量 verifier（上次已全量 PASS） |
+| 公开 62q（67482db6） | 62 | 1624.07 | 100,692.58 | 20.625 | 新容器里从 ops.json 重建，**sha 字节一致**。精确相位 trace 全 3,133,452 个 x 重跑：worst ratio 0.99932377（x=161），min margin 58,597,850，Toffoli 均值 1327.48，与之前全量 verifier PASS 的结果一致。本次没重跑 kickmix verifier（之前已全量 PASS，sha 没变） |
 | lut_U2（main） | 109 | 1880.49 | 204,973.19 | 10.132 | 本次没重跑（之前已多次换 salt 全量 PASS） |
-| linA（本次的尝试：12 个 Toffoli 类门换成 Clifford） | 62 | — | — | — | **官方 verifier FAIL**（x=3，相位误差 0.5）。已丢弃，没有提交电路 |
 - 硬规则：没向 Kaggle 提交；没推 main；没提交第三方电路或大文件（只提交了 .py 和 README）；没有密钥；没有写比赛非公开信息。
 
-## 3. 本次实验（工具都在 PR #2 的 supervisor_work/invsqrt62/）
-- **宽度分析（`live_trace.py`、`windows.py`、`rank_win.py`）**：对全部 x 做精确活跃比特追踪，用时约 50 秒。
-  - 峰值 62 出现在 15,720 个 op 上，分成 **67 个窗口**，分布在 8 个阶段：coeff_lookup 1 个（10,578 op）、front_decoder 7 个、lookup_c 2 个、early_phase 4 个、fine_phase 7 个、arith_b 16 个、arith_c 17 个、late_curvature_norm 13 个。
-  - 在窗口里算活跃比特的仿射 GF(2) 秩：200 个探测点中有 176 个**满秩**。只有 late_curvature_norm（亏 7~14）和 3 个很小的窗口能只用 CNOT 腾出一条线。
-  - 所以要降到 61 比特，必须对 coeff_lookup、front decoder、lookup_c 以及约 33 个加法器进位窗口做非线性重综合。省一条线的盈亏线约 26 个 Toffoli 当量，而 63→62 这一步光 coeff_lookup 就多花了 5 个 AND。**放弃。**
-- **线性 AND 扫描（`linear_and_scan.py`、`linearize.py`）**：找乘积可以写成其他活线仿射函数的 Toffoli 类门。
-  - 单 shot 采样报了 12 个高频命中（约 2.1 Toffoli 均值）。替换后 **verifier FAIL**。
-  - 原因：线上的值依赖 HMR 结果历史（有经典控制的 CX 修正），每个 x 只采一个 shot 时看不到其他历史。
-  - 每个 x 重复 32 个 shot 后，命中数为 **0**。**这个方向关闭。**
-  - 教训：在这个电路上做任何采样搜索，都必须对每个 x 抽多组测量结果（verifier 用 64 组）。
+## 3. 本次实验
+- **删旋转（`drop_rot.py`）**：verifier 每个 shot 都把 **41 个**旋转全算进去（没有条件的 Z_POW；平均只有 13.8 个所在比特为 1）。每个旋转约 7.2 个 Toffoli 当量。我把单个旋转固定到最近的 1/8 圈倍数（一般就是删掉），其余 40 个角度用 LP 重新拟合。试了最小的 rot 15~18（1.4e-11~1.2e-10 圈）、rot 0，以及很少触发的 rot 13、14、40（只在 x≤1023/255/252 时触发），**全部不可行**（rot 15 最好的 margin 是 −1.1e9）。**这个方向关闭。**
+- **条件块统计（`cond_stats.py`，每个 x 重复 16 个 shot）**：142 个 PUSH_CONDITION 块合计只有 **51.5 / 1327.5** 个 Toffoli，执行概率都约 0.5（测量式反计算后的相位修正）。典型的块（如 ops 29805~29831）是 AND+CCZ = 2 个 Toffoli，计算的是一个 4 次相位多项式，至少要 2 个非 Clifford 门，**已经局部最优**。只剩末尾两个大块（46862~46981、46982~47211，静态各约 10，p=0.5）最多能省约 5（0.4%）。
 
 ## 4. 问题和可疑点
-- 依然没有干活的；用户 11-05 已收尾，这个 routine 每小时还在消耗额度。之前已经两次推送提醒停掉 trig_01J5WjhhzXQyGxvKgokkj1Rb，本次不重复推送。
-- 公开电路已经被多位作者反复做过局部窥孔优化：常数控制、AND 对、角度 LP、线性 AND 都已确认没有余量。剩下的只有结构性重综合，单次运行（约 1 小时）不太可能做完。
+- 依然没有干活的；用户 11-05 已收尾，这个 routine 每小时还在消耗额度（之前已两次推送提醒停掉 trig_01J5WjhhzXQyGxvKgokkj1Rb，本次不重复推送）。
+- 公开电路在局部层面已经榨干：常数控制、AND 对、角度 LP、线性 AND/CSWAP、删旋转、条件修正，都确认没有余量。剩下的只有结构性重综合。
 
 ## 5. 下一步指示（按优先级，都还没做）
-1. **coeff_lookup（177 AND）在 62 线内重综合**：目标 ≤172 AND（约 +0.3%）。先把 177 个 CCX 所在的线性帧还原为地址比特的函数（用 trace 对每个 CCX 的控制位求关于 8 个地址比特的 ANF），再用 SAT 或启发式找乘法复杂度更低、峰值宽度 ≤62 的方案。
-2. **arith_c（282 静态 / 248 均值）和 arith_b（198）的条件块**：用 trace 统计每个 PUSH_CONDITION 块的执行概率（**每个 x 抽 ≥32 组结果**）和其中的 Toffoli 数，找高概率执行的条件修正，看能否改成无条件的 Clifford 修正或合并相邻块。
-3. **unnormalize（101 静态 / 67 均值）的 CSWAP**：扩展 peephole，在 CSWAP 处检查有没有活线恰好等于 c∧(u⊕v) 或 u⊕v（同样要多 shot），能则换成 CX+HMR（Özer 补丁的做法）。
-4. **fine_phase_stream（133）/ late_curvature_norm（134）**：late_curvature_norm 的线有大量线性相关（秩亏 7~14），可以试着用这些冗余线做"借比特"的进位，把 ANDs 换成无 ancilla 的 Gidney 风格加法，看能否少几个 Toffoli。
-5. 降到 61 比特：已证明需要 67 个窗口都腾线，**放弃**（除非 1 节省出的线顺带解决 coeff_lookup 的平台期）。
+1. **两组旋转角度相同 → 用进位合并**：第 1 组（ops 15253~15573，qubit 28，15 个，2^-18~2^-4 圈）的 rot 0~7 和第 2 组（ops 25677~25917）的 rot 33~40 角度几乎相同（3.81e-6…4.88e-4 圈，一共 8 对）。θ(b1+b2) = θ(b1⊕b2) + 2θ·b1b2，所以把 b1 留到第 2 组时，可以用 1 个 AND 换掉 1 个旋转（每对净省约 6 个 Toffoli 当量，最多约 45，约 2.8%）。**卡点是宽度**：b1 要从 op ~15300 活到 ~25700。先用 `live_trace.py` 的 live_occ 查这一段有没有空线；没有的话，看能不能在第 2 组之前用便宜的方式重算 b1（它是 fine_phase_stream 里算出来再扔掉的位）。
+2. **coeff_lookup（177 AND）在 62 线内重综合**：用 trace 求每个 CCX 控制位关于 8 个地址比特的 ANF，再用 SAT 或启发式找 ≤172 AND、峰值 ≤62 的方案。
+3. **末尾两个条件大块 46862~47211**：确认它们是不是互补分支（cond 318 和它的反）。如果是，看能否把共同部分提到条件外，只留差分部分（≤5 Toffoli）。
+4. **late_curvature_norm 的冗余线（秩亏 7~14）借比特**：做无 ancilla 的进位，看能否少几个 AND。
+5. 降到 61 比特：**放弃**（67 个窗口，见上次分析）。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -49,3 +41,4 @@
 - 2026-11-05 21:40 UTC：依然没有干活的分支；PR #1 已被用户合并；新容器里重建 U2 字节一致，换 salt sv2105 全量复核 PASS（10.132×，一致）；k=8/10、deg3、fy29、粗 guard 扫描都没有达标的改进（0,-3,-4 省 52 Toffoli 但差 0.53 bit）；云端拿不到公开 62q 电路；推送了提醒用户停掉还在触发的监工 routine；NOT_APPROVED。
 - 2026-11-05 22:55 UTC：依然没有干活的分支；U2 重建字节一致；**公开 62q 电路首次在云端拿到并重建（sha 67482db6 一致），官方 verifier 全量 PASS = 20.625×**；角度 LP、窥孔扫描、AND 对扫描都没有收益；从 main 重开 claude/invsqrt-supervisor-work 并开 draft PR #2（只有工具和复核）；NOT_APPROVED。
 - 2026-11-05 23:15 UTC：依然没有干活的分支；公开 62q 在新容器重建 sha 一致；精确宽度分析显示峰值 62 覆盖 67 个窗口、绝大多数满秩，61q 没有便宜路径；线性 AND 扫描的 12 个命中替换后 verifier FAIL（结果历史采样伪影），每个 x 抽 32 shot 后 0 命中，方向关闭；NOT_APPROVED。
+- 2026-11-06 00:25 UTC：依然没有干活的分支；公开 62q 重建 sha 一致，精确相位 trace 重跑一致；删旋转 LP（8 个候选）全部不可行；条件块只有 51.5 个 Toffoli 且局部最优；发现两组旋转有 8 对同角度（下一步方向 1）；NOT_APPROVED。
