@@ -198,3 +198,21 @@ Run on `F.npy` from `lut_outputs.py` (35 x 256 truth tables, address q14 = LSB .
   (round(p(a)) mod 2^n needs constant-multiply adders, ~15-40 Toffolis) costs more than their amortised share of the 177-AND
   table. The 24 random-looking bits carry the precision and have no single-bit slack (06:45 check). **Offline re-encoding gain: none
   found.** Remaining route is global exact MC synthesis (SAT) of the 24-bit block, not re-encoding.
+
+## coeff_lookup split-by-MSB + SAT exact-MC scaling (2026-11-06 22:xx UTC, supervisor)
+- Re-built `invsqrt_lut_U2.kmb` from `lutpoly7.py` (sha 27d75c8f..., byte-identical) and re-ran the official verifier with salt
+  `sv0611` (full 200,540,928 shots): **PASS, 204,973.19 = 10.132x** (`../invsqrt/verify_lut_U2_sv0611.json`).
+- `lut_split7.py xag.json F.npy` (xag.json from `xag_affine.py`; also writes the 35x256 truth tables): the 35 outputs use
+  **all 247** degree>=2 monomials of the 8 address bits. Split on the MSB (q21): f = g(x') ^ x7*h(x'), rank g = rank h = 35,
+  g uses all 120 and h all 127 7-var monomials. 120 + 35 = **155 ANDs only if the 35 h_k are held in 35 extra scratch wires**
+  (Q 62 -> ~97, cost x1.5). Inside the 4-wire scratch budget a monomial DFS needs 247, and the "compute h into the outputs,
+  multiply by x7, MBU + phase-fixup DFS" variant needs ~275. **Split-table direction closed (worse than 177 at width 62).**
+- `lut_profile.py F.npy`: toggle counts and ANF degree per output. Even the simplest output (row 33, 1+2 toggles, a threshold
+  function) has ANF degree 8.
+- `lut_mcsat.py F.npy ROWS r TL`: exact XAG multiplicative-complexity SAT encoding (affine operands over inputs and earlier ANDs,
+  CaDiCaL via python-sat). See the SUPERVISOR.md of this run for the timings.
+  Single output row 33 (threshold, degree 8, so MC >= 7 and a 7-AND comparator exists): r=6 (36.5k vars) and r=7 (46k vars)
+  **both hit the 200 s limit without an answer**. Exact SAT MC does not even reach one 7-AND output, so a 24-output ~150-AND
+  block is far out of reach. **SAT exact-MC direction closed** (it would need a heavy external tool like mockturtle's
+  exact XAG synthesis with cut enumeration, which is blocked in the cloud session).
+- U2 maxq re-check: maxq 108 -> 1636 static Toffoli, maxq 104 -> 1734 (109 -> 1618). Q x C does not improve below 109.
