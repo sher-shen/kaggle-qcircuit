@@ -30,6 +30,7 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_lut_AA.kmb | **Z + one carry qubit per Horner window** (`lutpoly18.py --onecarry --groups 1:7:14`): every window one bit wider (same adder length), the lookup loads a per-segment offset k in {0,-1} (window sign bit + hi) so the final window value fits [-2^W, 2^W); folds become `hi -= c`. 3 windows x 1 qubit | 93 | 1522 | 1776.61 | 165,224.63 | **12.569** | PASS (`verify_lut_AA.json`, 0.971) |
 | invsqrt_lut_AB.kmb | AA + **y LSB never phased and not in the denorm lane** (`--droprot 1 --droplane --DSH 6`): -4 CSWAP per direction, 34 rotations | 93 | 1514 | 1768.80 | 164,498.06 | 12.625 | PASS (`verify_lut_AB.json`, 0.991) |
 | invsqrt_lut_AC.kmb | AB + `--jmin8 1` (shift-by-8 stage leaves lane bit 0 in place) | 93 | 1512 | 1766.80 | 164,312.06 | **12.639** | PASS (`verify_lut_AC.json`, 0.991) |
+| invsqrt_lut_AD.kmb | AC + **one prefix AND chain for all four s bits** (`lutpoly21.py`, `binnorm2.py`): s_r = XOR of P_2k = [top 2k bits zero]; normalize 84+80 -> 77+77 Toffoli | 93 | 1502 | 1756.80 | 163,382.06 | **12.711** | PASS (`verify_lut_AD.json`, 0.991) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
@@ -217,3 +218,18 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   `python3.13 supervisor_work/invsqrt/lutpoly18.py <AA flags> --droprot 1 --droplane --DSH 6 --jmin8 1 --out AC.kmb`
 - k=8 re-checked with --onecarry (groups 1:8:15): guards 0,-1,-4 fail (1.0004); 0,-1,-3 pass but 98 q / 1524; fy 29 group
   window infeasible. Closed again: the lookup saves 192 but b1/b2 widen and Horner grows.
+
+## One prefix AND chain for the normalization (supervisor, 2026-11-07 22:xx UTC) — lut_AD
+- AC rebuilt in a fresh container byte-identical (0b220fec); verifier salt sv0722ac full PASS 12.639x (`verify_lut_AC_sv0722ac.json`).
+- `binnorm.py` built s bit by bit: stage r ANDs the top 2^(r+1) bits of the *already shifted* x (15+7+3+1 = 26 Toffoli forward,
+  14+6+2+0 = 22 inverse). But with P_2k = [top 2k bits of the original x are zero] = [s >= k] (the even prefixes of ONE chain
+  over the negated bits x21..x2, 19 ANDs) every bit of s is a parity: bit r of s toggles at every multiple of 2^r, so
+  s0 = P2^P4^...^P20, s1 = P4^P8^P12^P16^P20, s2 = P8^P16, s3 = P16 (checked classically for all x). `binnorm2.py` computes s
+  with CX gates from the chain, erases the chain by measurement (del_and), then does the same four zero-top shifts.
+  Inverse: un-shift, recompute the chain, clear s with the same CXs. Normalize 84 -> 77, normalize_inv 80 -> 77 (peak 37 -> 45, irrelevant).
+- **lut_AD** = AC flags through `lutpoly21.py` (= lutpoly18 with binnorm2): 93 q / 1502 Toffoli, same arithmetic (worst err/tol 0.99075,
+  eps 5.64e-14), score **163,382.06 = 12.711x**, full verifier PASS (`verify_lut_AD.json`; salt sv0722ad also PASS, `verify_lut_AD_sv0722ad.json`), sha 01c10986.
+  `python3.13 supervisor_work/invsqrt/lutpoly21.py <AA flags> --droprot 1 --droplane --DSH 6 --jmin8 1 --out AD.kmb`
+- Closed (analysis): direction "reload y's high bits": hi0(A) = y >> 20 is a monotone staircase with 128 distinct values over
+  the 384 segments (127 steps), so any reload is >= ~127 Toffoli; even if every stage dropped to 86 q, 86 x (1757 + 127 + ~30) =
+  164.6k > 163.4k. Normalize CSWAP counts (6/14/18/20) are already tight for the reachable s values.
