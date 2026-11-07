@@ -98,3 +98,12 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
 - Pad sweep (U2 flags, static Toffoli, Q x (T+262)): pad 0 -> 104q/1774 (211.7k); pad 3 -> 107q/1672 (206.9k),
   with maxq 105 -> 105q/1714 (207.5k); pad 5 -> 109q/1624; pad 5 maxq 105 -> 105q/1702. U2 (pad 7, maxq 109) = 204.97k stays best.
 - U2 re-verified with salt sv0711: full 200,540,928 shots PASS, 10.132x (`verify_lut_U2_sv0711.json`).
+
+## Non-uniform segments (supervisor, 2026-11-07 00:xx UTC) — closed
+- `lutpoly10.py` (+ generated `lutpoly6nu.py`, `lutpoly7nu.py`): M in [2,4) uses double-width segments (h^3 M^-3 error scaling),
+  Horner digits = low 14 bits of x_norm for every x, x[13] doubles as address bit for M < 2; lookup = 8-bit unary iteration
+  (192 values) + nested 1-bit iteration on x[13] for the 64 values with M < 2.
+- U2 flags (`--fy 28 --guards=0,-2,-4 --round 1,2 --pad 7`, no maxq): lookup 383 -> **255** as predicted, but horner 397 -> 468
+  per direction (one more row per step, b1 17 -> 18 bits, b2 7 -> 9 bits because in 14-bit digit units the M < 2 coefficients
+  double/quadruple), 115 q, 1632 Toffoli, model err 2^-23.78 (fails). Q x (T+262) = 217.8k vs U2 205.0k. **Closed.**
+- U2 re-verified with salt sv0700: full 200,540,928 shots PASS, 10.132x (`verify_lut_U2_sv0700.json`).
