@@ -195,3 +195,16 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   - features = address + b2 + loaded y bits (43 features for c2): not solvable;
   - a wider window does not create freedom: k=+1 and k=-1 give the same window bit pattern and the same hi0 parity, so the
     parity is fixed by the pattern; two extra bits per window would be needed (> the 19 Toffoli/qubit break-even).
+
+## Dropping y's LSB from the denorm lane (supervisor, 2026-11-07 21:xx UTC) — lut_AB
+- AA rebuilt in a fresh container byte-identical (9c93deb2); verifier salt sv0721aa full PASS 12.569x (`verify_lut_AA_sv0721aa.json`).
+- `--droprot 1` only skipped the Z_POW on lane bit 0 (= y bit 0 only when s = 0). New `--droplane` (lutpoly14oc build +
+  lutpoly16 search): y bits < droprot are never phased for any s, so they are not put into the denorm lane at all:
+  every smallfirst CSWAP stage is one shorter (-4 CSWAP per direction). The coefficient search re-drops the bits after
+  each a0 shift (dropping is not shift-invariant; without that the search picked infeasible offsets, err/tol 1.078).
+  `python3.13 supervisor_work/invsqrt/lutpoly18.py <AA flags> --droprot 1 --droplane --DSH 6 --out AB.kmb`   # sha 3e3a26d8
+- AB: 93 q / 1514 Toffoli / 34 rotations (eps 5.64e-14), C 1768.80, score **164,498.06 = 12.625x**, full verifier PASS
+  (`verify_lut_AB.json`, worst err/tol 0.99075). Without the new flags AA is still rebuilt byte-identical.
+- Closed: `--droprot 2 --droplane` fails (1.134); R=4 same as R=3. Partial CSWAP shifts in the denorm stages that only fire
+  for s >= 2^r (leave lane bits < jmin unshifted): exact phase simulation over all x shows only stage 8 tolerates jmin=1
+  (-1 CSWAP per direction); the error is relative, so a larger s gives no extra relative room. Not worth it.

@@ -412,7 +412,8 @@ class Design:
         topq = []
         if dt:
             topq = list(b.alloc_qubits(1)); b.x(topq[0])
-        y1 = km.array(list(regs[0]) + topq + list(b.alloc_qubits(N_P)))
+        DL = getattr(self, 'droprot', 0) if getattr(self, 'droplane', False) else 0  # --droplane: y bits < droprot never phased, so not in the lane
+        y1 = km.array(list(regs[0])[DL:] + topq + list(b.alloc_qubits(N_P)))
         SB = {0: range(10), 1: (1, 3, 5, 7, 9), 2: (3, 7), 3: (7,)}  # binary s from thermometer flags (Clifford)
         def sbits_load(sb):
             for r, idx in SB.items():
@@ -431,7 +432,7 @@ class Design:
                 for i, r in enumerate(reversed(fwd) if inverse else fwd):
                     m = 2**r
                     prev = sum(2**q for q in fwd[:fwd.index(r)])
-                    nb = self.widths[0] + max(v & prev for v in range(11) if v >> r & 1)
+                    nb = self.widths[0] - DL + max(v & prev for v in range(11) if v >> r & 1)
                     js = list(range(nb - 1, -1, -1))
                     for j in (reversed(js) if inverse else js):
                         b.cswap(sb[r], y1[j], y1[j + m])
@@ -457,12 +458,14 @@ class Design:
         F = fy + N_P  # y1 / 2^F = 1/sqrt(x)
         with b.mark('phase'):
             for j in range(len(y1)):
+                if DL and j + DL < F:
+                    b.z_pow(y1[j], Fraction(2)**(j + DL - F + 1)); continue
                 if getattr(self, 'droprot', 0) <= j < F:  # --droprot m: lowest m bits not phased (error <= (2^m-1) 2^-F turns)
                     b.z_pow(y1[j], Fraction(2)**(j - F + 1))
         with b.mark('denormalize_inv'):
             denorm(True)
         if dt: b.x(topq[0])
-        b.free(y1[self.widths[0] - dt:])
+        b.free(y1[self.widths[0] - dt - DL:])
         with b.mark('horner_inv'):
             horner(True)
         with b.mark('lookup_inv'):

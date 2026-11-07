@@ -58,7 +58,10 @@ class WSearch:
                 cen = np.zeros(nseg, dtype=np.int64); cen[ok] = np.round((lo[ok] + hi[ok]) / 2).astype(np.int64)
                 for dd in range(-DS, DS + 1):
                     sh = cen + dd
-                    sl = w * (tol - np.abs(err - sh[A]))
+                    if getattr(self, 'droplane', False):  # the dropped bits depend on the shifted a0: re-drop
+                        sl = w * (tol - np.abs(self._drop(y - sh[A], s) - exact))
+                    else:
+                        sl = w * (tol - np.abs(err - sh[A]))
                     m = np.full(nseg, np.inf); np.minimum.at(m, A, sl)
                     m[~ok] = -np.inf
                     upd = m > best + 1e-12
@@ -75,6 +78,8 @@ class WSearch:
     def _drop(self, y, s):
         m = getattr(self, 'droprot', 0)  # --droprot m: lane bits < m (lane = y << s) are not phased
         if not m: return y
+        if getattr(self, 'droplane', False):  # --droplane: y bits < m are dropped for every s
+            return y - (y & ((1 << m) - 1))
         keep = np.where(m - s > 0, m - s, 0)
         return y - (y & ((1 << keep) - 1))
 
@@ -97,6 +102,7 @@ class WSearch:
         xs = np.arange(1, MAX_X + 1, dtype=np.int64)
         s = (22 - (np.floor(np.log2(xs)).astype(np.int64) + 1)) // 2
         y = self._drop(self.model(xs << (2 * s), self.coefs), s).astype(np.float64)
+        if _os.environ.get('DUMP_Y'): np.savez(_os.environ['DUMP_Y'], xs=xs, s=s, y=self.model(xs << (2 * s), self.coefs), fy=self.fy, w0=self.widths[0])
         approx = y * 2.0**(s - 10) / 2.0**self.fy
         tgt = 1 / np.sqrt(xs.astype(np.float64))
         err = np.abs(approx - tgt); tol = 2.0**-24 * tgt
@@ -120,6 +126,8 @@ if __name__ == '__main__':
         i = sys.argv.index('--R'); SDesign.R = int(sys.argv[i + 1]); del sys.argv[i:i + 2]
     if '--droprot' in sys.argv:
         SDesign.droprot = int(sys.argv[sys.argv.index('--droprot') + 1])
+    if '--droplane' in sys.argv:
+        sys.argv.remove('--droplane'); SDesign.droplane = True
     if '--DSH' in sys.argv:
         i = sys.argv.index('--DSH'); SDesign.DSH = int(sys.argv[i + 1]); del sys.argv[i:i + 2]
     if '--noclampw' in sys.argv: sys.argv.remove('--noclampw')
