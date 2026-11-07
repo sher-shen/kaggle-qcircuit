@@ -31,6 +31,7 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_lut_AB.kmb | AA + **y LSB never phased and not in the denorm lane** (`--droprot 1 --droplane --DSH 6`): -4 CSWAP per direction, 34 rotations | 93 | 1514 | 1768.80 | 164,498.06 | 12.625 | PASS (`verify_lut_AB.json`, 0.991) |
 | invsqrt_lut_AC.kmb | AB + `--jmin8 1` (shift-by-8 stage leaves lane bit 0 in place) | 93 | 1512 | 1766.80 | 164,312.06 | **12.639** | PASS (`verify_lut_AC.json`, 0.991) |
 | invsqrt_lut_AD.kmb | AC + **one prefix AND chain for all four s bits** (`lutpoly21.py`, `binnorm2.py`): s_r = XOR of P_2k = [top 2k bits zero]; normalize 84+80 -> 77+77 Toffoli | 93 | 1502 | 1756.80 | 163,382.06 | **12.711** | PASS (`verify_lut_AD.json`, 0.991) |
+| invsqrt_lut_AE.kmb | AD + **s erased by X-measurement** in normalize_inv (`lutpoly22.py`, `binnorm3.py`): HMR on s, phase fix (-1)^(m.s(x)) by a prefix AND chain that is classically conditioned to stop at the largest needed P_n; normalize_inv 76 -> 72.1 Toffoli on average (static 1501, mean 1498.125) | 93 | 1498.13 | 1752.92 | 163,021.69 | **12.739** | PASS (`verify_lut_AE.json`, 0.991) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
@@ -233,3 +234,16 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
 - Closed (analysis): direction "reload y's high bits": hi0(A) = y >> 20 is a monotone staircase with 128 distinct values over
   the 384 segments (127 steps), so any reload is >= ~127 Toffoli; even if every stage dropped to 86 q, 86 x (1757 + 127 + ~30) =
   164.6k > 163.4k. Normalize CSWAP counts (6/14/18/20) are already tight for the reachable s values.
+
+## Measurement-based erasure of s (supervisor, 2026-11-07 23:xx UTC) — lut_AE
+- AD rebuilt in a fresh container byte-identical (01c10986); verifier salt sv0723ad full PASS 12.711x (`verify_lut_AD_sv0723ad.json`).
+- normalize_inv used to recompute the 19-AND chain only to clear s. `binnorm3.py` instead un-shifts x, then HMRs the four s qubits
+  (outcome m). The leftover phase is (-1)^(m.s(x)) = prod_n (-1)^(c_n P_n), c_n = XOR of m_r over the taps of P_n (classical
+  BIT_INVERT_IF). Classical bits need[i] = OR_{n>=i+3} c_n condition each chain AND (push_condition), a conditional CZ applies each
+  P_n with c_n = 1, then the chain is erased by del_and under the same conditions. Expected cost with uniform m: 15.125 Toffoli
+  instead of 19 (verifier mean 1498.125, exactly as predicted).
+- **lut_AE**: 93 q / 1498.125 mean Toffoli (static 1501), same arithmetic (worst err/tol 0.99075, eps 5.64e-14), score
+  **163,021.69 = 12.739x**, full verifier PASS (`verify_lut_AE.json`; salt sv0723ae also PASS, 163,021.74 — the mean Toffoli count depends on the sampled HMR outcomes, `verify_lut_AE_sv0723ae.json`), sha 3a7cc491.
+  `python3.13 supervisor_work/invsqrt/lutpoly22.py <AA flags> --droprot 1 --droplane --DSH 6 --jmin8 1 --out AE.kmb`
+- Considered and set aside (analysis only): capping s at 7 (chain 13 ANDs, no shift-by-16/denorm stage 8 = -78 Toffoli) needs 63 extra
+  leaves for x < 64 (+66) and 3 extra y bits for those entries (y would no longer have an always-1 top bit): net ~0, not built.
