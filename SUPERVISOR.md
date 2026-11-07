@@ -25,7 +25,7 @@
 ## 5. 下一步指示（按优先级，都还没做）
 1. **滚动 y 寄存器 / 早相位重设计（向 62q 架构靠拢）**：先在模型里写一版，把 y 的高位先算出来、先打相位，再用测量方式释放（HMR 加相位修正，只对已经打过相位的确定性高位有效），让 y、b1 不必同时全宽常驻。目标是 Q ≤ 75 且 Toffoli ≤ 1900（cost < 142k，倍数超过 14.6×）。第一步只做账本：逐 stage 列出各寄存器的生存期。
 2. **denorm 改为"移位 tbits 和地址，不移 y"**：现在是 y 乘 2^s 再打相位（CSWAP 236，占 C 的 13%）。可以换成把相位角按 s 做多路复用：只对 y 的高 ~12 位按 s 选角度（每位 11 个角度太贵），低位用一次 CSWAP 移位。先在模型里精确统计 s 的分布和每个 (位, s) 对的必要性，算出旋转数和 CSWAP 数的折中。
-3. **k=8 或 deg3 在 fold2 下重扫**：fold2 把 fold 的峰值压下来以后，k=8（地址少一半，查表约 −190 Toffoli）原来 100~102 q 的宽度瓶颈可能变了。用 lutpoly17 加 `--k 8` 和不同的 guards/fy 29 重跑，看 Q×C。
+3. **（本次已做，关闭）k=8 在 fold2 下重扫**：guards 0,-1,-4 fy28 FAIL（1.0004）；0,-1,-3 是 101 q / 1706；fy29 是 103 q / 1816。D=14 行让 Horner 变贵，抵掉了查表省下的部分。**改为**：deg3 k=7 在 fold2 下用 lutpoly16 目标重新算账（之前是 IndexError 修好后关闭的，但那时用的是旧目标）。
 4. **两组 carry 对加 cA 共 6 q 一直是脏的**：研究能不能把 step 2 的 carry 对在 step 1 开始前通过 fold 的逆运算加窗口值比较清掉，或者改成单 carry 位（窗口只有正溢出）。先在模型上验证 low 的符号分布。
 5. （低优先）a0 半单位精度：粗算 eps 再 ×2 只省约 5 Toffoli-eq，大约是 1 q 的 1/4，大概率不划算。
 
@@ -56,4 +56,4 @@
 - 2026-11-07 02:35 UTC：依然没有干活的分支；V 新容器重建字节一致，换 salt sv0207 全量 PASS（11.484×，一致）；监工接手，试了列丢弃 Horner（lutpoly12）、deg3 k=7（修好 IndexError）、k=8 gadd、V+droprot1/2，全部没有超过 V 或者 FAIL，已关闭；推送 054ece1 到 invsqrt-supervisor-work；NOT_APPROVED。
 - 2026-11-07 03:45 UTC：依然没有干活的分支；V 重建字节一致，salt sv0307 全量 PASS；监工接手，做了 top-CCX 加法器（W 11.599×）、两级 Horner 窗口（X 11.834×）、Gidney/Cuccaro 混合加法器（**Y 96 q / 1528 / 171,886.84 = 12.082×**），全部全量 PASS；推送 d86873a 到 invsqrt-supervisor-work，并更新了 PR #2；NOT_APPROVED。
 - 2026-11-07 04:30 UTC：依然没有干活的分支；Y 新容器重建字节一致，换 salt sv0507 全量 PASS（12.082×）；监工接手，新做按 s 加权的系数搜索（lutpoly16）：**lut_Z 96 q / 1528 / 171,130.46 = 12.135×，官方 verifier 全量 PASS，换 salt sv0507z 也 PASS**；粗 guard、droprot、k=8 在新目标下也都关闭；推送 c57a1c8、291c039 到 invsqrt-supervisor-work，并更新 PR #2；NOT_APPROVED。
-- 2026-11-07 05:40 UTC：依然没有干活的分支；Z 新容器重建字节一致，换 salt sv0705z 全量 PASS（12.135×）；监工接手，试了 fan-out-free fold（lutpoly17，最好 96/1534，不如 Z）和 b2 丢弃重载（159 叶，186.8k，比 Z 差），两个都关闭；推送 8a9bd0a、c0cc8bd 到 invsqrt-supervisor-work；NOT_APPROVED。
+- 2026-11-07 05:40 UTC：依然没有干活的分支；Z 新容器重建字节一致，换 salt sv0705z 全量 PASS（12.135×）；监工接手，试了 fan-out-free fold（lutpoly17，最好 96/1534，不如 Z）和 b2 丢弃重载（159 叶，186.8k，比 Z 差），两个都关闭；k=8 在 fold2 下也关闭（最好 101 q / 1706）；推送 8a9bd0a、c0cc8bd 到 invsqrt-supervisor-work；NOT_APPROVED。
