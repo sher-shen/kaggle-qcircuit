@@ -23,6 +23,7 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_lut_U.kmb | T's rounding carried to **fy=28**: `--fy 28 --guards=0,-2,-4 --round 1,2 --droprot 0 --pad 7 --maxq 110` (y 28 bits, model err 2^-24.01, tiny margin so rotation eps 5.5e-14) | 110 | 1604 | 1866.49 | 205,313.67 | **10.115** | PASS (`verify_lut_U.json`, 0.991, worst_x 816489) |
 | invsqrt_lut_U2.kmb | U with `--maxq 109` (kickmix trades ~14 adder ancilla-Toffolis per qubit) | 109 | 1618 | 1880.49 | 204,973.19 | **10.132** | PASS (`verify_lut_U2.json`, 0.991) |
 | invsqrt_lut_V.kmb | **own Gidney adder** (`lutpoly11.py --gadd --pad 0`, init_and/del_and, implicit-zero source extension so the 7-qubit zero pad is gone, native carry-in for the rounded rows so the extra `l` bit and its AND are gone; arithmetic identical to U, same model error 2^-24.01). Horner 397→352 Toffoli per direction, peak 109→101 | 101 | 1528 | 1790.49 | 180,839.28 | **11.484** | PASS (`verify_lut_V.json`, 0.991) |
+| invsqrt_lut_W.kmb | V + **top-CCX Gidney adder** (`lutpoly13.py --topccx`, same flags as V): the carry into each adder's top target bit is XORed in with one CCX instead of being stored by init_and, so every adder needs n-2 ancillas; same 1528 Toffoli, same arithmetic (exhaustive classical check n<=6) | 100 | 1528 | 1790.49 | 179,048.79 | **11.599** | PASS (`verify_lut_W.json`, 0.991) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
@@ -122,3 +123,10 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   lookup -290 but horner +~190/dir and +11 q -> worse. **Closed.**
 - k=8 (gadd, fy28): 0,-1,-3 round 1,2 -> 107 q / 1512 (189.8k); 0,-1,-4 -> 2^-24.00, 106 q / 1508 (187.6k); 0,-1,-5 fails. Worse than V.
 - V + `--droprot 1` FAILS (x=3071203, 3.423e-11 > 3.401e-11), `--droprot 2` FAILS (x=876875). V has no rotation slack.
+
+## Top-CCX adder (supervisor, 2026-11-07 03:xx UTC)
+- V rebuilt byte-identical (ebc32b19), verifier salt sv0307 full PASS 11.484x (`verify_lut_V_sv0307.json`).
+- `lutpoly13.py --topccx`: lutpoly11 with `gadd` replaced by `gadd_top` (last carry -> CCX straight onto the top target bit, del_and side skipped).
+  Exhaustive classical check (n<=6, all m, cin, sub). W = V flags + `--topccx`: 100 q / 1528 Toffoli / 179,048.79 = **11.599x**, full verifier PASS (sha f145f85e).
+  `python3.13 supervisor_work/invsqrt/lutpoly13.py --topccx <V flags> --out W.kmb`
+- `lutpoly14.py` (+ `group_scan.py`): `--groups j:a:LA` puts Horner rows i<a of step j into a narrow LA-bit window with its own 2 carry qubits, folded once.
