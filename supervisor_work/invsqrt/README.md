@@ -143,3 +143,14 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   N=12: 96 q / 1554 (fold fan-out peak); N=11: 96 q / 1580. Group splits with N=13: 6:12 -> 98 q (fold), 8:14 -> 96/1534, 9:15 -> 96/1548. Y stays best.
   Below 96 each qubit costs one extra CCX in all 13 y-step rows x 2 directions (26 > C/Q = 18.7), so not profitable.
   `python3.13 supervisor_work/invsqrt/lutpoly15.py --maxanc 13 --groups 1:7:13 <V flags> --out Y.kmb`   # sha 9c03bbeb
+
+## s-aware coefficient search (supervisor, 2026-11-07 04:xx UTC)
+- Y rebuilt in a fresh container: byte-identical (sha 9c03bbeb); verifier salt sv0507 full 200,540,928 shots PASS 12.082x (`verify_lut_Y_sv0507.json`).
+- `lutpoly16.py --wsearch` objective (always on): the verifier's rotation budget is min_x (tol(x) - |err(x)|) in absolute turns, which for
+  x_norm = x 4^s is proportional to 2^s (2^-24 exact_y - |err_y|); the binding s per x_norm is 0 if x_norm <= MAX_X, 1 if x_norm % 4 == 0, else unreachable.
+  Per segment it picks (d1, d2) in [-3,3]^2 and the integer a0 shift (centre +-4) maximising that weighted min slack, then clamps.
+  Z = Y flags through lutpoly16: same 96 q / 1528 Toffoli, worst err/tol 0.99075 -> 0.97092, rotation eps 5.48e-14 -> **1.669e-13** (predicted exactly),
+  C 1790.49 -> 1782.61, score **171,130.46 = 12.135x**, full verifier PASS (sha 188a2b4d, `verify_lut_Z.json`).
+  `python3.13 supervisor_work/invsqrt/lutpoly16.py --packflags --rangeq --fy 28 --clamp --binnorm --zshift --droptop --smallfirst --foldadd --round 1,2 --gadd --pad 0 --maxanc 13 --groups 1:7:13 --guards=0,-2,-4 --out Z.kmb`
+- Closed with the new objective (model check): guards 0,-3,-4 / 0,-2,-5 / 0,-3,-5 (weighted slack -8 / -6 / -11 y units); R=5 no change;
+  droprot 1 passes but 34 x 29.92 T = 35 x 29.07 T (no gain); droprot 2 fails (1.099); k=8 (0,-1,-4, any group) fails (1.0004) and is 100-102 q / 1524.
