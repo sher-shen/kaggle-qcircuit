@@ -213,7 +213,7 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   lowering the global min slack; the error is relative, so a larger s gives no extra relative room for stages 1/2/4.
 - AB salt sv0721ab: full PASS, same score (`verify_lut_AB_sv0721ab.json`).
 - **lut_AC** = AB + `--jmin8 1` (that one CSWAP skipped per direction): 93 q / 1512 Toffoli, same eps 5.64e-14,
-  score **164,312.06 = 12.639x**, full verifier PASS (`verify_lut_AC.json`), sha 0b220fec (rebuild identical).
+  score **164,312.06 = 12.639x**, full verifier PASS (`verify_lut_AC.json`; salt sv0721ac also PASS, `verify_lut_AC_sv0721ac.json`), sha 0b220fec (rebuild identical).
   `python3.13 supervisor_work/invsqrt/lutpoly18.py <AA flags> --droprot 1 --droplane --DSH 6 --jmin8 1 --out AC.kmb`
 - k=8 re-checked with --onecarry (groups 1:8:15): guards 0,-1,-4 fail (1.0004); 0,-1,-3 pass but 98 q / 1524; fy 29 group
   window infeasible. Closed again: the lookup saves 192 but b1/b2 widen and Horner grows.
