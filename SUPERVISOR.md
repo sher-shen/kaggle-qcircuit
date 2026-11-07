@@ -1,33 +1,38 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-07 05:40 UTC
-**结论**：**NOT_APPROVED**（最好成绩仍是 lut_Z 12.135×，96 q；本次两个新方向都算账否定，离公开 62q 的 20.625× 还很远）
+**时间戳**：2026-11-07 06:45 UTC
+**结论**：**NOT_APPROVED**（新最好成绩 lut_AA 12.569×，93 q；离公开 62q 的 20.625× 还很远）
 
 ## 1. 干活的状态
 - 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**：干活的从 11-04 21:24Z 起没有再推送，PR #1 已在 11-05 合并，main 的最新提交仍是 037709c。
-- 监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2），本次推送了 8a9bd0a 和 c0cc8bd。
+- 监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2），本次推送了 235b48f 和 aca2d91。
 
 ## 2. 已核实的事实（本次在新容器里亲自跑，python3.13 + data/kickmix/kickmix.so）
 | 电路 | Q | Toffoli | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|---|
-| **lut_Z（sha 188a2b4d）** | 96 | 1528 | 1782.61 | 171,130.46 | **12.135** | 用 README 命令重建，字节一致；换 salt sv0705z 全量 200,540,928 shot PASS（worst 0.97092，eps 1.669e-13，和之前一致） |
+| lut_Z（sha 188a2b4d） | 96 | 1528 | 1782.61 | 171,130.46 | 12.135 | 用 README 命令重建，字节一致；换 salt sv0607z 全量 200,540,928 shot PASS（worst 0.97092） |
+| **lut_AA（sha 9c93deb2）** | **93** | **1522** | 1776.61 | **165,224.63** | **12.569** | 本次新做；默认 salt 全量 PASS，换 salt sv0607aa 全量 PASS（worst 0.97092，eps 1.669e-13） |
 - 倍数 = 2,076,774.23 / score，score = Q × C，都取自 verifier 输出的总 cost。
-- 硬规则检查：没有向 Kaggle 提交；没有推 main；新文件都是几 KB 的脚本和 json；没有密钥，也没有比赛非公开信息。
+- `lutpoly18.py` 不加 `--onecarry` 时重建出的 Z 字节一致（188a2b4d），说明新代码没有改动旧路径。
+- 硬规则检查：没有向 Kaggle 提交；没有推 main；新文件最大 276 KB（AA.kmb）；没有密钥，也没有比赛非公开信息。
 
-## 3. 本次尝试（都已关闭，详情见 supervisor_work/invsqrt/README.md）
-- **fold 不用 fan-out（lutpoly17.py）**：把 `hi += c0 − 2c1` 改成 `c1 ? ~(~hi + [c0, c1∧¬c0]) : hi + c0`，每个 fold 多 1 个 AND。fan-out 比特去掉以后，96 的峰值改由 6 个大 y-step 行决定（每行 13 个 Gidney ancilla）。结果：maxanc 13 是 96/1534，12 是 95/1560，11 是 94/1586，都不如 Z。groups 扫描（a∈6..10，LA∈11..17）也没有收益。
-- **horner step 2 之后丢掉 b2（7 q）再重载（b2_tree.py）**：这样可以让 denorm 从 94 降到 87、step 1 从 96 降到 89。但重载 b2 要用剪枝 unary 树，精确的 b2 需要 159 个叶子，约 2×158 Toffoli，算下来 89×2099 = 186.8k，比 171.1k 差。如果几个段共享 b2：每 2/4/8 段的 spread 是 2/5/12，而 1 个 b2 单位相当于 16 个 y 单位（线性重拟合后约 2 个），现有 slack 只有 0.51，所以不可行。
+## 3. 本次做法：每个 Horner 窗口只留 1 个 carry 比特（lut_AA）
+- 原来每个窗口的 carry 取值 {-1,0,1}，所以要 2 个比特，3 个窗口一共 6 个比特，而且从 horner 一直活到 denorm/phase。
+- 窗口的初值其实是查表加载的数据。按段让表里存：窗口 = (a0 mod 2^W) + k·2^W（k∈{0,-1}，符号位就是 carry 比特），hi = (a0>>W) − k。这样只要求每段内终值的跨度放得进 2^(W+1)。
+- 对所有 x_norm 精确检查：step 2 取 W=10，step 1 取 W=20，组窗口取 W=14，384 段全部可行。W 都等于原来的 L+1，所以加法器长度不变。嵌套的组窗口在 fold 之后，外窗口的值与 kA 无关，两个偏移可以分开选。
+- fold 改为 `hi -= c`，不再需要 fan-out。结果：每个窗口省 1 q，共省 3 q；Toffoli 少 6。算术和 Z 完全一样。
+- 扫描（都加 --onecarry）：maxanc 12 → 92/1548（165.8k），14 → 94/1510（165.9k）；groups 1:6:13、1:8:15、1:7:15、加 2:4:6 都更差。AA 最好。
 
 ## 4. 问题和可疑点
 - 仍然没有干活的，监工是唯一在推进的。
-- 当前 LUT+二次 Horner 架构在 qubit 和 Toffoli 两边都已到局部最优：每降 1 q 至少要多 26 Toffoli，而 C/Q 只有 18.6。精度这边也到头了，slack 只有 0.51 y 单位。**剩下有意义的收益只能来自换架构**。
+- 新的峰值：horner 93（y-step 行的 13 个 Gidney ancilla），denorm/phase 91，lookup 89。三段已经很接近，以后要同时压低才有收益。
 
 ## 5. 下一步指示（按优先级，都还没做）
-1. **滚动 y 寄存器 / 早相位重设计（向 62q 架构靠拢）**：先在模型里写一版，把 y 的高位先算出来、先打相位，再用测量方式释放（HMR 加相位修正，只对已经打过相位的确定性高位有效），让 y、b1 不必同时全宽常驻。目标是 Q ≤ 75 且 Toffoli ≤ 1900（cost < 142k，倍数超过 14.6×）。第一步只做账本：逐 stage 列出各寄存器的生存期。
-2. **denorm 改为"移位 tbits 和地址，不移 y"**：现在是 y 乘 2^s 再打相位（CSWAP 236，占 C 的 13%）。可以换成把相位角按 s 做多路复用：只对 y 的高 ~12 位按 s 选角度（每位 11 个角度太贵），低位用一次 CSWAP 移位。先在模型里精确统计 s 的分布和每个 (位, s) 对的必要性，算出旋转数和 CSWAP 数的折中。
-3. **（本次已做，关闭）k=8 在 fold2 下重扫**：guards 0,-1,-4 fy28 FAIL（1.0004）；0,-1,-3 是 101 q / 1706；fy29 是 103 q / 1816。D=14 行让 Horner 变贵，抵掉了查表省下的部分。**改为**：deg3 k=7 在 fold2 下用 lutpoly16 目标重新算账（之前是 IndexError 修好后关闭的，但那时用的是旧目标）。
-4. **两组 carry 对加 cA 共 6 q 一直是脏的**：研究能不能把 step 2 的 carry 对在 step 1 开始前通过 fold 的逆运算加窗口值比较清掉，或者改成单 carry 位（窗口只有正溢出）。先在模型上验证 low 的符号分布。
-5. （低优先）a0 半单位精度：粗算 eps 再 ×2 只省约 5 Toffoli-eq，大约是 1 q 的 1/4，大概率不划算。
+1. **同样的"查表加载偏移"思路用到其他常驻比特上**：(a) 把 droptop 的那个"恒为 1"的比特推广：y 的高几位在每段内是否恒定或只有 2 种取值，如果是，就从表里加载、用 1 个比特表示，再在 denorm 前补回；(b) b2（7 q）和 r 的高位，也看每段内的实际跨度，看能否用"段内偏移 + 更窄寄存器"表示。第一步：对每个寄存器、每段统计 Horner 中间值和终值的跨度，算出最少需要的位数。
+2. **denorm 用循环移位代替加宽**：shift-8 这一级改为 28 位寄存器内的循环移位，绕回来的低 8 位旋转改成"θ_p + s3·(θ_{p+28} − θ_p)"（每位多 1 个 AND 和 1 个旋转）。这能把 denorm 降约 8 q，但只有在 horner 也降到 ≤85 时才有用，所以要和指示 1 一起算账。
+3. **滚动 y 寄存器 / 早相位重设计（向 62q 架构靠拢）**：先写账本，列出各寄存器的生存期，目标 Q ≤ 75 且 Toffoli ≤ 1900。
+4. **y-step 大行的 ancilla**：现在 6 行各要 13 个 Gidney ancilla。每降 1 q 要多 26 Toffoli，而 C/Q≈19.1，不划算。可以试"行对"：两行先在小寄存器里相加再一起加进去，看能否降低峰值宽度。
+5. （低优先）deg3 k=7 在 onecarry 下重新算账（carry 少了以后，多出来的系数寄存器代价相对变小）。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -57,3 +62,4 @@
 - 2026-11-07 03:45 UTC：依然没有干活的分支；V 重建字节一致，salt sv0307 全量 PASS；监工接手，做了 top-CCX 加法器（W 11.599×）、两级 Horner 窗口（X 11.834×）、Gidney/Cuccaro 混合加法器（**Y 96 q / 1528 / 171,886.84 = 12.082×**），全部全量 PASS；推送 d86873a 到 invsqrt-supervisor-work，并更新了 PR #2；NOT_APPROVED。
 - 2026-11-07 04:30 UTC：依然没有干活的分支；Y 新容器重建字节一致，换 salt sv0507 全量 PASS（12.082×）；监工接手，新做按 s 加权的系数搜索（lutpoly16）：**lut_Z 96 q / 1528 / 171,130.46 = 12.135×，官方 verifier 全量 PASS，换 salt sv0507z 也 PASS**；粗 guard、droprot、k=8 在新目标下也都关闭；推送 c57a1c8、291c039 到 invsqrt-supervisor-work，并更新 PR #2；NOT_APPROVED。
 - 2026-11-07 05:40 UTC：依然没有干活的分支；Z 新容器重建字节一致，换 salt sv0705z 全量 PASS（12.135×）；监工接手，试了 fan-out-free fold（lutpoly17，最好 96/1534，不如 Z）和 b2 丢弃重载（159 叶，186.8k，比 Z 差），两个都关闭；k=8 在 fold2 下也关闭（最好 101 q / 1706）；推送 8a9bd0a、c0cc8bd 到 invsqrt-supervisor-work；NOT_APPROVED。
+- 2026-11-07 06:45 UTC：依然没有干活的分支；Z 新容器重建字节一致，换 salt sv0607z 全量 PASS（12.135×）；**监工新做 lut_AA（每个 Horner 窗口 1 个 carry，偏移从表里加载）：93 q / 1522 / 165,224.63 = 12.569×，默认 salt 和 sv0607aa 都全量 PASS**；maxanc 和 groups 的扫描都没有超过 AA；推送 235b48f、aca2d91 到 invsqrt-supervisor-work；NOT_APPROVED。
