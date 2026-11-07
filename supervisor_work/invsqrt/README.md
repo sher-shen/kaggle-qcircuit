@@ -25,6 +25,7 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_lut_V.kmb | **own Gidney adder** (`lutpoly11.py --gadd --pad 0`, init_and/del_and, implicit-zero source extension so the 7-qubit zero pad is gone, native carry-in for the rounded rows so the extra `l` bit and its AND are gone; arithmetic identical to U, same model error 2^-24.01). Horner 397→352 Toffoli per direction, peak 109→101 | 101 | 1528 | 1790.49 | 180,839.28 | **11.484** | PASS (`verify_lut_V.json`, 0.991) |
 | invsqrt_lut_W.kmb | V + **top-CCX Gidney adder** (`lutpoly13.py --topccx`, same flags as V): the carry into each adder's top target bit is XORed in with one CCX instead of being stored by init_and, so every adder needs n-2 ancillas; same 1528 Toffoli, same arithmetic (exhaustive classical check n<=6) | 100 | 1528 | 1790.49 | 179,048.79 | **11.599** | PASS (`verify_lut_W.json`, 0.991) |
 | invsqrt_lut_X.kmb | W + **two-level Horner window** (`lutpoly14.py --topccx --groups 1:7:13`): y-step rows i<7 (sources only 6..12 bits) go into a 13-bit window with its own 2 signed carry qubits (exact range check over all x_norm: [-6510, 15940]), folded once into the 19-bit window; those rows cost 14 instead of 20 Toffoli. -70 Toffoli, +2 q | 102 | 1458 | 1720.49 | 175,489.77 | **11.834** | PASS (`verify_lut_X.json`, 0.991) |
+| invsqrt_lut_Y.kmb | X + **mixed Gidney/Cuccaro adders** (`lutpoly15.py --maxanc 13`, `gadd_mix.py`): adders that would need more than 13 ancillas switch their top source positions to in-place MAJ/UMA carries (+1 CCX per position, no ancilla); only the 6 big y-step rows are affected (+6 CCX each per direction, +70 total), peak 102 -> 96 | 96 | 1528 | 1790.49 | 171,886.84 | **12.082** | PASS (`verify_lut_Y.json`, 0.991) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
@@ -134,3 +135,11 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
 - X = W flags + `--groups 1:7:13` (`group_scan.py`: best y-step split a=7/LA=13 saves 42-7 = 35 Toffoli per direction; r-step split saves only 11/dir and its carries would stay live through the y-step peak, so not used):
   102 q / 1458 Toffoli / 175,489.77 = **11.834x**, full verifier PASS (sha eaaa147a). Peaks: horner 102, denorm/phase 94.
   `python3.13 supervisor_work/invsqrt/lutpoly14.py --topccx --groups 1:7:13 <V flags> --out X.kmb`
+
+## Mixed Gidney/Cuccaro adder (supervisor, 2026-11-07 03:xx UTC)
+- `gadd_mix.py`: per carry position either Gidney (fresh ancilla, init_and/del_and, top carry by CCX) or Cuccaro MAJ/UMA (carry stored in place
+  in the source bit, +1 CCX, no ancilla). Exhaustive classical check n<=7, all m, maxanc in {None,0..3}, cin, sub: 0 failures.
+- `lutpoly15.py --maxanc N` (= lutpoly14 with all adders via gadd_mix). X flags: N=99 rebuilds X byte-identical; N=13: 96 q / 1528 (Y, 12.082x, full PASS);
+  N=12: 96 q / 1554 (fold fan-out peak); N=11: 96 q / 1580. Group splits with N=13: 6:12 -> 98 q (fold), 8:14 -> 96/1534, 9:15 -> 96/1548. Y stays best.
+  Below 96 each qubit costs one extra CCX in all 13 y-step rows x 2 directions (26 > C/Q = 18.7), so not profitable.
+  `python3.13 supervisor_work/invsqrt/lutpoly15.py --maxanc 13 --groups 1:7:13 <V flags> --out Y.kmb`   # sha 9c03bbeb
