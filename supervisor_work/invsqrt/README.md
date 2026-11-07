@@ -177,6 +177,7 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   its fold the outer window value is a0 - S_A - hi0 2^W (independent of kA), so the two offsets are chosen independently.
 - `lutpoly14oc.py` (= lutpoly14 + `--onecarry`), `lutpoly18.py` (lutpoly16 on top of it). Without `--onecarry` rebuilds Z byte-identical.
   `python3.13 supervisor_work/invsqrt/lutpoly18.py --packflags --rangeq --fy 28 --clamp --binnorm --zshift --droptop --smallfirst --foldadd --round 1,2 --gadd --pad 0 --maxanc 13 --guards=0,-2,-4 --onecarry --groups 1:7:14 --out AA.kmb`   # sha 9c93deb2
+- AA re-verified with salt sv0607aa: full PASS, same score (`verify_lut_AA_sv0607aa.json`).
 - AA: 93 q / 1522 Toffoli (folds without fan-out: -6), same arithmetic as Z (worst err/tol 0.97092, eps 1.669e-13), score 165,224.63 = **12.569x**, full verifier PASS.
   Peaks: lookup 89, horner 93, denorm/phase 91.
 - Scan with --onecarry: maxanc 12 -> 92/1548 (165.8k), 14 -> 94/1510 (165.9k); groups 1:6:13 93/1536, 1:8:15 93/1528, 1:7:15 93/1548, +2:4:6 94/1530. AA best.
