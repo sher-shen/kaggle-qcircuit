@@ -22,6 +22,7 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_lut_T.kmb | Q + `--round 1,2` (every truncated Horner row adds `(v>>k) + v_{k-1}`, i.e. rounds to nearest, via a carry-in: an extra low target bit `l` set to `v_{k-1}` by CX, `[l, acc] += [v_{k-1}, src]` leaves `l = 0`; `l` borrows an unused pad qubit when one is free) lets coarser guards 0,-3,-5 pass (model err 2^-24.14), `--pad 7 --maxq 111` | 111 | 1646 | 1896.24 | 210,482.92 | **9.867** | PASS (`verify_lut_T.json`, 0.906) |
 | invsqrt_lut_U.kmb | T's rounding carried to **fy=28**: `--fy 28 --guards=0,-2,-4 --round 1,2 --droprot 0 --pad 7 --maxq 110` (y 28 bits, model err 2^-24.01, tiny margin so rotation eps 5.5e-14) | 110 | 1604 | 1866.49 | 205,313.67 | **10.115** | PASS (`verify_lut_U.json`, 0.991, worst_x 816489) |
 | invsqrt_lut_U2.kmb | U with `--maxq 109` (kickmix trades ~14 adder ancilla-Toffolis per qubit) | 109 | 1618 | 1880.49 | 204,973.19 | **10.132** | PASS (`verify_lut_U2.json`, 0.991) |
+| invsqrt_lut_V.kmb | **own Gidney adder** (`lutpoly11.py --gadd --pad 0`, init_and/del_and, implicit-zero source extension so the 7-qubit zero pad is gone, native carry-in for the rounded rows so the extra `l` bit and its AND are gone; arithmetic identical to U, same model error 2^-24.01). Horner 397→352 Toffoli per direction, peak 109→101 | 101 | 1528 | 1790.49 | 180,839.28 | **11.484** | PASS (`verify_lut_V.json`, 0.991) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
@@ -50,6 +51,7 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 
 ## Reproduce
 ```
+python3.13 supervisor_work/invsqrt/lutpoly11.py --packflags --rangeq --fy 28 --clamp --binnorm --zshift --droptop --smallfirst --foldadd --guards=0,-2,-4 --round 1,2 --gadd --pad 0 --out V.kmb   # = invsqrt_lut_V.kmb (current best, sha ebc32b19)
 python3.13 supervisor_work/invsqrt/lutpoly.py --packflags --rangeq --fy 28 --guards 0,1,1 --out E.kmb   # byte-identical to invsqrt_lut_E.kmb
 PYTHONPATH=data/kickmix python3.13 data/verifiers/invsqrt/verify_submission_invsqrt.py E.kmb             # ~6 min on 4 cores
 python3.13 supervisor_work/invsqrt/lutpoly4.py --packflags --rangeq --fy 29 --guards=0,-1,-4 --pad 6 --out H.kmb   # byte-identical to invsqrt_lut_H.kmb
