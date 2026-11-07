@@ -161,7 +161,7 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   Removes the fold's len(hi)-1 fan-out qubits, but after that the 96 peak is set by the 6 big y-step rows (13 Gidney ancillas each):
   maxanc 13: 96 q / 1534; 12: 95 / 1560; 11: 94 / 1586 (all worse than Z's 96 / 1528). `fold2_sweep.py` group scan
   (a in 6..10, LA in 11..17, maxanc 11..13) with fold2: best estimate 171,707 (= 7:13), no gain.
-- `b2_tree.py` (closed): dropping b2 (7 q) between Horner step 2 and its inverse would lower denorm 94->87 and step-1 98->89,
+- `b2_tree.py` (closed): dropping b2 (7 q) between Horner step 2 and its inverse would lower denorm 94->87 and step-1 96->89,
   but re-loading b2 needs a pruned unary tree: exact b2 needs 159 leaves (84 distinct values), i.e. ~2x158 Toffoli, 89 x 2099 = 186.8k > 171.1k.
   Sharing b2 across segments: spread 2 / 5 / 12 for groups of 2 / 4 / 8, and one b2 unit is 16 y units (~2 y units after a linear refit)
   vs a min weighted slack of 0.51 y units, so sharing is infeasible at fy=28.
