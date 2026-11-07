@@ -26,6 +26,8 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_lut_W.kmb | V + **top-CCX Gidney adder** (`lutpoly13.py --topccx`, same flags as V): the carry into each adder's top target bit is XORed in with one CCX instead of being stored by init_and, so every adder needs n-2 ancillas; same 1528 Toffoli, same arithmetic (exhaustive classical check n<=6) | 100 | 1528 | 1790.49 | 179,048.79 | **11.599** | PASS (`verify_lut_W.json`, 0.991) |
 | invsqrt_lut_X.kmb | W + **two-level Horner window** (`lutpoly14.py --topccx --groups 1:7:13`): y-step rows i<7 (sources only 6..12 bits) go into a 13-bit window with its own 2 signed carry qubits (exact range check over all x_norm: [-6510, 15940]), folded once into the 19-bit window; those rows cost 14 instead of 20 Toffoli. -70 Toffoli, +2 q | 102 | 1458 | 1720.49 | 175,489.77 | **11.834** | PASS (`verify_lut_X.json`, 0.991) |
 | invsqrt_lut_Y.kmb | X + **mixed Gidney/Cuccaro adders** (`lutpoly15.py --maxanc 13`, `gadd_mix.py`): adders that would need more than 13 ancillas switch their top source positions to in-place MAJ/UMA carries (+1 CCX per position, no ancilla); only the 6 big y-step rows are affected (+6 CCX each per direction, +70 total), peak 102 -> 96 | 96 | 1528 | 1790.49 | 171,886.84 | **12.082** | PASS (`verify_lut_Y.json`, 0.991) |
+| invsqrt_lut_Z.kmb | Y + s-aware coefficient search (`lutpoly16.py`) | 96 | 1528 | 1782.61 | 171,130.46 | 12.135 | PASS (`verify_lut_Z.json`, 0.971) |
+| invsqrt_lut_AA.kmb | **Z + one carry qubit per Horner window** (`lutpoly18.py --onecarry --groups 1:7:14`): every window one bit wider (same adder length), the lookup loads a per-segment offset k in {0,-1} (window sign bit + hi) so the final window value fits [-2^W, 2^W); folds become `hi -= c`. 3 windows x 1 qubit | 93 | 1522 | 1776.61 | 165,224.63 | **12.569** | PASS (`verify_lut_AA.json`, 0.971) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
@@ -165,3 +167,16 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   but re-loading b2 needs a pruned unary tree: exact b2 needs 159 leaves (84 distinct values), i.e. ~2x158 Toffoli, 89 x 2099 = 186.8k > 171.1k.
   Sharing b2 across segments: spread 2 / 5 / 12 for groups of 2 / 4 / 8, and one b2 unit is 16 y units (~2 y units after a linear refit)
   vs a min weighted slack of 0.51 y units, so sharing is infeasible at fy=28.
+
+## One carry qubit per window (supervisor, 2026-11-07 06:xx UTC) — lut_AA
+- Z rebuilt in a fresh container byte-identical (188a2b4d); verifier salt sv0607z full PASS 12.135x (`verify_lut_Z_sv0607z.json`).
+- With k=0 the window carry takes 3 values {-1,0,1} (needs 2 qubits) for every W. But the window's start value is just loaded
+  data: per segment the table can store window = (a0 mod 2^W) + k 2^W (sign bit = carry qubit, k in {0,-1}) and hi = (a0 >> W) - k.
+  Then only the per-segment span of the final value must fit 2^(W+1). Exact check over all x_norm: step 2 W=10, step 1 W=20,
+  group window W=14 are feasible for all 384 segments (= old L+1, so adder lengths are unchanged). Nested group window: after
+  its fold the outer window value is a0 - S_A - hi0 2^W (independent of kA), so the two offsets are chosen independently.
+- `lutpoly14oc.py` (= lutpoly14 + `--onecarry`), `lutpoly18.py` (lutpoly16 on top of it). Without `--onecarry` rebuilds Z byte-identical.
+  `python3.13 supervisor_work/invsqrt/lutpoly18.py --packflags --rangeq --fy 28 --clamp --binnorm --zshift --droptop --smallfirst --foldadd --round 1,2 --gadd --pad 0 --maxanc 13 --guards=0,-2,-4 --onecarry --groups 1:7:14 --out AA.kmb`   # sha 9c93deb2
+- AA: 93 q / 1522 Toffoli (folds without fan-out: -6), same arithmetic as Z (worst err/tol 0.97092, eps 1.669e-13), score 165,224.63 = **12.569x**, full verifier PASS.
+  Peaks: lookup 89, horner 93, denorm/phase 91.
+- Scan with --onecarry: maxanc 12 -> 92/1548 (165.8k), 14 -> 94/1510 (165.9k); groups 1:6:13 93/1536, 1:8:15 93/1528, 1:7:15 93/1548, +2:4:6 94/1530. AA best.
