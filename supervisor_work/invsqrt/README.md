@@ -154,3 +154,14 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   `python3.13 supervisor_work/invsqrt/lutpoly16.py --packflags --rangeq --fy 28 --clamp --binnorm --zshift --droptop --smallfirst --foldadd --round 1,2 --gadd --pad 0 --maxanc 13 --groups 1:7:13 --guards=0,-2,-4 --out Z.kmb`
 - Closed with the new objective (model check): guards 0,-3,-4 / 0,-2,-5 / 0,-3,-5 (weighted slack -8 / -6 / -11 y units); R=5 no change;
   droprot 1 passes but 34 x 29.92 T = 35 x 29.07 T (no gain); droprot 2 fails (1.099); k=8 (0,-1,-4, any group) fails (1.0004) and is 100-102 q / 1524.
+
+## 2026-11-07 05:xx UTC (supervisor)
+- Z rebuilt in a fresh container: byte-identical (sha 188a2b4d); verifier salt sv0705z full 200,540,928 shots PASS 12.135x (`verify_lut_Z_sv0705z.json`).
+- `lutpoly17.py` (closed): fan-out-free carry folds, `hi += c0 - 2 c1` as `c1 ? ~(~hi + [c0, c1&~c0]) : hi + c0` (+1 AND per fold).
+  Removes the fold's len(hi)-1 fan-out qubits, but after that the 96 peak is set by the 6 big y-step rows (13 Gidney ancillas each):
+  maxanc 13: 96 q / 1534; 12: 95 / 1560; 11: 94 / 1586 (all worse than Z's 96 / 1528). `fold2_sweep.py` group scan
+  (a in 6..10, LA in 11..17, maxanc 11..13) with fold2: best estimate 171,707 (= 7:13), no gain.
+- `b2_tree.py` (closed): dropping b2 (7 q) between Horner step 2 and its inverse would lower denorm 94->87 and step-1 98->89,
+  but re-loading b2 needs a pruned unary tree: exact b2 needs 159 leaves (84 distinct values), i.e. ~2x158 Toffoli, 89 x 2099 = 186.8k > 171.1k.
+  Sharing b2 across segments: spread 2 / 5 / 12 for groups of 2 / 4 / 8, and one b2 unit is 16 y units (~2 y units after a linear refit)
+  vs a min weighted slack of 0.51 y units, so sharing is infeasible at fy=28.
