@@ -1,40 +1,35 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-07 03:45 UTC
-**结论**：**NOT_APPROVED**（本次把最好成绩从 lut_V 11.484× 提到 **lut_Y 12.082×**，96 q，官方 verifier 全量 PASS；但和公开 62q 的 20.625× 差距仍然很大，方向没有穷尽）
+**时间戳**：2026-11-07 04:30 UTC
+**结论**：**NOT_APPROVED**（最好成绩从 lut_Y 12.082× 提到 **lut_Z 12.135×**，96 q，官方 verifier 全量 PASS；但离公开 62q 的 20.625× 还差很远，方向没有穷尽）
 
 ## 1. 干活的状态
-- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**：干活的从 11-04 21:24Z 起就没再推送，PR #1 已在 11-05 合并。main 的最新提交是 037709c（11-05，memory 收尾记录）。
-- 监工继续在 `claude/invsqrt-supervisor-work` 上接手，本次推送了 62b2e5c、8456e5f、d86873a，并更新了 draft PR #2 的标题和描述。
+- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**：干活的从 11-04 21:24Z 起就没再推送，PR #1 已在 11-05 合并，main 的最新提交仍是 037709c（11-05）。
+- 监工继续在 `claude/invsqrt-supervisor-work` 上接手，本次推送了 c57a1c8 和 291c039，并更新了 draft PR #2 的标题和描述。
 
-## 2. 已核实的事实（本次全部在新容器里亲自跑，python3.13 + data/kickmix/kickmix.so）
+## 2. 已核实的事实（本次都在新容器里亲自跑，python3.13 + data/kickmix/kickmix.so）
 | 电路 | Q | Toffoli | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|---|
-| lut_V（sha ebc32b19） | 101 | 1528 | 1790.49 | 180,839.28 | 11.484 | 重建字节一致；salt sv0307 全量 200,540,928 shot PASS（0.99075） |
-| lut_W（新，f145f85e） | 100 | 1528 | 1790.49 | 179,048.79 | 11.599 | 默认 salt 全量 PASS |
-| lut_X（新，eaaa147a） | 102 | 1458 | 1720.49 | 175,489.77 | 11.834 | 默认 salt 全量 PASS |
-| **lut_Y（新，9c03bbeb）** | **96** | **1528** | 1790.49 | **171,886.84** | **12.082** | 默认 salt 和 salt sv0407 两次全量 PASS（0.99075，结果一致） |
-| 公开 62q | 62 | — | 1624.07 | 100,692.58 | 20.625 | 本次没有重跑 |
+| lut_Y（sha 9c03bbeb） | 96 | 1528 | 1790.49 | 171,886.84 | 12.082 | 用 README 命令重建，字节一致；换 salt sv0507 全量 200,540,928 shot PASS（0.99075） |
+| **lut_Z（新，188a2b4d）** | **96** | **1528** | **1782.61** | **171,130.46** | **12.135** | 默认 salt 全量 PASS（worst 0.97092，eps 1.669e-13，和模型预测完全一致）；换 salt sv0507z 全量 PASS（结果一致） |
 - 倍数按 2,076,774.23 / score 计算，score = Q × C，都是 verifier 输出的总 cost，不是只算了某个子项。
-- 硬规则检查：没有向 Kaggle 提交；没有推 main；新文件中最大的是 .kmb，约 280KB；没有密钥，也没有比赛非公开信息。
+- 硬规则检查：没有向 Kaggle 提交；没有推 main；新文件中最大的是 .kmb，约 276KB；没有密钥，也没有比赛非公开信息。
 
 ## 3. 本次做的改进（详情见 supervisor_work/invsqrt/README.md）
-- **W：top-CCX 加法器**（`lutpoly13.py --topccx`）。Gidney 加法器进入最高位的进位改用 1 个 CCX 直接 XOR 到目标位，不再用 init_and 存进 ancilla。Toffoli 数不变，每个加法器少用 1 根 ancilla，峰值 101→100。对 n≤6 做了穷举的经典检查。
-- **X：两级 Horner 窗口**（`lutpoly14.py --groups 1:7:13`，扫描脚本 `group_scan.py`）。y-step 的前 7 行源只有 6~12 位，却要付 21 位窗口的进位链。把这 7 行放进 13 位的小窗口，配 2 根独立的带符号进位，最后一次折叠进主窗口。值域在所有 x_norm 上精确检查过：[-6510, 15940]，在允许范围内。每个方向省 35 Toffoli，代价是 +2 q。
-- **Y：Gidney/Cuccaro 混合加法器**（`gadd_mix.py`，`lutpoly15.py --maxanc 13`）。需要超过 13 根 ancilla 的加法器，把源的最高几位改成原地 MAJ/UMA 进位：每位多 1 个 CCX，不需要 ancilla。实际只影响 y-step 的 6 个大行，Toffoli +70，峰值 102→96。对 n≤7、全部 maxanc/cin/sub 组合做了穷举检查，0 失败。
-- 已关闭的方向：maxanc 12/11 仍是 96 q（峰值在 fold 的 fan-out），Toffoli 1554/1580，更差；group 6:12/8:14/9:15 都更差；r-step 分组每方向只省 11，而且它的进位会一直占着到 y-step 峰值，不划算。96 以下每降 1 q 都要在 13 行×2 个方向上各多 1 个 CCX（共 26 个，C/Q 只有 18.7），不划算。
+- **Z：按 s 加权的系数搜索**（`lutpoly16.py`）。verifier 的旋转预算是 min_x (tol − |err|)，这是绝对相位。对 x_norm = x·4^s 来说，它正比于 2^s·(2^-24·exact − |err|)，绑定的 s 是：x_norm ≤ MAX_X 时 s=0；否则 x_norm%4==0 时 s=1；其余不可达。原来的搜索和 a0 居中用的是不加权的相对误差，而且覆盖全部 x_norm。现在每段在 (d1,d2)∈[-3,3]² 和整数 a0 平移（中心 ±4）上最大化加权最小 slack。电路结构不变，只有 eps ×3.05，每个旋转 29.92→29.07 T，C −7.9。
+- 已关闭（模型精确检查）：guards 0,-3,-4 / 0,-2,-5 / 0,-3,-5 的加权 slack 是负数（−8/−6/−11 y 单位）；R=5 没有变化；droprot 1 能过，但 34×29.92 = 35×29.07，没有收益；droprot 2 FAIL（1.099）；k=8 配 0,-1,-4 FAIL（1.0004），而且要 100~102 q / 1524。
 
 ## 4. 问题和可疑点
 - 仍然没有干活的，监工是唯一在推进的。
-- Y 的精度余量只有 0.9%（worst 0.99075，x=816489），旋转 eps 只有 5.5e-14，每个旋转约 30 T，35 个旋转合计约 262 Toffoli-eq，占 C 的 15%。
-- 现在的峰值 96 = 底座 83（x 22 + s 4 + y 27 + r 17 + b2 7 + 3 对进位 6）+ 13 根 ancilla。要再大幅降低必须缩小底座，调加法器已经基本到头。
+- 精度和旋转这条线已经基本到头：加权最小 slack 只有 0.51 个 y 单位，受 a0 的整数粒度限制。
+- 峰值 96 = 行底座 83 + 13 根 ancilla；每降 1 q 要多 26 Toffoli（C/Q=18.6），所以调加法器已经到头。真正的收益只能来自缩小底座或换架构。
 
 ## 5. 下一步指示（按优先级，都还没做）
-1. **fold 不用 fan-out**：c1=1 时用补码技巧 `hi' = ~(~hi + (c0 + 2·¬c0))`，源只需 [c0, t]，其中 t = c1∧¬c0（1 个 AND，1 根 ancilla）。每个 fold 少 n-2 根 qubit。单独用没有收益，但它能解除 maxanc≤12 时的 fold 峰值。可以和第 2 条一起做：峰值降到 94 = denorm 的水平。
-2. **缩 denorm/phase 的底座（94）和行的底座（83）**：b2（7 根）和 carry[2]（2 根）在整个 y-step 和 denorm/phase 期间都闲着。可以试"r-step 之后用一次只针对 b2 位的测量式 del_lookup 擦掉 b2（约 41 Toffoli），horner_inv 之前再查一次表"。但重查要约 383，需要先算账。更好的办法是让 b2 只依赖地址的高 6~7 位（每 2~4 段共享），这样查表/擦表只要几十个 Toffoli；同时让 b1、a0 逐段重新拟合，精度用 deg3_search/lutpoly7 的搜索精确检验。
-3. **精度余量换旋转成本**：每多 1 bit 余量，35 个旋转合计省约 4.9 Toffoli-eq。可以试 a0 逐段重新居中的目标改成"最大化 min(tol − |err|)"（绝对量，按 x 加权），或只给最差的段（M≈3.2，x≈816489 所在的段）提高系数精度，看 worst 能否降到 0.9 以下。用 verifier 实测。
-4. **y-step 的 B 组行再分级**：B 组 6 行现在每行 20+6 CCX。可以试在 B 组内部用 Booth radix-4 处理最高的 2 行，或者把 B 组的进位链拆成两段加比较器，再用 lutpoly15 的 maxanc 精确算账。
-5. **滚动 y 寄存器 / 早相位**（向 62q 架构靠拢）：仍然是唯一能把 Q 降到 70 以下的方向，需要整体重新设计，详见上一版第 1 条。
+1. **fold 不用 fan-out + 缩底座组合拳**：fold 改成 `c1 ? ~(~hi + [c0, c1∧¬c0]) : hi + c0`（源只有 2 位，少 n−2 根 qubit），再加上 b2 只依赖地址高 6~7 位（每 2~4 段共享，查表/擦表几十个 Toffoli），配合逐段重拟合 b1/a0（lutpoly16 目标）。目标是峰值 ≤ 90 且 Toffoli 增加 < 18.6/q。
+2. **denorm CSWAP（每个方向约 122，合计约 244 = 14% 的 C）**：(a) 试 8,4,2,1 顺序加 lane 裁剪的精确账；(b) 试在 y 的最低几位上，s 较大时直接截断（大 s 时 x 小，tol 的绝对量大），配合 droprot 按 s 分段算误差；(c) 研究 62q 的 unnormalize 到底怎么只用很少 Toffoli 完成移位。
+3. **查表 383（本次已量账）**：用 qubit_ledger 量 Z 的各阶段峰值：normalize 37、lookup 86、horner 96、denorm/phase 94、lookup_inv 81。查表期间只空出 10 根，λ=2 的 SELECT-SWAP 需要 52 根输出副本，**不可行**。剩下的办法：把 b2（7 位）挪出主表，改成"地址高位小表"，在 horner 之前单独查；或者让 a0 的低位由 b1 推出来，以减少表宽。查表的 Toffoli 只和地址数有关，所以收益只在 qubit 这边。
+4. **滚动 y 寄存器 / 早相位**（向 62q 架构靠拢）：仍然是唯一能把 Q 降到 70 以下的方向，需要整体重新设计。
+5. **（低优先，先算账）a0 半单位精度**：slack 受整数 a0 限制，可以给 a0 加 1 个小数位（y 寄存器 +1 位，或者用 y-step 某一行的 carry-in 位当作 a0 的 2^-1 位），然后用 lutpoly16 的目标重新算账。需要 eps 提升超过约 2× 才能抵掉 +1 q 的话就不做，先在模型上算 slack。 粗算：eps 再 ×2 只省约 5 Toffoli-eq，大约是 1 q 的 1/4，大概率不划算。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -62,3 +57,4 @@
 - 2026-11-07 01:45 UTC：依然没有干活的分支；U2 新容器重建字节一致，换 salt sv0107 全量 PASS；**监工新做 lut_V（自写 Gidney 加法器，去掉 pad 和 l）：101 q / 1528 Toffoli / 180,839 = 11.484×，官方 verifier 全量 PASS**，推送到 invsqrt-supervisor-work；gadd 下的参数扫描和 k=8 都没有超过 V；NOT_APPROVED。
 - 2026-11-07 02:35 UTC：依然没有干活的分支；V 新容器重建字节一致，换 salt sv0207 全量 PASS（11.484×，一致）；监工接手，试了列丢弃 Horner（lutpoly12）、deg3 k=7（修好 IndexError）、k=8 gadd、V+droprot1/2，全部没有超过 V 或者 FAIL，已关闭；推送 054ece1 到 invsqrt-supervisor-work；NOT_APPROVED。
 - 2026-11-07 03:45 UTC：依然没有干活的分支；V 重建字节一致，salt sv0307 全量 PASS；监工接手，做了 top-CCX 加法器（W 11.599×）、两级 Horner 窗口（X 11.834×）、Gidney/Cuccaro 混合加法器（**Y 96 q / 1528 / 171,886.84 = 12.082×**），全部全量 PASS；推送 d86873a 到 invsqrt-supervisor-work，并更新了 PR #2；NOT_APPROVED。
+- 2026-11-07 04:30 UTC：依然没有干活的分支；Y 新容器重建字节一致，换 salt sv0507 全量 PASS（12.082×）；监工接手，新做按 s 加权的系数搜索（lutpoly16）：**lut_Z 96 q / 1528 / 171,130.46 = 12.135×，官方 verifier 全量 PASS，换 salt sv0507z 也 PASS**；粗 guard、droprot、k=8 在新目标下也都关闭；推送 c57a1c8、291c039 到 invsqrt-supervisor-work，并更新 PR #2；NOT_APPROVED。
