@@ -28,6 +28,8 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_lut_Y.kmb | X + **mixed Gidney/Cuccaro adders** (`lutpoly15.py --maxanc 13`, `gadd_mix.py`): adders that would need more than 13 ancillas switch their top source positions to in-place MAJ/UMA carries (+1 CCX per position, no ancilla); only the 6 big y-step rows are affected (+6 CCX each per direction, +70 total), peak 102 -> 96 | 96 | 1528 | 1790.49 | 171,886.84 | **12.082** | PASS (`verify_lut_Y.json`, 0.991) |
 | invsqrt_lut_Z.kmb | Y + s-aware coefficient search (`lutpoly16.py`) | 96 | 1528 | 1782.61 | 171,130.46 | 12.135 | PASS (`verify_lut_Z.json`, 0.971) |
 | invsqrt_lut_AA.kmb | **Z + one carry qubit per Horner window** (`lutpoly18.py --onecarry --groups 1:7:14`): every window one bit wider (same adder length), the lookup loads a per-segment offset k in {0,-1} (window sign bit + hi) so the final window value fits [-2^W, 2^W); folds become `hi -= c`. 3 windows x 1 qubit | 93 | 1522 | 1776.61 | 165,224.63 | **12.569** | PASS (`verify_lut_AA.json`, 0.971) |
+| invsqrt_lut_AB.kmb | AA + **y LSB never phased and not in the denorm lane** (`--droprot 1 --droplane --DSH 6`): -4 CSWAP per direction, 34 rotations | 93 | 1514 | 1768.80 | 164,498.06 | 12.625 | PASS (`verify_lut_AB.json`, 0.991) |
+| invsqrt_lut_AC.kmb | AB + `--jmin8 1` (shift-by-8 stage leaves lane bit 0 in place) | 93 | 1512 | 1766.80 | 164,312.06 | **12.639** | PASS (`verify_lut_AC.json`, 0.991) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
@@ -206,5 +208,12 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
 - AB: 93 q / 1514 Toffoli / 34 rotations (eps 5.64e-14), C 1768.80, score **164,498.06 = 12.625x**, full verifier PASS
   (`verify_lut_AB.json`, worst err/tol 0.99075). Without the new flags AA is still rebuilt byte-identical.
 - Closed: `--droprot 2 --droplane` fails (1.134); R=4 same as R=3. Partial CSWAP shifts in the denorm stages that only fire
-  for s >= 2^r (leave lane bits < jmin unshifted): exact phase simulation over all x shows only stage 8 tolerates jmin=1
-  (-1 CSWAP per direction); the error is relative, so a larger s gives no extra relative room. Not worth it.
+  for s >= 2^r (leave lane bits < jmin unshifted): exact phase simulation over all x (`lanesim.py`, input dumped with
+  `DUMP_Y=y.npz` from lutpoly16's slack report) shows only the shift-by-8 stage (s >= 8, x <= 63) tolerates jmin=1 without
+  lowering the global min slack; the error is relative, so a larger s gives no extra relative room for stages 1/2/4.
+- AB salt sv0721ab: full PASS, same score (`verify_lut_AB_sv0721ab.json`).
+- **lut_AC** = AB + `--jmin8 1` (that one CSWAP skipped per direction): 93 q / 1512 Toffoli, same eps 5.64e-14,
+  score **164,312.06 = 12.639x**, full verifier PASS (`verify_lut_AC.json`), sha 0b220fec (rebuild identical).
+  `python3.13 supervisor_work/invsqrt/lutpoly18.py <AA flags> --droprot 1 --droplane --DSH 6 --jmin8 1 --out AC.kmb`
+- k=8 re-checked with --onecarry (groups 1:8:15): guards 0,-1,-4 fail (1.0004); 0,-1,-3 pass but 98 q / 1524; fy 29 group
+  window infeasible. Closed again: the lookup saves 192 but b1/b2 widen and Horner grows.

@@ -433,7 +433,8 @@ class Design:
                     m = 2**r
                     prev = sum(2**q for q in fwd[:fwd.index(r)])
                     nb = self.widths[0] - DL + max(v & prev for v in range(11) if v >> r & 1)
-                    js = list(range(nb - 1, -1, -1))
+                    jm = getattr(self, 'jmin8', 0) if r == 3 else 0  # --jmin8 J: the shift-by-8 stage (s >= 8, x <= 63) leaves lane bits < J in place
+                    js = list(range(nb - 1, jm - 1, -1))
                     for j in (reversed(js) if inverse else js):
                         b.cswap(sb[r], y1[j], y1[j + m])
                 if sbp is None:
@@ -531,6 +532,7 @@ def main(Design=Design):
     ap.add_argument('--gadd', action='store_true')
     ap.add_argument('--groups', default='')
     ap.add_argument('--onecarry', action='store_true')
+    ap.add_argument('--jmin8', type=int, default=0)
     a = ap.parse_args()
     if a.round: Design.round = tuple(int(v) for v in a.round.split(','))  # class-level: the coefficient search in __init__ must see it
     d = Design(a.k, a.deg, a.fy, guards=[int(v) for v in a.guards.split(',')] if a.guards else None, cadd=a.cadd, binshift=a.binshift, rangeq=a.rangeq, packflags=a.packflags)
@@ -545,6 +547,7 @@ def main(Design=Design):
     d.foldadd = a.foldadd
     d.gadd = a.gadd
     d.onecarry = a.onecarry
+    d.jmin8 = a.jmin8
     d.groups = {int(g.split(':')[0]): (int(g.split(':')[1]), int(g.split(':')[2])) for g in a.groups.split(',') if g}
     e = d.calibrate()
     print('L', d.choose_L())
