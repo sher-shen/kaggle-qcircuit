@@ -109,3 +109,16 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   per direction (one more row per step, b1 17 -> 18 bits, b2 7 -> 9 bits because in 14-bit digit units the M < 2 coefficients
   double/quadruple), 115 q, 1632 Toffoli, model err 2^-23.78 (fails). Q x (T+262) = 217.8k vs U2 205.0k. **Closed.**
 - U2 re-verified with salt sv0700: full 200,540,928 shots PASS, 10.132x (`verify_lut_U2_sv0700.json`).
+
+## Column-drop, deg3, k=8, droprot on V (supervisor, 2026-11-07 02:xx UTC) — all closed
+- V rebuilt in a fresh container: byte-identical (sha ebc32b19); official verifier with salt sv0207, full 200,540,928 shots **PASS**, 180,839.28 = 11.484x (`verify_lut_V_sv0207.json`).
+- `lutpoly12.py` = lutpoly11 + `--lam j:L` (Horner step j drops every product column below acc bit L, so every row adder is L ANDs shorter
+  and the peak adder needs L fewer ancillas; rounding carry-in moves to src bit L-e-1). Model error (V flags, search R=3):
+  1:1 -> 2^-23.60, 1:2 -> 2^-22.98, 2:1 -> 2^-23.58; fy28 0,-1,-4 1:1 -> 2^-23.79; 0,-2,-3 1:1 -> 2^-23.71 (all fail);
+  fy29 0,-1,-3 1:1 -> 2^-24.91 but 106 q / 1618; fy29 0,-1,-3 1:2 -> 2^-24.07, 105 q / 1592 (194.7k, worse than V 180.8k);
+  fy29 0,-2,-4 1:2 -> 2^-23.96; 0,-2,-5 / 0,-3,-5 1:2, 0,-2,-4 1:3, 0,-2,-4 1:2+2:1 all fail. Each dropped column costs ~0.4 bit. **Closed.**
+- `deg3_search.py` (deg-3 coefficient search; lutpoly7's search only knew deg 2, that was the IndexError): k=7 fy28 guards 0,-2,-4,-6
+  -> widths 28/19/11/3 (+9 coefficient qubits vs deg 2), err 2^-22.5 for every round setting. Paper estimate even with enough guards:
+  lookup -290 but horner +~190/dir and +11 q -> worse. **Closed.**
+- k=8 (gadd, fy28): 0,-1,-3 round 1,2 -> 107 q / 1512 (189.8k); 0,-1,-4 -> 2^-24.00, 106 q / 1508 (187.6k); 0,-1,-5 fails. Worse than V.
+- V + `--droprot 1` FAILS (x=3071203, 3.423e-11 > 3.401e-11), `--droprot 2` FAILS (x=876875). V has no rotation slack.
