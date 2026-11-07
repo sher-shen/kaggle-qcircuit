@@ -181,3 +181,17 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
 - AA: 93 q / 1522 Toffoli (folds without fan-out: -6), same arithmetic as Z (worst err/tol 0.97092, eps 1.669e-13), score 165,224.63 = **12.569x**, full verifier PASS.
   Peaks: lookup 89, horner 93, denorm/phase 91.
 - Scan with --onecarry: maxanc 12 -> 92/1548 (165.8k), 14 -> 94/1510 (165.9k); groups 1:6:13 93/1536, 1:8:15 93/1528, 1:7:15 93/1548, +2:4:6 94/1530. AA best.
+
+## Freeing window sign qubits after their fold (supervisor, 2026-11-07 07:xx UTC) — closed
+- AA rebuilt in a fresh container byte-identical (9c93deb2); verifier salt sv0707aa full PASS 12.569x (`verify_lut_AA_sv0707aa.json`).
+- Idea: after `hi -= c`, c = bit0(hi') ^ bit0(hi0(A)); for the group window cA = bit_LA(acc') ^ bit_LA(loaded(A)). If the
+  classical bit equals a cheap function p of qubits that hold constant data at that moment, CX gates clear c and the
+  qubit is free during the step-1 B rows (horner peak) and denorm/phase: c2 + cA would give 93 -> 91 q at no Toffoli cost.
+- `lutpoly19.py` (= lutpoly14oc + `--freecarry` / `--freefeat` / `--wplus`), `lutpoly20.py` (launcher like lutpoly18), `fcrepair.py`.
+- Result: infeasible everywhere. k in {0,-1} is forced in 47 (step 2) / 127 (step 1) / 132 (group) of 384 segments, and the
+  forced parities are essentially random:
+  - affine in the 9 address bits: best leaves 11 / 47 / 47 bad segments; + one AND of two linear forms: 0 solutions;
+  - parity-aware re-choice of (d1, d2, a0 shift) among the lutpoly16 candidates with slack >= the current minimum: no assignment;
+  - features = address + b2 + loaded y bits (43 features for c2): not solvable;
+  - a wider window does not create freedom: k=+1 and k=-1 give the same window bit pattern and the same hi0 parity, so the
+    parity is fixed by the pattern; two extra bits per window would be needed (> the 19 Toffoli/qubit break-even).
