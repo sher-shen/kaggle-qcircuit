@@ -263,3 +263,17 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   Expected (0+2+6+14)/2 = 11 Toffoli vs 15.125. 93 q / mean 1494.0 (static 1505), same arithmetic (worst 0.99075, eps 5.64e-14),
   score **162,638.03 = 12.769x**, full verifier PASS (`verify_lut_AF.json`; salt sv0800af also PASS 162,638.06, `verify_lut_AF_sv0800af.json`), sha 1f00ebbf.
   `python3.13 supervisor_work/invsqrt/lutpoly23.py <AA flags> --droprot 1 --droplane --DSH 6 --jmin8 1 --out AF.kmb`
+
+## 2026-11-08 01:xx UTC (supervisor)
+- AF rebuilt in a fresh container byte-identical (1f00ebbf); verifier salt sv0801af full 200,540,928 shots PASS, 162,637.94 = 12.769x
+  (`verify_lut_AF_sv0801af.json`, worst 0.99075).
+- Stage ledger (`qubit_ledger.py AF.kmx`): normalize 45 / lookup 89 / **horner 93** / denorm+phase 91 / lookup_inv 80 / normalize_inv 36;
+  Toffoli lookup 383, horner 349 per direction (step 1 ~ 12 rows x 21 + 20, step 2 ~ 8 rows x ~11), denorm 113 per direction.
+- maxanc scan on AF flags: 12 -> 92 q / static 1531 (~163.3k), 11 -> 91 q / static 1557 (~163.9k). Both worse than AF (162.6k). **Closed.**
+- Phase-gradient redesign (add Horner step-1 rows straight into a shifted phase-gradient register, no regs[0], no horner_inv step 1,
+  no denorm of y): the gradient must span 2^-1..2^-37 turns = 37 q (same as the y lane) and is alive during step 1 together with
+  regs[1], regs[2] and the adder ancillas -> peak ~103 q (+10); Toffoli: -~230 (step-1 inverse) -226 (denorm) +~236 (gradient shifts)
+  +~130 (rows can no longer be windowed, carries run to the top) and ~37 rotations to prepare the gradient vs 34 saved: ~-90 net.
+  +10 q for -90 Toffoli is a loss (1 q ~ 18.8 Toffoli). **Closed on paper.**
+- Splitting y = c0 + (c1 t + c2 t^2) and phasing c0 separately (second lookup + second denorm + second set of rotations): ~-6 q for
+  ~+900 Toffoli. **Closed on paper.**
