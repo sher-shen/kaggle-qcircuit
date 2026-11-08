@@ -216,3 +216,9 @@ Run on `F.npy` from `lut_outputs.py` (35 x 256 truth tables, address q14 = LSB .
   block is far out of reach. **SAT exact-MC direction closed** (it would need a heavy external tool like mockturtle's
   exact XAG synthesis with cut enumeration, which is blocked in the cloud session).
 - U2 maxq re-check: maxq 108 -> 1636 static Toffoli, maxq 104 -> 1734 (109 -> 1618). Q x C does not improve below 109.
+
+## unnormalize already uses per-stage flag measurement (2026-11-08 03:xx UTC, supervisor)
+- Dumped ops 46744-47248: 57 unconditioned Toffoli-class gates (5-AND decoder + 52 CSWAP ladder, one CSWAP already replaced by Özer's patch),
+  then the shift flags are X-measured one by one (HMR q19 -> bit 318, q16 -> 319, q14 -> 320, q15 -> 322, q18 -> 321) with nested
+  PUSH_CONDITION blocks holding the AND-chain / CCZ phase fix-ups (44 static, ~10 mean). This is the same trick as our lut_AF
+  normalize_inv (expected 11). **Porting AE/AF measurement-erasure to the 62q circuit (instruction 1 of 02:40) brings nothing: already there.**

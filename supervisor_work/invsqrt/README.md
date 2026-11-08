@@ -286,3 +286,14 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   is +1 q unless maxanc drops to 12 (+26 static Toffoli), while its saving is ~(14-LA2)*a2 - fold ~= 12 per direction: <= break-even. **Closed on paper.**
 - lookup_inv is already measurement-based (`del_lookup`, 41 Toffoli); forward lookup 383 = L-1 for 384 leaves; SELECT-SWAP lambda=2
   (246 Toffoli) needs +54 target qubits (peak 89 -> 143). **Closed on paper.**
+
+## 2026-11-08 03:xx UTC (supervisor)
+- AF rebuilt in a fresh container byte-identical (1f00ebbf); verifier salt sv0803af full 200,540,928 shots PASS, 162,638.10 = 12.769x
+  (`verify_lut_AF_sv0803af.json`, worst 0.99075).
+- Shannon / subtree sharing of the AF lookup (old instruction 3): `dump_table.py <AF flags> --out X.kmb` (env DUMP=table.pkl) captures the
+  9-bit -> 54-bit table, `shannon_scan.py table.pkl` checks every unary-iteration node for children that differ by a constant XOR.
+  Result: only the leaf pairs (h=1, already 1 Toffoli each); **0 of 96/48/24/12/6/3/1 nodes at h=2..8**. Per output bit, only 2/2/4 bits
+  have a constant derivative in address bit 0/1/7 (width, not Toffoli). **Closed.**
+- b2 freed during step 1 + denorm (HMR b2 after step 2; reload before horner_inv step 2; the pending phase (-1)^(m.b2(addr)) is fixed for
+  free by classically conditioned Z on the reloaded bits): Q 93 -> 89 (lookup peak), budget ~75 Toffoli, but the reload is a full 383-leaf
+  lookup; making b2 depend on fewer address bits (blocks of 2 segments) already gives ~2^-23 error at M~1. **Closed on paper.**
