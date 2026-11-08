@@ -320,3 +320,23 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   that condition is the whole question. So this relaxation cannot replace the per-g search. The 49 pairs with dim G 14..28 stay
   sampled, not exhaustive. An exact method would need a rank-1 completion search over the kernel of (r, h_1..h_d) -> r + sum G_k h_k.
   That kernel includes all the trivial symmetric relations G_k*G_l = G_l*G_k, roughly d^2/2 of them, so it is not cheap.
+
+## Exact pair test by MinRank (2026-11-08 22:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv0822mm: PASS,
+  score 100,568.51 = 20.650x** (`verify_p62_merge2_sv0822mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `minrank_core.py` + `minrank_pair_scan.py ops.json n reps maxgap 0 [A B]` (same pair list / sampling as func_affine_scan): the
+  question "f = p_i + p_j = g*h + r with g, h ANY affine functions of V_j (live wires + recent bits at j), r in V_j + V_end" is
+  rewritten exactly as MinRank: on a basis v of V_j (control values put first), every degree<=2 representation of f is
+  Q0 + span(K_1..K_k) (K = quadratic relations of the sampled reachable states, a superset of the true ones, so a rejection is
+  sound), and g*h has an alternating quadratic part of rank <= 2. rank(B(l)) <= 2 <=> all 4x4 Pfaffians vanish (quadratic in l).
+  k <= 18: all 2^k l enumerated; k <= 160: linearised (unknowns 1, l_i, l_i l_j), inconsistency = proof that no (g, h) exists;
+  k > 160: only principal-submatrix necessary tests (too weak, see below). Sanity: on the original ops.json the merge2 pair
+  21455/21459 is NOT rejected (consistent).
+- Result on merge2 (n 3000, reps 2, maxgap 60), 71 pairs:
+  - **25 pairs exactly rejected** (carry chains 21884..23478, k 73..157: the linearised Pfaffian system is inconsistent).
+    This closes these pairs for ALL affine g, h of any weight; support_g_scan had only sampled the high-dim-G ones among them.
+  - 2 dirty-CCCX pairs (25610, 28849): f is not even quadratic in V_j -> rejected (known artefacts).
+  - 14 phase-tap pairs (early 15288..15417 k 631..711, fine 25746..25880 k 248..260): not decided by MinRank; already closed
+    by the tap-wire argument (shared AND sits in another tap, needs an extra wire at width 62).
+  - **30 pairs in 33038..34819 (lookup_c / late_curvature_norm chains, k 311..350): OPEN.** Linearisation would need ~60k unknowns;
+    the principal-submatrix restrictions are always feasible because the relations (product wires) make almost every entry free.
