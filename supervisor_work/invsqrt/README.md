@@ -32,6 +32,7 @@ Own code only (no third-party notebook code). Nothing here was submitted to Kagg
 | invsqrt_lut_AC.kmb | AB + `--jmin8 1` (shift-by-8 stage leaves lane bit 0 in place) | 93 | 1512 | 1766.80 | 164,312.06 | **12.639** | PASS (`verify_lut_AC.json`, 0.991) |
 | invsqrt_lut_AD.kmb | AC + **one prefix AND chain for all four s bits** (`lutpoly21.py`, `binnorm2.py`): s_r = XOR of P_2k = [top 2k bits zero]; normalize 84+80 -> 77+77 Toffoli | 93 | 1502 | 1756.80 | 163,382.06 | **12.711** | PASS (`verify_lut_AD.json`, 0.991) |
 | invsqrt_lut_AE.kmb | AD + **s erased by X-measurement** in normalize_inv (`lutpoly22.py`, `binnorm3.py`): HMR on s, phase fix (-1)^(m.s(x)) by a prefix AND chain that is classically conditioned to stop at the largest needed P_n; normalize_inv 76 -> 72.1 Toffoli on average (static 1501, mean 1498.125) | 93 | 1498.13 | 1752.92 | 163,021.69 | **12.739** | PASS (`verify_lut_AE.json`, 0.991) |
+| invsqrt_lut_AF.kmb | AE + **per-stage X-measurement of s** in normalize_inv (`lutpoly23.py`, `binnorm4.py`): right after un-shift stage r, s_r = P_{2^(r+1)}(current x), so m_r = 1 costs only a 2^(r+1)-bit multi-controlled Z (0/2/6/14 ANDs); normalize_inv expected 11 instead of 15.125 Toffoli (static 1505, mean 1494.0) | 93 | 1494.00 | 1748.80 | 162,638.03 | **12.769** | PASS (`verify_lut_AF.json`, 0.991) |
 
 ## LUT design (`lutpoly.py`)
 1. Normalize `x -> x_norm = x 4^s` (official reference routine), `M = x_norm/2^20 in [1,4)`.
@@ -256,3 +257,9 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
 - x<64 bypass (cap s at 7, XOR the correct output onto the denorm lane with a 63-leaf lookup controlled by P16): saves stage-8 CSWAPs
   (2x28) + shift-16 + P18/P20 (~72) but costs two 63-leaf lookups (~128, the lane must be restored before denorm_inv) and the top
   lane positions (weights 1/2..1/8) are still needed for x<64 (+3 q in the phase stage). **Closed on paper.**
+- **lut_AF** (`binnorm4.py`, `lutpoly23.py`): in the inverse, stage r is un-shifted and s_r is X-measured at once. After un-shifting
+  stages 0..r the leading-zero count is z_norm + sum_{q<=r} 2^(q+1) s_q with z_norm in {0,1}, so s_r = [top 2^(r+1) bits zero] of the
+  current register; the fixup for m_r = 1 is a multi-controlled Z on those negated bits (n-2 ANDs, measurement-uncomputed).
+  Expected (0+2+6+14)/2 = 11 Toffoli vs 15.125. 93 q / mean 1494.0 (static 1505), same arithmetic (worst 0.99075, eps 5.64e-14),
+  score **162,638.03 = 12.769x**, full verifier PASS (`verify_lut_AF.json`), sha 1f00ebbf.
+  `python3.13 supervisor_work/invsqrt/lutpoly23.py <AA flags> --droprot 1 --droplane --DSH 6 --jmin8 1 --out AF.kmb`
