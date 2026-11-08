@@ -307,3 +307,16 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   were sampled with 8192 g each). L 60, MAXD 15: **0 of 71 pairs** (18 exhaustive with dim G <= 15, 53 sampled with 32768 g each; 1.73M g tested).
 - Notes: the phase_merge_repair CCZ ladders (4 x 19 CCZ on (18|27, 23|21, *)) are already pivot-search reductions (nested
   "all previous bits zero" conditions -> exactly one CCZ executes), and the seed_phase_retire_2 CCX pairs likewise; no gain there.
+
+## Linear relaxation of the affine-factor test (2026-11-08 21:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv0821mm: PASS,
+  score 100,568.55 = 20.650x** (`verify_p62_merge2_sv0821mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `lin_filter_scan.py ops.json n reps maxgap L MAXD` (same arguments as support_g_scan; MAXD unused): tests the *necessary* condition
+  f in span(V, G_k*V for all basis vectors G_k of G) with one exact packed GF(2) elimination per pair. A rejection would close
+  every g in G at once, whatever dim G is. Run with n 6000, reps 2 (N = 14,030 samples > rows <= 3,567, so a rejection is meaningful).
+- Result: original ops.json 71 of 73 pairs **not rejected**, merge2 69 of 71 **not rejected** (only the dirty 25604/28843 pairs
+  are rejected, which were already known artefacts). Reason: for these chains the four control values are still live at j, so
+  c1, c2, c3, c4 are in G and f = c1*c2 + c3*c4 is in G*V trivially. The relaxation drops the rank-1 condition (h_k = c_k h), and
+  that condition is the whole question. So this relaxation cannot replace the per-g search. The 49 pairs with dim G 14..28 stay
+  sampled, not exhaustive. An exact method would need a rank-1 completion search over the kernel of (r, h_1..h_d) -> r + sum G_k h_k.
+  That kernel includes all the trivial symmetric relations G_k*G_l = G_l*G_k, roughly d^2/2 of them, so it is not cheap.
