@@ -258,3 +258,17 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   **artefacts**: the identity needs a49 again at op 25749, but its wire q50 was HMR-measured at 25715. TODO: restrict factors to the span
   of live wire masks at the window's op. Width-62 dirty chains (25583, 28822): live wires + const are full rank (`lut_tt.py` sample), so a
   wire can't be freed with CNOTs.
+
+## 2026-11-08 05:xx UTC (supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv0805mm: PASS,
+  score 100,568.535 = 20.650x** (`verify_p62_merge2_sv0805mm.json`).
+- Span-40 triple scan (`stage_qform.py st.json 3 40`) finished for arith_b, arith_c, late_curvature_norm, early_phase_taps,
+  lookup_c, unnormalize: only arith_c 28843 (known dirty-CCCX artefact) and early_phase_taps hits.
+- `stage_qform_plus.py st.json 2 SPAN` ("one AND away": a 2-AND window whose XOR sum + some other AND of the stage is a single
+  product) — finds both merge2 edits (sanity). New hits only in the two phase-tap streams (early 15288/15290 + 15364, ..., fine
+  25749/25752 + 25707, ...): every tap computes `q_tap = c1*u + c2*v` into a fresh wire that is rotated and HMR'd at once, and the
+  shared AND lives in a *different* tap. Using it needs that AND held on an extra wire between the taps; occupancy there is 61..62
+  (the 61 is just the tap wire itself), and a dirty copy costs 2 Toffolis (compute + uncompute) = no gain. **Closed.**
+- `func_pair_scan.py ops.json 2000 8 80` (sampled/functional, x repeated 8x, recent measurement bits allowed in the remainder,
+  remainder may become available on a live wire up to 400 ops later): 125 same-target CCX pairs in the whole circuit, **hits = the
+  2 merge2 pairs only**. Nonlinear relations between wires do not open further pair merges.
