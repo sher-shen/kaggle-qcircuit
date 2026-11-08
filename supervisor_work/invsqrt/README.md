@@ -277,3 +277,12 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   +10 q for -90 Toffoli is a loss (1 q ~ 18.8 Toffoli). **Closed on paper.**
 - Splitting y = c0 + (c1 t + c2 t^2) and phasing c0 separately (second lookup + second denorm + second set of rotations): ~-6 q for
   ~+900 Toffoli. **Closed on paper.**
+
+## 2026-11-08 02:xx UTC (supervisor)
+- AF rebuilt in a fresh container byte-identical (1f00ebbf); verifier salt sv0802af full 200,540,928 shots PASS, 162,638.09 = 12.769x
+  (`verify_lut_AF_sv0802af.json`, worst 0.99075).
+- Live-qubit profile of horner: the 93 peak is hit only inside the 12 step-1 B-row adders (base 80 = x 22 + s 4 + regs 27+17+7 + 3 window
+  carries, + 13 adder ancillas from maxanc 13). Step-1 A rows / step 2 stay <= 90. So a nested step-1 group window (+1 persistent carry)
+  is +1 q unless maxanc drops to 12 (+26 static Toffoli), while its saving is ~(14-LA2)*a2 - fold ~= 12 per direction: <= break-even. **Closed on paper.**
+- lookup_inv is already measurement-based (`del_lookup`, 41 Toffoli); forward lookup 383 = L-1 for 384 leaves; SELECT-SWAP lambda=2
+  (246 Toffoli) needs +54 target qubits (peak 89 -> 143). **Closed on paper.**
