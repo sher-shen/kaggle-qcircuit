@@ -272,3 +272,25 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - `func_pair_scan.py ops.json 2000 8 80` (sampled/functional, x repeated 8x, recent measurement bits allowed in the remainder,
   remainder may become available on a live wire up to 400 ops later): 125 same-target CCX pairs in the whole circuit, **hits = the
   2 merge2 pairs only**. Nonlinear relations between wires do not open further pair merges.
+
+## General affine factors, tap pairs, wire freeing, triples (2026-11-08 06:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv0806mm: PASS,
+  score 100,568.51 = 20.650x** (`verify_p62_merge2_sv0806mm.json`). Nothing was submitted to Kaggle.
+- `quad_rel_scan.py ops.json 15000 1`: the reachable states DO satisfy many quadratic relations at every same-target CCX pair
+  (15..711 independent degree-2 relations among the 52..61 live wires; e.g. live AND outputs). So the formal symplectic rank of
+  stage_qform is only an upper bound, and a functional test with arbitrary affine factors is needed (next item).
+- `func_affine_scan.py ops.json n reps maxgap EXTRA [A B]`: exact sampled criterion for f = p_i + p_j = g*h + r with g, h, r
+  affine in V = live wires at j and at the next read of t + recent measurement bits:  f|{g=0} in V|{g=0} and f|{g=1} in V|{g=1}.
+  g = span(4 control values) XOR up to EXTRA further live wires. Sanity on the original ops.json (EXTRA 0): finds exactly the
+  two merge2 pairs. On merge2: EXTRA 1 -> **0 of 72 pairs**; EXTRA 2 (~23k-28k g per pair, run in 5 shards) -> **0 of 72 pairs**. **Instruction 1 (pairs) closed for g of weight <= 2 beyond the controls.**
+- `tap_pair_scan.py ops.json A B wire n reps DMAX EXTRA` (instruction 2): for every pair of phase-tap values (Z_POW on the tap wire,
+  distance <= 4 taps) tests v_i + v_j = g*h + r (g = any live wire or XOR of two, V = live at both taps + bits).
+  early_phase_taps (wire 28, 16 taps, 54 pairs) and fine_phase_stream (wire 50, 21 taps, 74 pairs): **0 hits** -> computing tap j
+  from tap i on the same wire cannot use fewer than 2 + 2 ANDs (for such g). Note also that the early stream's CSWAP(20,28,3) /
+  CSWAP(27,28,0) is a delay line (shift-dependent angle), so tap order is fixed anyway. **Instruction 2 closed.**
+- `wire_free_scan.py ops.json P Q n reps EXTRA` (instruction 3): every live wire untouched in the dirty block [P,Q) tested for
+  w = g*h + r (other live wires + bits, at P and at Q). Dirty chains 25601-25622 and 28840-28861: **0 of 51 wires** (EXTRA 2).
+  The width profile (`occ` sample) has 4-5 free wires only at ~25557-25571, but the chain inputs 40/21/41 are computed after that;
+  wire 41 (= erased21 * 47, degree 3) would cost >= 2 Toffoli to recompute plus a non-Clifford fix-up. **Instruction 3 closed.**
+- `triple_func_scan.py ops.json n reps maxgap` (3 -> 2): quadrant criterion f|{g1=b,g2=c} in V for g1, g2 = XOR of <= 2 of the six
+  control values. Sanity (synthetic: two copies of a CCX inserted after the merge2 pair): both triples HIT. On merge2: **0 of 39 triples**.
