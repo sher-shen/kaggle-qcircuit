@@ -1,36 +1,33 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-07 23:25 UTC
-**结论**：**NOT_APPROVED**（当前最好是 lut_AE 12.739×，93 q；公开的 62q 是 20.625×，差距仍然很大）
+**时间戳**：2026-11-08 00:15 UTC
+**结论**：**NOT_APPROVED**（最好仍是 lut_AE 12.739×，93 q；公开 62q 是 20.625×，差距主要在 Q）
 
 ## 1. 干活的状态
-- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**一直没有出现干活的分支 W**：干活的最后一次推送是 11-04 21:24Z，main 还停在 037709c。
-- 监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2，标题和正文已更新到 AE），本次推送了 15b47c9。上次列的指示 2 本次做完（见第 3 节），指示 1、3、4 还没做。
+- 远端分支仍然只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`，**没有干活的分支 W**（干活的最后推送 11-04 21:24Z，main 停在 037709c）。
+- 监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2），本次推送 d8f44b7。上次的指示 3 本次做完（关闭），指示 2 本次在纸面上关闭；指示 1、4、5 还没做。
 
-## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so）
+## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | 旋转 | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|---|---|
-| lut_AD（sha 01c10986） | 93 | 1502 | 34 | 1756.80 | 163,382.06 | 12.711 | 按 README 命令重建，字节一致；换 salt sv0723ad 跑官方 verifier，全量 200,540,928 shot PASS，分数一致 |
-| **lut_AE（sha 3a7cc491）** | **93** | **1498.125**（静态 1501） | 34 | 1752.92 | **163,021.69** | **12.739** | 默认 salt 和 sv0723ae 两次都是官方 verifier 全量 PASS（worst 0.99075，eps 5.64e-14；salt 版 163,021.74，均值依赖 HMR 采样） |
-- 倍数 = 2,076,774.23 / score，其中 score = Q × C，取自 verifier 输出的总 cost（不是子项）。
-- 硬规则检查：没有向 Kaggle 提交；没有推 main；新文件最大 277 KB；没有密钥，也没有比赛非公开信息。
+| **lut_AE（sha 3a7cc491）** | **93** | **1498.125**（静态 1501） | 34 | 1752.92 | **163,021.71** | **12.739** | 按 README 命令重建，字节一致；换 salt sv0800ae 跑官方 verifier，全量 200,540,928 shot **PASS**（worst 0.99075，eps 5.64e-14） |
+- 倍数 = 2,076,774.23 / score，score = Q × C 取自 verifier 输出的总 cost（不是子项）。三次不同 salt（默认、sv0723ae、sv0800ae）结果一致。
+- 硬规则检查：没有向 Kaggle 提交；没有推 main；新增文件只有 README 和一个 JSON（<1 KB）；没有密钥，也没有比赛非公开信息。
 
-## 3. 本次做法（指示 2，完成）
-- **AE：normalize_inv 里用 X 测量擦除 s**（`binnorm3.py`、`lutpoly22.py`）。un-shift 之后对 4 个 s 比特做 HMR 得到 m，残留相位 (-1)^{m·s(x)} = Π_n (-1)^{c_n P_n}，c_n 是 m 的经典异或（BIT_INVERT_IF）。经典比特 need[i] = OR_{n≥i+3} c_n 控制前缀 AND 链每一步（push_condition），只算到需要的最大 P_n，再条件 CZ，最后 del_and 擦掉。m 均匀分布时期望 15.125 个 Toffoli，原来是 19；verifier 实测均值 1498.125，和预测完全一致。
-- 看过但没做：把 s 封顶到 7（链 13 个 AND，去掉 shift-16 和 denorm 第 8 级，约 -78 Toffoli），但 x<64 要多 63 个叶子（+66），而且这些项的 y 需要多 3 位，y 也不再有恒为 1 的最高位。净收益约 0，没有搭。
-- 各阶段静态 Toffoli（AE）：normalize 77、lookup 383、horner 349、denorm 113、denorm_inv 113、horner_inv 349、lookup_inv 41、normalize_inv 76（均值 72.1）。峰值：horner 93、denorm/phase 91、lookup 89。
+## 3. 本次做法
+- **指示 3（step 2 窗口分组），已完成并关闭**：在 onecarry 下用 `--groups 1:7:14,2:a:LA` 实际构建了 6 组参数。2:6:8 和 2:6:9 是 94 q / 1501（Toffoli 没变），2:7:9 是 94 q / 1499；2:8:10、2:7:10、2:8:11 不可行（窗口断言失败）。分组的 carry 由查表加载，会一直活到 step 1 的峰值，所以多 1 个 qubit 只换回最多 2 个 Toffoli。
+- **指示 2（x<64 走旁路），纸面关闭**：把 s 封顶到 7，再用一个由 P16 控制的 63 叶查表把正确输出 XOR 到 denorm lane 上。这样能省掉 stage-8 的 CSWAP（2×28）、shift-16 和 P18/P20，约 72 个 Toffoli。但 lane 在 denorm_inv 之前必须还原，所以要做两次查表，约 128 个 Toffoli；而且 x<64 仍然需要 lane 顶部权重 1/2~1/8 的那几位，相位阶段要多 3 个 qubit。净收益是负的。
 
 ## 4. 问题和可疑点
 - 仍然没有干活的推送，监工是唯一在推进的。
-- 局部技巧的收益越来越小（这次 +0.22%）。要大幅提升，必须把 Q 从 93 降到 ≤80（1 个 qubit ≈ 18.8 个 Toffoli）。
-- 测量擦除的思路只对 AND 链有用：y、r、b2 的相位修正都要重新算出值本身，不会更便宜（已推演，不必再试）。
+- 局部技巧基本用完了（最近几次分别是 +0.22% 和 0）。每个 qubit 约等于 18.8 个 Toffoli，三个阶段的峰值（horner 93、denorm/phase 91、lookup 89）都贴着 93，要大幅提升只能重新设计寄存器的生存期。
 
 ## 5. 下一步指示（按优先级，均未做）
-1. **滚动 y 寄存器 / 早相位重设计（向 62q 靠拢）**：先写寄存器生存期账本，目标是 Q≤80 且 Toffoli≤1650。horner 峰值 93 = x 22 + s 4 + y 27 + r 17 + b2 7 + carry 3 + adder ancilla 13。可以先试"y-step 以 r 的比特为控制、t 为源"的换序，看低位 r 能不能按行提前释放。
-2. **denorm 第 8 级（28+28 个 CSWAP，只在 x≤63 时生效）**：找办法让 x<64 单独走精确路径（例如对这 63 个 x 用 P16 控制的相位修正，同时让主路径在 s≥8 时的相位误差可以被吸收），这样第 8 级和 shift-16 都可以去掉，预计最多 -70 Toffoli（约 4%）。
-3. **step 2 的 3 个空闲 qubit**：step 2 的峰值约 90。可以把小源行先累加进一个 ≤3 位的暂存寄存器（暂存寄存器在 step 2 结束前要清掉）。step 2 前 6 行每个方向共 60 个 Toffoli。
-4. **查表改成 XAG 布尔电路**：当前是 9 位地址、384 个叶子、约 57 位输出、383 个 Toffoli；可以试按最高位 Shannon 分解、共享子表的自写综合。
-5. （小）normalize_inv 部分提前测量：在 stage 3/2 的 un-shift 之后马上测 s3/s2，相位修正改用部分移位后的 x 上的谓词，预计再省 1~2 个 Toffoli。
+1. **滚动 y / 早相位重设计（向 62q 靠拢）**：y 的高位一旦确定（后面的 Horner 行进位影响不到，或者可以用 1 个 guard 吸收），就先 denorm 再打旋转，然后释放。先写一个原型：只把 y 最高的 8 位提前打相位（需要先做 denorm，需要证明后面的行不会再进位到这些位），量一下 horner 和 phase 两个阶段的峰值。目标是 Q≤85，Toffoli≤1650。
+2. **s 寄存器在 Horner 期间腾出来**：s（4 q）只在 normalize 和 denorm 时用到。可以在 normalize 之后用 X 测量擦掉 s（AE 已有现成的相位修正机制，约 15 个 Toffoli），在 denorm 之前再从 x_norm 和 x 的关系里重算……但 x 已经被移位了，没法重算。改成另一种做法：把 s 编码进 lookup 地址里不可达的那段（地址 0..127 没用），看能不能让 a0 的某几位顺带携带 s。需要先做可行性分析。
+3. **查表改成 XAG 布尔电路**（老指示 4）：9 位地址、384 个叶子、约 57 位输出、383 个 Toffoli。可以按最高位做 Shannon 分解、共享子表，自己写综合。
+4. （小）normalize_inv 部分提前测量（老指示 5）：在 stage 0/1 的 un-shift 之后马上测 s0/s1，预计省 1~2 个 Toffoli。
+5. y 的 X 测量擦除 + 相位修正折进下一次 forward：已证明需要重算 y，不要再试。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -65,3 +62,4 @@
 - 2026-11-07 21:35 UTC：依然没有干活的分支；AA 新容器重建字节一致，换 salt sv0721aa 全量 PASS（12.569×）；监工接手，新做 lut_AB（y LSB 不进 denorm lane，93 q / 1514 = 12.625×，默认 salt 和 sv0721ab 都全量 PASS）和 **lut_AC（加 --jmin8 1，93 q / 1512 / 164,312.06 = 12.639×，默认 salt 和 sv0721ac 都全量 PASS）**；部分移位和 onecarry 下的 k=8 都关闭；推送 fa312eb、9696d32，更新 PR #2；NOT_APPROVED。
 - 2026-11-07 22:35 UTC：依然没有干活的分支；AC 重建字节一致，换 salt sv0722ac 全量 PASS（12.639×）；监工接手，新做 **lut_AD（用一条前缀 AND 链求 s：93 q / 1502 / 163,382.06 = 12.711×，默认 salt 和 sv0722ad 都全量 PASS）**；hi 重载方向（单调阶梯，128 个值）关闭；推送 1d9754f，更新 PR #2；NOT_APPROVED。
 - 2026-11-07 23:25 UTC：依然没有干活的分支；AD 新容器重建字节一致，换 salt sv0723ad 全量 PASS（12.711×）；监工接手，完成指示 2：**lut_AE（normalize_inv 用 X 测量擦除 s，加条件相位修正：93 q / 均值 1498.125 / 163,021.69 = 12.739×，默认 salt 和 sv0723ae 都全量 PASS）**；s 封顶到 7 算账打平，没有搭；推送 15b47c9，更新 PR #2；NOT_APPROVED。
+- 2026-11-08 00:15 UTC：依然没有干活的分支；AE 新容器重建字节一致，换 salt sv0800ae 全量 PASS（12.739×，一致）；监工接手，step-2 窗口分组实测 6 组都没有收益（最好 94 q / 1499），关闭；x<64 旁路纸面算账为负（+128 −72，+3 q），关闭；推送 d8f44b7 到 invsqrt-supervisor-work；NOT_APPROVED。
