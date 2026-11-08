@@ -222,3 +222,34 @@ Run on `F.npy` from `lut_outputs.py` (35 x 256 truth tables, address q14 = LSB .
   then the shift flags are X-measured one by one (HMR q19 -> bit 318, q16 -> 319, q14 -> 320, q15 -> 322, q18 -> 321) with nested
   PUSH_CONDITION blocks holding the AND-chain / CCZ phase fix-ups (44 static, ~10 mean). This is the same trick as our lut_AF
   normalize_inv (expected 11). **Porting AE/AF measurement-erasure to the 62q circuit (instruction 1 of 02:40) brings nothing: already there.**
+
+## First improvement over the public 62q circuit: merging Toffoli pairs (2026-11-08 04:xx UTC, supervisor)
+- `xag_window_rank.py xag.json` / `xag_qform.py` / `xag_window_and1.py` / `xag_window_and2.py` (coeff_lookup, old instruction 1):
+  all 186 truth tables (const, 8 inputs, 177 ANDs) are GF(2)-independent, so a window of k ANDs can only be re-synthesised with k-1
+  if the consumers see a <= k-1 dim projection. 230 windows are rank-1 (several CCX into one wire), but (a) formal symplectic rank is
+  always full and (b) no single AND(g,h) with g,h in span(const, window operands) or affine/AND x affine candidates matches the sum
+  mod earlier signals (sanity: k=1 finds all 177 trivially). **coeff_lookup window re-synthesis closed.**
+- `stage_xag.py ops.json A B out.json` (symbolic AND-level affine form of any op range; formal variables = wires at op A; CSWAP,
+  classically controlled ops, HMR handled) + `stage_qform.py out.json K [SPAN]` (all windows of <= K ANDs, consecutive or inside a span
+  of SPAN ANDs: rank of the consumer projection, best basis by symplectic rank -> minimal formal product count). Run on every stage.
+  Minimal hits: arith_a (ops 21455, 21459, 21473), fine_phase_stream (25505, 25509, 25523), fine (25604, 25607), arith_c (28843, 28846).
+- The last two are artefacts: they are dirty-ancilla CCCX blocks (the same product XORed twice into a non-clean wire, `dirty_pairs.py`
+  finds 12 such pairs in the whole circuit, all at width 62, so no clean wire exists to shortcut them).
+- The first two are the same real building block: `q_t ^= x*n` then `q_t ^= y*(n+q9+x+q8)` (two CCX into one target, with the shared
+  control re-encoded by CNOTs in between) and later a third AND `a = y*(q8+q9)`. Since only the sum reaches the rest of the circuit,
+  `x n + y(n + q9 + x + q8) = (x+n)(y+n) + n + a`, so the two CCX become **one CCX on (x+n),(y+n)**, a CX from n, and a CX copying `a`
+  from the wire that holds it right after it is computed (the target is idle in between: q19 until op 21584, q40 until op 25536).
+  Wire contents after the block are identical, so the circuit is the same permutation + phases on every basis state.
+  Edits: `edits/arith_a_merge1.json` (arith_a only) and `edits/merge2.json` (both).
+```
+python3 -I supervisor_work/invsqrt62/patch_ops.py <kickmix-macos>/tools/circuit-viewer/ops.json supervisor_work/invsqrt62/edits/merge2.json p62mm.json
+python3 -I supervisor_work/invsqrt62/ops2kmx.py p62mm.json p62mm.kmx
+PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_file('p62mm.kmx',format='kmx').to_file('p62mm.kmb',format='kmb')"
+# merge1 -> sha acd2304a..., merge2 -> sha fc153f1f...
+```
+- **merge1: official verifier full 200,540,928 shots PASS, Q 62, Toffoli 1326.48, C 1623.07, score 100,630.56 = 20.638x** (`verify_p62_merge1.json`).
+- merge2: exact phase trace (`phase_trace.py`) mean Toffoli 1325.48, worst ratio 0.99932377 at x=161 (unchanged).
+- **merge2: official verifier full 200,540,928 shots PASS, Q 62, Toffoli 1325.48, C 1622.07, score 100,568.56 = 20.650x**
+  (`verify_p62_merge2.json`, worst 0.99932377 at x=161, sha fc153f1f). Nothing was submitted to Kaggle.
+- Other checks this run: `uncompute_scan.py` (formal) finds **0** CCX in the whole circuit whose target is affine afterwards (all uncomputes
+  are already measurement-based); `dirty_pairs.py`: the 12 dirty-ancilla compute/uncompute pairs all sit at width 62.

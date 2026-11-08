@@ -297,3 +297,7 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
 - b2 freed during step 1 + denorm (HMR b2 after step 2; reload before horner_inv step 2; the pending phase (-1)^(m.b2(addr)) is fixed for
   free by classically conditioned Z on the reloaded bits): Q 93 -> 89 (lookup peak), budget ~75 Toffoli, but the reload is a full 383-leaf
   lookup; making b2 depend on fewer address bits (blocks of 2 segments) already gives ~2^-23 error at M~1. **Closed on paper.**
+
+## 2026-11-08 04:xx UTC (supervisor)
+- AF rebuilt in a fresh container byte-identical (1f00ebbf); verifier salt sv0804af full 200,540,928 shots PASS, 162,638.15 = 12.769x
+  (`verify_lut_AF_sv0804af.json`, worst 0.99075). The best verified circuit is now the patched public 62q one (20.650x, see ../invsqrt62/README.md).
