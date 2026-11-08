@@ -1,22 +1,25 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-08 00:15 UTC
-**结论**：**NOT_APPROVED**（最好仍是 lut_AE 12.739×，93 q；公开 62q 是 20.625×，差距主要在 Q）
+**时间戳**：2026-11-08 00:25 UTC
+**结论**：**NOT_APPROVED**（新的最好是 lut_AF 12.769×，93 q；公开 62q 是 20.625×，差距主要在 Q）
 
 ## 1. 干活的状态
 - 远端分支仍然只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`，**没有干活的分支 W**（干活的最后推送 11-04 21:24Z，main 停在 037709c）。
-- 监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2），本次推送 d8f44b7。上次的指示 3 本次做完（关闭），指示 2 本次在纸面上关闭；指示 1、4、5 还没做。
+- 监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2），本次推送 d8f44b7、1d4ce31、0dce127，PR #2 的标题和正文已更新到 AF。上次的指示 3 做完（关闭），指示 2 在纸面上关闭，指示 5 做完，而且比预计的收益大（见 lut_AF）；指示 1、4 还没做。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | 旋转 | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|---|---|
-| **lut_AE（sha 3a7cc491）** | **93** | **1498.125**（静态 1501） | 34 | 1752.92 | **163,021.71** | **12.739** | 按 README 命令重建，字节一致；换 salt sv0800ae 跑官方 verifier，全量 200,540,928 shot **PASS**（worst 0.99075，eps 5.64e-14） |
-- 倍数 = 2,076,774.23 / score，score = Q × C 取自 verifier 输出的总 cost（不是子项）。三次不同 salt（默认、sv0723ae、sv0800ae）结果一致。
-- 硬规则检查：没有向 Kaggle 提交；没有推 main；新增文件只有 README 和一个 JSON（<1 KB）；没有密钥，也没有比赛非公开信息。
+| lut_AE（sha 3a7cc491） | 93 | 1498.125（静态 1501） | 34 | 1752.92 | 163,021.71 | 12.739 | 按 README 命令重建，字节一致；换 salt sv0800ae 跑官方 verifier，全量 200,540,928 shot **PASS**（worst 0.99075，eps 5.64e-14） |
+| **lut_AF（sha 1f00ebbf，本次新做）** | **93** | **1494.000**（静态 1505） | 34 | 1748.80 | **162,638.03** | **12.769** | 默认 salt 和 sv0800af 两次都是官方 verifier 全量 PASS（162,638.03 / 162,638.06，worst 0.99075） |
+- 倍数 = 2,076,774.23 / score，score = Q × C 取自 verifier 输出的总 cost（不是子项）。AE 三次不同 salt（默认、sv0723ae、sv0800ae）结果一致。
+- 硬规则检查：没有向 Kaggle 提交；没有推 main；新增文件最大是 invsqrt_lut_AF.kmb（约 276 KB）；没有密钥，也没有比赛非公开信息。
 
 ## 3. 本次做法
 - **指示 3（step 2 窗口分组），已完成并关闭**：在 onecarry 下用 `--groups 1:7:14,2:a:LA` 实际构建了 6 组参数。2:6:8 和 2:6:9 是 94 q / 1501（Toffoli 没变），2:7:9 是 94 q / 1499；2:8:10、2:7:10、2:8:11 不可行（窗口断言失败）。分组的 carry 由查表加载，会一直活到 step 1 的峰值，所以多 1 个 qubit 只换回最多 2 个 Toffoli。
 - **指示 2（x<64 走旁路），纸面关闭**：把 s 封顶到 7，再用一个由 P16 控制的 63 叶查表把正确输出 XOR 到 denorm lane 上。这样能省掉 stage-8 的 CSWAP（2×28）、shift-16 和 P18/P20，约 72 个 Toffoli。但 lane 在 denorm_inv 之前必须还原，所以要做两次查表，约 128 个 Toffoli；而且 x<64 仍然需要 lane 顶部权重 1/2~1/8 的那几位，相位阶段要多 3 个 qubit。净收益是负的。
+
+- **指示 5 完成，得到 lut_AF**（`binnorm4.py`、`lutpoly23.py`）：normalize_inv 里每个 stage 先 un-shift，紧接着对 s_r 做 X 测量。这时寄存器的前导零个数是 z_norm + Σ_{q≤r} 2^(q+1) s_q，其中 z_norm ∈ {0,1}，所以 s_r 正好等于"当前寄存器顶部 2^(r+1) 位全为 0"。m_r=1 时的相位修正只是对这些位取反后做一个多控 Z，分别需要 0/2/6/14 个 AND。期望 Toffoli 是 11，原来是 15.125。先用 x≤4096、每个 x 256 shot 快速检查，均值 1494.0，和预测一致；然后全量 PASS。
 
 ## 4. 问题和可疑点
 - 仍然没有干活的推送，监工是唯一在推进的。
@@ -26,7 +29,7 @@
 1. **滚动 y / 早相位重设计（向 62q 靠拢）**：y 的高位一旦确定（后面的 Horner 行进位影响不到，或者可以用 1 个 guard 吸收），就先 denorm 再打旋转，然后释放。先写一个原型：只把 y 最高的 8 位提前打相位（需要先做 denorm，需要证明后面的行不会再进位到这些位），量一下 horner 和 phase 两个阶段的峰值。目标是 Q≤85，Toffoli≤1650。
 2. **s 寄存器在 Horner 期间腾出来**：s（4 q）只在 normalize 和 denorm 时用到。可以在 normalize 之后用 X 测量擦掉 s（AE 已有现成的相位修正机制，约 15 个 Toffoli），在 denorm 之前再从 x_norm 和 x 的关系里重算……但 x 已经被移位了，没法重算。改成另一种做法：把 s 编码进 lookup 地址里不可达的那段（地址 0..127 没用），看能不能让 a0 的某几位顺带携带 s。需要先做可行性分析。
 3. **查表改成 XAG 布尔电路**（老指示 4）：9 位地址、384 个叶子、约 57 位输出、383 个 Toffoli。可以按最高位做 Shannon 分解、共享子表，自己写综合。
-4. （小）normalize_inv 部分提前测量（老指示 5）：在 stage 0/1 的 un-shift 之后马上测 s0/s1，预计省 1~2 个 Toffoli。
+4. （小）同样的"边做边测"思路用到别处：lookup_inv（41）、horner_inv 里的 del_and/fold，检查有没有能在部分逆运算之后用更短谓词表达的测量修正。
 5. y 的 X 测量擦除 + 相位修正折进下一次 forward：已证明需要重算 y，不要再试。
 
 ## 历史
@@ -62,4 +65,4 @@
 - 2026-11-07 21:35 UTC：依然没有干活的分支；AA 新容器重建字节一致，换 salt sv0721aa 全量 PASS（12.569×）；监工接手，新做 lut_AB（y LSB 不进 denorm lane，93 q / 1514 = 12.625×，默认 salt 和 sv0721ab 都全量 PASS）和 **lut_AC（加 --jmin8 1，93 q / 1512 / 164,312.06 = 12.639×，默认 salt 和 sv0721ac 都全量 PASS）**；部分移位和 onecarry 下的 k=8 都关闭；推送 fa312eb、9696d32，更新 PR #2；NOT_APPROVED。
 - 2026-11-07 22:35 UTC：依然没有干活的分支；AC 重建字节一致，换 salt sv0722ac 全量 PASS（12.639×）；监工接手，新做 **lut_AD（用一条前缀 AND 链求 s：93 q / 1502 / 163,382.06 = 12.711×，默认 salt 和 sv0722ad 都全量 PASS）**；hi 重载方向（单调阶梯，128 个值）关闭；推送 1d9754f，更新 PR #2；NOT_APPROVED。
 - 2026-11-07 23:25 UTC：依然没有干活的分支；AD 新容器重建字节一致，换 salt sv0723ad 全量 PASS（12.711×）；监工接手，完成指示 2：**lut_AE（normalize_inv 用 X 测量擦除 s，加条件相位修正：93 q / 均值 1498.125 / 163,021.69 = 12.739×，默认 salt 和 sv0723ae 都全量 PASS）**；s 封顶到 7 算账打平，没有搭；推送 15b47c9，更新 PR #2；NOT_APPROVED。
-- 2026-11-08 00:15 UTC：依然没有干活的分支；AE 新容器重建字节一致，换 salt sv0800ae 全量 PASS（12.739×，一致）；监工接手，step-2 窗口分组实测 6 组都没有收益（最好 94 q / 1499），关闭；x<64 旁路纸面算账为负（+128 −72，+3 q），关闭；推送 d8f44b7 到 invsqrt-supervisor-work；NOT_APPROVED。
+- 2026-11-08 00:25 UTC：依然没有干活的分支；AE 新容器重建字节一致，换 salt sv0800ae 全量 PASS（12.739×，一致）；监工接手，step-2 窗口分组实测 6 组都没有收益（最好 94 q / 1499），关闭；x<64 旁路纸面算账为负（+128 −72，+3 q），关闭；完成指示 5：**lut_AF（每个 stage un-shift 后立刻测 s_r：93 q / 均值 1494.0 / 162,638.03 = 12.769×，默认 salt 和 sv0800af 都全量 PASS）**；推送 0dce127，更新 PR #2；NOT_APPROVED。
