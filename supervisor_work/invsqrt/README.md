@@ -261,5 +261,5 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   stages 0..r the leading-zero count is z_norm + sum_{q<=r} 2^(q+1) s_q with z_norm in {0,1}, so s_r = [top 2^(r+1) bits zero] of the
   current register; the fixup for m_r = 1 is a multi-controlled Z on those negated bits (n-2 ANDs, measurement-uncomputed).
   Expected (0+2+6+14)/2 = 11 Toffoli vs 15.125. 93 q / mean 1494.0 (static 1505), same arithmetic (worst 0.99075, eps 5.64e-14),
-  score **162,638.03 = 12.769x**, full verifier PASS (`verify_lut_AF.json`), sha 1f00ebbf.
+  score **162,638.03 = 12.769x**, full verifier PASS (`verify_lut_AF.json`; salt sv0800af also PASS 162,638.06, `verify_lut_AF_sv0800af.json`), sha 1f00ebbf.
   `python3.13 supervisor_work/invsqrt/lutpoly23.py <AA flags> --droprot 1 --droplane --DSH 6 --jmin8 1 --out AF.kmb`
