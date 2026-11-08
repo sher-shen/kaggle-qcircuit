@@ -304,6 +304,6 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   (if dim G <= MAXD, else 2^MAXD random g) is tested with the func_affine_scan criterion. Sanity on the original ops.json: finds the
   arith_a merge2 pair (L 30 and L 400). Bug caught during sanity: V must be copied at op j (numpy views of q mutate later).
 - Result on merge2, L 400, MAXD 13: **0 of 71 pairs** (22 pairs exhaustive with dim G <= 13; the other 49 have dim G 14..28 and
-  were sampled with 8192 g each). L 60, MAXD 15: see SUPERVISOR.md for the final count (0 hits so far).
+  were sampled with 8192 g each). L 60, MAXD 15: **0 of 71 pairs** (18 exhaustive with dim G <= 15, 53 sampled with 32768 g each; 1.73M g tested).
 - Notes: the phase_merge_repair CCZ ladders (4 x 19 CCZ on (18|27, 23|21, *)) are already pivot-search reductions (nested
   "all previous bits zero" conditions -> exactly one CCZ executes), and the seed_phase_retire_2 CCX pairs likewise; no gain there.
