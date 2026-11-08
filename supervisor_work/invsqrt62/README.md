@@ -253,3 +253,8 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   (`verify_p62_merge2.json`, worst 0.99932377 at x=161, sha fc153f1f). Nothing was submitted to Kaggle.
 - Other checks this run: `uncompute_scan.py` (formal) finds **0** CCX in the whole circuit whose target is affine afterwards (all uncomputes
   are already measurement-based); `dirty_pairs.py`: the 12 dirty-ancilla compute/uncompute pairs all sit at width 62.
+- merge2 with salt sv0804mm: full PASS, 100,568.57 (`verify_p62_merge2_sv0804mm.json`).
+- Span-40 triple scan (`stage_qform.py st.json 3 40`) adds a periodic series in fine_phase_stream (25707/25749/25752, ...). These are
+  **artefacts**: the identity needs a49 again at op 25749, but its wire q50 was HMR-measured at 25715. TODO: restrict factors to the span
+  of live wire masks at the window's op. Width-62 dirty chains (25583, 28822): live wires + const are full rank (`lut_tt.py` sample), so a
+  wire can't be freed with CNOTs.

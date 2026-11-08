@@ -16,9 +16,16 @@ def rank_rows(rows):
             if h in basis: v ^= basis[h]
             else: basis[h] = v; r += 1; break
     return r
+byand = {}
+for ci, (j, m) in enumerate(cons):
+    mm = m >> nv0; t = 0
+    while mm:
+        if mm & 1: byand.setdefault(t, []).append(ci)
+        mm >>= 1; t += 1
 def proj(W):
     Ws = set(W); vecs = set()
-    for j, m in cons:
+    idx = sorted(set(ci for w in W for ci in byand.get(w, [])))
+    for j, m in (cons[ci] for ci in idx):
         if j in Ws: continue
         v = 0
         for t, w in enumerate(W):
