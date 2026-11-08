@@ -294,3 +294,16 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   wire 41 (= erased21 * 47, degree 3) would cost >= 2 Toffoli to recompute plus a non-Clifford fix-up. **Instruction 3 closed.**
 - `triple_func_scan.py ops.json n reps maxgap` (3 -> 2): quadrant criterion f|{g1=b,g2=c} in V for g1, g2 = XOR of <= 2 of the six
   control values. Sanity (synthetic: two copies of a CCX inserted after the merge2 pair): both triples HIT. On merge2: **0 of 39 triples**.
+
+## Support-directed affine factors (2026-11-08 07:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv0807mm: PASS,
+  score 100,568.57 = 20.650x** (`verify_p62_merge2_sv0807mm.json`). Nothing was submitted to Kaggle.
+- `support_g_scan.py ops.json n reps maxgap L MAXD [A B]` (instruction 1 of 06:50): for each same-target CCX pair, formal window
+  [i-L, j] (wire values at i-L + AND outputs; measurement-conditioned ops give fresh variables, dropped); supp = variables of the
+  4 control masks plus the 4 control values themselves; G = V cap span(1, supp) by exact linear algebra on the samples; every g in G
+  (if dim G <= MAXD, else 2^MAXD random g) is tested with the func_affine_scan criterion. Sanity on the original ops.json: finds the
+  arith_a merge2 pair (L 30 and L 400). Bug caught during sanity: V must be copied at op j (numpy views of q mutate later).
+- Result on merge2, L 400, MAXD 13: **0 of 71 pairs** (22 pairs exhaustive with dim G <= 13; the other 49 have dim G 14..28 and
+  were sampled with 8192 g each). L 60, MAXD 15: see SUPERVISOR.md for the final count (0 hits so far).
+- Notes: the phase_merge_repair CCZ ladders (4 x 19 CCZ on (18|27, 23|21, *)) are already pivot-search reductions (nested
+  "all previous bits zero" conditions -> exactly one CCZ executes), and the seed_phase_retire_2 CCX pairs likewise; no gain there.
