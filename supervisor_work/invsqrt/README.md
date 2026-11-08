@@ -247,3 +247,12 @@ python3.13 supervisor_work/invsqrt/make_cand.py OUT.kmb 13,17,27,28,28 1 1   # o
   `python3.13 supervisor_work/invsqrt/lutpoly22.py <AA flags> --droprot 1 --droplane --DSH 6 --jmin8 1 --out AE.kmb`
 - Considered and set aside (analysis only): capping s at 7 (chain 13 ANDs, no shift-by-16/denorm stage 8 = -78 Toffoli) needs 63 extra
   leaves for x < 64 (+66) and 3 extra y bits for those entries (y would no longer have an always-1 top bit): net ~0, not built.
+
+## 2026-11-08 00:xx UTC (supervisor)
+- AE rebuilt in a fresh container byte-identical (3a7cc491); verifier salt sv0800ae full 200,540,928 shots PASS, 163,021.71 = 12.739x (`verify_lut_AE_sv0800ae.json`).
+- Step-2 (r-step) group window under onecarry (`lutpoly22.py <AE flags> --groups 1:7:14,2:a:LA`): 2:6:8 / 2:6:9 -> 94 q / 1501 (no saving),
+  2:7:9 -> 94 q / 1499, 2:8:10, 2:7:10, 2:8:11 infeasible (window assertion). The group carry is loaded by the lookup and lives through
+  the step-1 peak (+1 q) for at most 2 Toffoli. **Closed.**
+- x<64 bypass (cap s at 7, XOR the correct output onto the denorm lane with a 63-leaf lookup controlled by P16): saves stage-8 CSWAPs
+  (2x28) + shift-16 + P18/P20 (~72) but costs two 63-leaf lookups (~128, the lane must be restored before denorm_inv) and the top
+  lane positions (weights 1/2..1/8) are still needed for x<64 (+3 q in the phase stage). **Closed on paper.**
