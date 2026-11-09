@@ -359,3 +359,16 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - **Result: all 30 pairs NONE(exact)** (25M..199M nodes, 42..235 s each; `minrank_block_results.txt`). Together with the 25 carry-chain
   pairs (linearisation), the 2 dirty pairs (not quadratic) and the 14 tap pairs (tap-wire argument), every same-target CCX pair of
   merge2 within maxgap 60 is now closed for arbitrary affine g, h (relative to the sampled relations, so rejections are sound).
+
+## Chain 3->2 and non-adjacent pairs (2026-11-09 00:xx-01:xx UTC, supervisor)
+- merge2 rebuilt (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv0900mm: PASS, score 100,568.52 = 20.650x**
+  (`verify_p62_merge2_sv0900mm.json`). Nothing was submitted to Kaggle.
+- `chain_dump_scan.py` (MR_KMAX=0 MR_DUMP=prefix): MinRank systems for the chain sums F = p_i1 + ... + p_im of same-target CCX chains
+  (carry L 3..6, k 73..157; lookup_c / late_curvature_norm L 3..7, k 311..350).
+- `rank4_sat.py` (rank <= 2(L-1) witness search, CryptoMiniSat): planted rank-4 found at k=73 in 50 s, but NOT found in 100 s at k=154/349;
+  real 21884 L=3 chain: TIMEOUT after 2400 s. Inconclusive tool for large k.
+- `chain_rank_bound.py`: rank(Q0[:, untouched]) = 0 for all 39 chains -> no bound.
+- Exact block search for rank 4 would need ~2^48 nodes (rank 2: 2^28). Chain 3->2 in general stays UNDECIDED.
+- `nonadj_pair_scan.py`: decidable sub-case, non-adjacent pairs (ia, ic) of a chain (p_ib stays; same-target CCX commute).
+  Lookup: **40 pairs, all NONE(exact)** via minrank_block (plant self-test on one dump: found, 284k nodes). Carry: **all lin-inconsistent**
+  (exact reject). `nonadj_results.txt`.
