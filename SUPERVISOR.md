@@ -1,40 +1,38 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-09 03:10 UTC
-**结论**：**NOT_APPROVED**（当前最好仍是公开 62q 加 merge2：62 q / 1325.48 Toffoli / 100,568.59 = **20.650×**。本次换 salt sv0902mm 全量 PASS。本次没有新的数值提升）
+**时间戳**：2026-11-09 04:35 UTC
+**结论**：**NOT_APPROVED**（当前最好仍是公开 62q 加 merge2：62 q / 1325.48 Toffoli / 100,568.53 = **20.650×**。本次换 salt sv0904mm 全量 PASS。本次没有新的数值提升）
 
 ## 1. 干活的状态
 - 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**，也没有新的 PR；干活的最后一次推送在 11-04，早就超过 70 分钟。监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2 不变）。
-- **监工 routine 又有两次运行同时在跑**（另一次推送了 f7ab07e 和 SUPERVISOR b1a2864）。本次推送时被拒，rebase 到对方的提交上，README 冲突时两边都保留了。**强烈建议用户把 routine 的间隔调长，或者停掉。**
-- 本次推送：c658887、925d198、2e53db5（`star_scan.py`、`star_plant.py`、`verify_p62_merge2_sv0902mm.json`、`star_carry_L3_results.txt`、`star2_carry_L4_results.txt`、`star_lookup_33038_partial.txt`，以及 README 新小节）。
+- 本次**没有**看到别的监工运行同时推送（推送前 fetch 过）。
+- 本次推送到 invsqrt-supervisor-work：70012e8（`star_basis.py`）、12e740a、c8ae946（结果文件、`verify_p62_merge2_sv0904mm.json`、README 新小节）。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|---|
-| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.59** | **20.650** | 重新 clone manwithacat/kickmix-macos，从 ops.json 加 `edits/merge2.json` 重建，sha 一致；官方 verifier 全量跑，**新 salt sv0902mm：PASS**（worst 0.99932，x=161） |
-| 公开 p62（sha 67482db6） | 62 | 1327.48 | 1624.07 | 100,692.58 | 20.625 | 本次只重建，sha 一致，没有重跑 verifier |
+| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.53** | **20.650** | 重新 clone manwithacat/kickmix-macos，从 ops.json 加 `edits/merge2.json` 重建，sha 一致；官方 verifier 全量跑 200,540,928 shot，**新 salt sv0904mm：PASS**（worst 0.99932，x=161） |
+| 公开 p62（sha 67482db6） | 62 | 1327.48 | 1624.07 | 100,692.58 | 20.625 | 本次没有重跑 |
 | lut_AF（sha 1f00ebbf） | 93 | 1494.00 | 1748.80 | 162,638 | 12.769 | 本次没有重跑 |
-- 倍数 = 2,076,774.23 / 100,568.59 = 20.650。score 是 verifier 输出的总 cost（Q × C），不是某个子项。
-- 硬规则检查：没有向 Kaggle 提交；没有推 main；新增文件都是 KB 级（dump 放在 scratchpad，没有提交）；没有密钥，也没有比赛的非公开信息。
+- 倍数 = 2,076,774.23 / 100,568.53 = 20.650。score 是 verifier 输出的总 cost（Q × C），不是某个子项。
+- 硬规则检查：没有向 Kaggle 提交；没有推 main；新增文件都是 KB 级（dump、电路文件放在 scratchpad，没有提交）；没有密钥，也没有比赛的非公开信息。
 
-## 3. 本次做法（上次的指示：链级 3→2 的可判定子情形）
-- **star 3→2**：要求两个新 AND 里有一个用到某根基线 v：F = v∧w1 + u∧w（w1、u、w 是任意仿射函数）。因为 v∧w1 = Σ w1_i (v∧e_i)，所有含 v 的项都变成自由的，所以删掉含 v 的 pair，再跑精确的秩 2 块搜索就行（`star_scan.py`）。`STAR2=1` 时用两颗星（4→3）；这同时覆盖了链中间三元组的 star 3→2，因为剩下那个原始的 AND 本身就是以它的控制线为中心的 star。
-- 自检（`star_plant.py`，埋入 v^w1 + u^w + K l）：3/3 HIT；两颗星的埋解也 HIT。
-- **carry L3 链（7 条，k 73..157，块内每个顶点）：196 / 196 NONE(exact)**。
-- **carry L4 链两颗星（6 条，所有顶点对）：2526 / 2526 NONE(exact)**。
-- **lookup L3 链 33038（k 349）**：35 个块顶点里，有 9 个是 NONE(exact)（v 0,1,2,3,18..22，每个约 2.4 亿节点、5 分钟，必须用 ORDER=auto2；greedy 顺序在 v0 上 4 亿节点也没跑完）。其余 26 个顶点和另外 8 条 lookup L3 链都还没跑（共约 6.5 小时 × 4 核）。
-- 结论：carry 链上用单线 star 的 3→2、用两颗星的 4→3 都已精确关闭（关闭的依据是采样到的关系，所以否定是可靠的）。
+## 3. 本次做法（上次的指示 1、2）
+- **指示 1（lookup L3 star）**：33038 链剩下的 27 个顶点全部跑完，**36/36 NONE(exact)**（`star_lookup_33038_results.txt`）。33195 链开始跑，本次结束时 8/36 NONE(exact)（`star_lookup_33195_partial.txt`），其余没跑完。每个顶点约 2.4 亿节点，4 核同时跑时约 10 分钟一个。
+- **指示 2（star 中心推广）**：新写 `star_basis.py`，让中心 v 取基线的任意 XOR 组合（先换基 x'_{c0}=v，A→MᵀAM，再做 star 检验）。埋解自检 3/3 HIT（v=0+1、2+5+9、3+20）。carry L3 的 7 条链：v 取 4 个控制值的 11 个非基线组合，**77/77 NONE(exact)**；v 取块内所有权重为 2 的组合，**2961/2961 NONE(exact)**。
+- 小结：carry 链上，中心是单线、控制值的组合、任意两根线 XOR 的 star 3→2 都已精确关闭。lookup 链只关闭了 33038 一条（单线中心）。
 
 ## 4. 问题和可疑点
-- 依然没有干活的推送，监工是唯一在推进的，已经连续多次没有数值提升（每省 1 个 Toffoli 只多 +0.016×）。
-- routine 有重叠运行（见第 1 节），浪费额度，还会造成推送冲突。
-- 「v 必须是一根基线」这个限制：基是 dump 里的活线基，v 取活线的仿射组合（比如两个控制线的 XOR）还没有覆盖。
+- 依然没有干活的推送，监工是唯一在推进的，已经连续多次没有数值提升（每省 1 个 Toffoli 只多 +0.016×）。剩下的方向都是「精确证明没有」，预期收益很低，**建议用户考虑换题或停掉这个 routine**。
+- lookup 链的块搜索每次约 2.4 亿节点，而且几乎不随 v 变化，说明剪枝主要发生在很深的层；8 条 lookup 链全跑完约 12 小时 × 4 核。
+- 关闭的依据是采样到的关系（3000 个 x × 2），否定是可靠的；「命中」一旦出现必须用 phase_trace 和 verifier 复核。
 
 ## 5. 下一步指示（按优先级，均未做）
-1. **把 lookup L3 的 star 跑完**：33038 链剩下的 26 个顶点（v 23..60，见 `star_lookup_33038_partial.txt`），再跑其余 8 条 lookup L3 链（33195、33329、33481、33623、33763、33888、34192、34604），ORDER=auto2，4 路并行，每个约 5 分钟。有命中就用 phase_trace 和 verifier 验证。
-2. **star 的中心推广到 span(控制线 + 1)**：v 取一条链 6 根控制线的非零 XOR 组合。做法是先换基（让 v 成为一根基线，对 E 的 pair 坐标做相应的线性变换），再调用 star_scan。carry 链很快，先在 carry 上做。
+1. **给 minrank_block.c 提速，再跑剩下的 lookup star**：节点数几乎不随 v 变化，说明可以把所有 v 合并成一次搜索（先枚举 u、w 的前若干层，再对每个 v 只检验「去掉 v 的那些方程」），或者在 C 里加位并行的方程更新（现在每个节点要更新全部 246 个方程）。目标是每个顶点降到 1 分钟以内，然后跑完 33195（剩 28 个顶点）和其余 7 条链（33329、33481、33623、33763、33888、34192、34604）。
+2. **lookup 链上做 star_basis**：v 取 4 个控制值的 11 个组合（`star_basis.py dump out ctrl2`），每条链 11 个任务，在提速之前约 2 小时 × 4 核。
 3. **14 对相位 tap 用块方法精确判一遍**（k 248..711）：先看被碰到的块大小，块 ≤ 64 就直接跑 minrank_block，把「tap-wire 论证」换成精确证明。
-4. 已关闭、不要再试：前面列过的全部方向；非相邻对（两次独立运行，75/75）；rank4_sat；按旋转分组给不同 eps；以及本次的 carry 链 star 3→2（196/196）和两颗星 4→3（2526/2526）。
+4. **carry L4 上做两颗星 + 一般中心**（STAR2 推广到 star_basis：两个中心都取控制值组合），carry 很快，可以先做。
+5. 已关闭、不要再试：前面列过的全部方向；非相邻对；rank4_sat；分组 eps；carry 链 star 3→2（单线中心 196/196、控制值组合 77/77、权重 2 组合 2961/2961）；两颗星 4→3（2526/2526）；lookup 33038 单线中心（36/36）。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -83,3 +81,4 @@
 - 2026-11-09 01:35 UTC：依然没有干活的分支；merge2 新容器重建 sha 一致，**换 salt sv0900mm 全量 PASS（100,568.52 = 20.650×）**；和 00:10 那次运行重叠，丢掉了重复的 SAT 部分；链级 3→2：SAT（2400 秒超时）和块外秩下界都判不了，秩 4 的块搜索约 2^48 节点，不可行；改测可判定的子情形「非相邻对」：lookup 40 对 NONE(exact)，carry 35 对精确否定；推送 6120733、b8016ab、c18443f；NOT_APPROVED。
 - 2026-11-09 03:05 UTC：依然没有干活的分支；和 00:50 那次运行完全重叠；merge2 新容器重建 sha 一致，**换 salt sv0901mm 全量 PASS（100,568.50 = 20.650×）**；非相邻对独立重跑，35 + 40 对全部精确否定，和对方一致；rank4_sat 在 k=73 上 L3、L4 都 2000 秒超时；verifier 的 eps 是均分的，分组 eps 方向关闭；推送 f7ab07e；NOT_APPROVED。
 - 2026-11-09 03:10 UTC：依然没有干活的分支；又和另一次运行重叠（推送时 rebase 了一次）；merge2 新容器重建 sha 一致，**换 salt sv0902mm 全量 PASS（100,568.59 = 20.650×）**；新做 star 3→2 和两颗星 4→3（删掉中心顶点后跑精确的秩 2 块搜索，埋解自检通过）：carry L3 196/196、carry L4 2526/2526 全部 NONE(exact)，lookup 33038 链 9/35 个顶点 NONE(exact)，其余没跑完；推送 c658887、925d198、2e53db5；NOT_APPROVED。
+- 2026-11-09 04:35 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv0904mm 全量 PASS（100,568.53 = 20.650×）**；lookup 33038 链 star 剩下的 27 个顶点跑完（36/36 NONE(exact)），33195 链 8/36；新写 star_basis.py（中心取基线的 XOR 组合，埋解自检 3/3），carry L3 上控制值组合 77/77、权重 2 组合 2961/2961 全部 NONE(exact)；推送 70012e8、12e740a、c8ae946；NOT_APPROVED。
