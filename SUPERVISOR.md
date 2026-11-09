@@ -5,7 +5,7 @@
 
 ## 1. 干活的状态
 - 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`，PR 只有 #1（已合并）和 #2（draft，监工开的）。**仍然没有干活的分支 W**，干活的最后一次推送在 11-04。
-- 监工继续在 `claude/invsqrt-supervisor-work` 上接手。本次推送 5c88077、9834e85：`minrank_sat.py`、`minrank_block.py`、`minrank_block.c`、`minrank_core.py`（加了 MR_SAT / MR_DUMP）、`verify_p62_merge2_sv0823mm.json`、 和 README 的新小节。draft PR #2 不变。
+- 监工继续在 `claude/invsqrt-supervisor-work` 上接手。本次推送 5c88077、9834e85：`minrank_sat.py`、`minrank_block.py`、`minrank_block.c`、`minrank_core.py`（加了 MR_SAT / MR_DUMP）、`minrank_block_results.txt`、`verify_p62_merge2_sv0823mm.json` 和 README 的新小节。draft PR #2 不变。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | C | cost | × 参考 | 本次复核 |
@@ -21,7 +21,7 @@
 - **结构发现**：把 30 对的 (Q0, K) 导出后发现，Q0 = c0∧c1 + c2∧c3（权重 2），而且 61 根基线里**只有 36 根被某个关系碰到**（被碰到的图约等于 K_36 少 7 条边）。u∧w 是按 {u,w} 取值 10/01/11 分类的完全三部图，所以它只能落在这 36 根线组成的块里，块外的线必须是 00（否则 u∧w = 0，也就是 Q0 ∈ span K，已检验为假）。
 - **精确搜索（minrank_block.py + .c）**：先消去 l，得到 280~284 个方程 u^T C w = c·Q0（c 取 Ann(K)）。再按约化行阶梯形（去掉 GL2 对称）逐个顶点给 (u_a, w_a) 赋值。赋值 m 个顶点后，凡是所有项都碰到已赋值顶点的方程，对未赋值变量都是线性的；用增量阶梯形（主元取最高位，交错比特，代入只清最低位）维护，一旦不相容就剪枝。这是穷举，所以结论是精确的。顶点顺序用 ORDER=auto2（先放 Q0 的线，再倒过来放贪心顺序），树在深度 16 处死掉，每对约 1.3 亿个节点，3~4 分钟。
 - **自检**：`--plant`（把 Q0 换成随机的 u∧w + K·l）在 4 个种子上都找回了埋进去的解。
-- **结果**：**30 对全部 NONE（精确，不存在）**。每对 2.5 千万到 2 亿个节点，42~235 秒（）。
+- **结果**：**30 对全部 NONE（精确，不存在）**。每对 2.5 千万到 2 亿个节点，42~235 秒（`minrank_block_results.txt`）。
 - 合起来：merge2 上的 71 对同目标 CCX，25 对进位链和 30 对 lookup_c / late_curvature_norm 都被精确否定（对任意仿射 g、h），2 对 dirty 不是二次，14 对相位 tap 已经用 tap 线论证关闭。**在公开 62q 上，「两两合并同目标 Toffoli」这一类局部改写已经全部关闭。**
 - 注意：这里的「精确」是相对于样本关系 K 说的。K 是真关系的超集，所以否定是可靠的。V_j 取的是 op j 处的活线加上最近的测量位，和之前的扫描一致。
 
