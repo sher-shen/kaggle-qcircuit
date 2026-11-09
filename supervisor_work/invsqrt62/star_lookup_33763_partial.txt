@@ -3,3 +3,7 @@ c_33763-33826-L3_348 v 1 n=61 k=348 rankK=348 block=35 Q0 in span(K): False | RE
 c_33763-33826-L3_348 v 2 n=61 k=348 rankK=348 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=247 nodes=239428667 leaves=0 solutions=0 
 c_33763-33826-L3_348 v 3 n=61 k=348 rankK=348 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=247 nodes=239248932 leaves=0 solutions=0 
 c_33763-33826-L3_348 v 18 n=61 k=348 rankK=348 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=247 nodes=239248776 leaves=0 solutions=0 
+c_33763-33826-L3_348 v 22 n=61 k=348 rankK=346 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=249 nodes=238593251 leaves=0 solutions=0 
+c_33763-33826-L3_348 v 19 n=61 k=348 rankK=347 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=248 nodes=238855901 leaves=0 solutions=0 
+c_33763-33826-L3_348 v 21 n=61 k=348 rankK=348 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=247 nodes=239250465 leaves=0 solutions=0 
+c_33763-33826-L3_348 v 20 n=61 k=348 rankK=348 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=247 nodes=239248586 leaves=0 solutions=0 
