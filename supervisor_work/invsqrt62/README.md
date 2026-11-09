@@ -406,4 +406,5 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - `star_basis.py dump.npz out COMBOS`: star centre v = any XOR of basis wires (basis change x'_{c0} = v, A -> M^T A M, then the
   star_scan test). Plant self-test with v = 0+1, 2+5+9, 3+20: 3/3 HIT. Carry L3 chains (7), v in span of the 4 control values
   (11 non-basis combos each): **77 / 77 NONE(exact)** (`star_basis_carry_ctrl2_results.txt`). Weight-2 centres over the whole block
-  (2961 combos): see `star_basis_carry_pairs_results.txt`.
+  (2961 combos): **2961 / 2961 NONE(exact)** (`star_basis_carry_pairs_results.txt`, ~1 s each).
+- Lookup chain 33195 star (single basis centre) started: 8 / 36 vertices NONE(exact) so far (`star_lookup_33195_partial.txt`).
