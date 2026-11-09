@@ -437,5 +437,5 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   score 100,568.526 = 20.650x** (`verify_p62_merge2_sv0906mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
 - **Lookup L3 chain 33195-33267 (k 349): remaining 28 vertices done -> all 36 touched vertices NONE(exact)**
   (`star_lookup_33195_results.txt`, ~6.5 min each at 4 parallel jobs while the verifier ran, 2.39e8..2.41e8 nodes each).
-- Lookup L3 single-wire star status: 33038, 34604, 34192, 33888, 33195 closed; 33329 v0-3 started at 06:53 (not recorded here
-  unless finished); 33481, 33623, 33763 not started.
+- Lookup L3 single-wire star status: 33038, 34604, 34192, 33888, 33195 closed; 33329 4/36 (v 0-3 NONE(exact),
+  `star_lookup_33329_partial.txt`); 33481, 33623, 33763 not started.
