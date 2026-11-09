@@ -408,3 +408,15 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   (11 non-basis combos each): **77 / 77 NONE(exact)** (`star_basis_carry_ctrl2_results.txt`). Weight-2 centres over the whole block
   (2961 combos): **2961 / 2961 NONE(exact)** (`star_basis_carry_pairs_results.txt`, ~1 s each).
 - Lookup chain 33195 star (single basis centre) started: 8 / 36 vertices NONE(exact) so far (`star_lookup_33195_partial.txt`).
+
+## Faster block solver; lookup star on 34604 (2026-11-09 04:06-05:05 UTC, overlapping supervisor run)
+- merge2 rebuilt in another fresh container (sha fc153f1f); official verifier full run with the same salt sv0904mm:
+  **PASS, score 100,568.5291 (identical to the other run's result, so the verifier is deterministic across containers)**
+  (`verify_p62_merge2_sv0904mm_rerun.json`). Nothing was submitted to Kaggle.
+- `minrank_block.c` sped up about 1.4x (45 s -> 32 s for 2e7 nodes): BMI2 `pdep` in spread(), the cleared basis rows are computed
+  once per node and shared by the children, and the Su/Sw arrays are shared when the bit is 0 and updated only for equations
+  that are not yet linear. The search order and pruning are unchanged: same stdout and node counts by depth at a 2e7 limit,
+  the same full exact count on 34604 v0 (238,855,440 nodes), and the star_plant self-test on 34604 is 2/2 HIT (seeds 5, 11). Needs x86 BMI2.
+  Profile note: the Su/Sw update loop is NOT the bottleneck (restricting it gave ~5%); the remaining cost is in insert() and the order.
+- Lookup L3 chain 34604-34699 (k 346), single-wire star, ORDER=auto2: partial results in `star_lookup_rev_partial.txt`
+  (all NONE(exact) so far; job list runs 34604 -> 34192 -> 33888, so it does not overlap the other run's 33195).
