@@ -1,39 +1,42 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-09 00:15 UTC
-**结论**：**NOT_APPROVED**（当前最好仍是公开 62q 加 merge2：62 q / 1325.48 Toffoli / 100,568.57 = **20.650×**，本次换 salt sv0823mm 又全量 PASS 一次。上次的指示 1（剩下 30 对 k≈350）本次用精确的分支剪枝搜索全部判定为「不存在」，没有新的提升）
+**时间戳**：2026-11-09 00:50 UTC（中间版，本次运行还在跑）
+**结论**：**NOT_APPROVED**（当前最好仍是公开 62q 加 merge2：62 q / 1325.48 Toffoli / 100,568.52 = **20.650×**，本次换 salt sv0900mm 又全量 PASS 一次。本次没有新的数值提升）
 
 ## 1. 干活的状态
-- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`，PR 只有 #1（已合并）和 #2（draft，监工开的）。**仍然没有干活的分支 W**，干活的最后一次推送在 11-04。
-- 监工继续在 `claude/invsqrt-supervisor-work` 上接手。本次推送 5c88077、9834e85：`minrank_sat.py`、`minrank_block.py`、`minrank_block.c`、`minrank_core.py`（加了 MR_SAT / MR_DUMP）、`minrank_block_results.txt`、`verify_p62_merge2_sv0823mm.json` 和 README 的新小节。draft PR #2 不变。
+- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**，干活的最后一次推送在 11-04，早就超过 70 分钟，所以监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2 不变）。
+- 注意：上一次监工运行（会话 …bsZb7dDPLQU8YPemy3，00:10 推送）和本次运行**时间上重叠**了。本次一开始也写了 SAT 版 MinRank，发现对方已经推了 minrank_sat.py 和 minrank_block，于是丢掉自己的重复部分，在对方的结果上继续。
+- 本次推送：6120733（`verify_p62_merge2_sv0900mm.json`、`chain_dump_scan.py`、`rank4_sat.py`、`chain_rank_bound.py`、`nonadj_pair_scan.py`）。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|---|
-| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.57** | **20.650** | 重新 clone manwithacat/kickmix-macos，从 ops.json 加 `edits/merge2.json` 重建，sha 一致；官方 verifier 全量 200,540,928 shot，**新 salt sv0823mm：PASS**（worst 0.99932，x=161） |
+| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.52** | **20.650** | 重新 clone manwithacat/kickmix-macos，从 ops.json 加 `edits/merge2.json` 重建，sha 一致；官方 verifier 全量 200,540,928 shot，**新 salt sv0900mm：PASS**（worst 0.99932，x=161，max Toffoli 1495，41 个旋转，eps 2.43e-13） |
 | 公开 p62（sha 67482db6） | 62 | 1327.48 | 1624.07 | 100,692.58 | 20.625 | 本次没有重跑 |
 | lut_AF（sha 1f00ebbf） | 93 | 1494.00 | 1748.80 | 162,638 | 12.769 | 本次没有重跑 |
-- 倍数 = 2,076,774.23 / score。score 是 verifier 输出的总 cost（Q × C），不是某个子项。
-- 硬规则检查：没有向 Kaggle 提交；没有推 main；新增文件都是 KB 级；没有密钥，也没有比赛的非公开信息。
+- 倍数 = 2,076,774.23 / 100,568.52 = 20.650。score 是 verifier 输出的总 cost（Q × C），不是某个子项。
+- 上一次运行的结论（30 对 k≈350 都是 NONE）：本次用同一份 minrank_block 跑了**非相邻**的 lookup 对（见下），--plant 自检在本次的 dump 上能找回埋进去的解（284k 个节点），说明这套流程在新 dump 上也是可用的。上一次运行那 30 对的结果本次没有逐个重跑。
+- 硬规则检查：没有向 Kaggle 提交；没有推 main；新增文件都是 KB 级（dump 放在 scratchpad，没有提交）；没有密钥，也没有比赛的非公开信息。
 
-## 3. 本次做法（上次的指示 1：剩下的 30 对，k≈350）
-- **SAT（CryptoMiniSat 原生 XOR）**：在原始 ops.json 上 0 秒就找回 merge2 的见证（21455/21459），但对一个线性化已经否定的 k=154 对，600 秒内证不出 UNSAT。所以 SAT 只适合找解，不能用来关闭。
-- **结构发现**：把 30 对的 (Q0, K) 导出后发现，Q0 = c0∧c1 + c2∧c3（权重 2），而且 61 根基线里**只有 36 根被某个关系碰到**（被碰到的图约等于 K_36 少 7 条边）。u∧w 是按 {u,w} 取值 10/01/11 分类的完全三部图，所以它只能落在这 36 根线组成的块里，块外的线必须是 00（否则 u∧w = 0，也就是 Q0 ∈ span K，已检验为假）。
-- **精确搜索（minrank_block.py + .c）**：先消去 l，得到 280~284 个方程 u^T C w = c·Q0（c 取 Ann(K)）。再按约化行阶梯形（去掉 GL2 对称）逐个顶点给 (u_a, w_a) 赋值。赋值 m 个顶点后，凡是所有项都碰到已赋值顶点的方程，对未赋值变量都是线性的；用增量阶梯形（主元取最高位，交错比特，代入只清最低位）维护，一旦不相容就剪枝。这是穷举，所以结论是精确的。顶点顺序用 ORDER=auto2（先放 Q0 的线，再倒过来放贪心顺序），树在深度 16 处死掉，每对约 1.3 亿个节点，3~4 分钟。
-- **自检**：`--plant`（把 Q0 换成随机的 u∧w + K·l）在 4 个种子上都找回了埋进去的解。
-- **结果**：**30 对全部 NONE（精确，不存在）**。每对 2.5 千万到 2 亿个节点，42~235 秒（`minrank_block_results.txt`）。
-- 合起来：merge2 上的 71 对同目标 CCX，25 对进位链和 30 对 lookup_c / late_curvature_norm 都被精确否定（对任意仿射 g、h），2 对 dirty 不是二次，14 对相位 tap 已经用 tap 线论证关闭。**在公开 62q 上，「两两合并同目标 Toffoli」这一类局部改写已经全部关闭。**
-- 注意：这里的「精确」是相对于样本关系 K 说的。K 是真关系的超集，所以否定是可靠的。V_j 取的是 op j 处的活线加上最近的测量位，和之前的扫描一致。
+## 3. 本次做法（上次的指示 1：链级 3→2）
+- **chain_dump_scan.py**：对同一目标上连续的 CCX 链（i1→i2→…→im，相邻两个之间目标只被 XOR，不被读），在 im 处对链和 F = p_i1+…+p_im 取样，导出 MinRank 系统。carry 链 L=3..6（k 73..157），lookup_c / late_curvature_norm 链 L=3..7（k 311..350），共 39 条 L≥3 的链。
+- **rank4_sat.py**（秩 ≤ 2R 的 SAT 见证搜索，R=L−1，l 用 span(K) 的校验式消掉）：自检时，在 k=73 上 50 秒找回埋进去的秩 4 解；但在 k=154 和 k=349 上，**连埋进去的解 100 秒内也找不到**。所以 SAT 超时不说明任何问题，这个工具只能用在 k 小的情形。
+- **chain_rank_bound.py**（便宜的精确下界：块外的列是固定的，rank(y) ≥ rank(Q0[:,块外])）：39 条链的块外秩全部是 0（Q0 的线都在块内），**下界没有用**。
+- 精确块搜索推广到秩 4，在纸面上不可行：每个顶点 4 个比特，树要到深度约 16~17 才开始剪枝，节点数约为 4×16 的约化阶梯形个数 ≈ 2^48（秩 2 时是 2^28，实测 1.3 亿节点），差了 2^20 倍。**链级 3→2 用现在的工具判不了**，只记为「未判定」，不算关闭。
+- **改做可判定的子情形：非相邻对**（nonadj_pair_scan.py）。同一目标上的 CCX 只往目标里 XOR，彼此可交换，所以链里任意两个 p_a + p_c（中间的 p_b 保留不动）也可以合并成一个 AND，这是 3→2 的一个子情形。以前的扫描只测了相邻对。
+  - carry 链：27 个非相邻对正在跑（minrank_core 线性化，k≤157）；已经出来的 19 个全部 lin-inconsistent（精确否定）。
+  - lookup 链（40 个非相邻对，k 311..350，导出后用 minrank_block，ORDER=auto2）：40 个，正在跑，已经出来的 6 个全部 NONE(exact)，每个约 2 亿节点、315 秒。
 
 ## 4. 问题和可疑点
 - 依然没有干活的推送，监工是唯一在推进的，而且已经连续多次没有数值提升。每省 1 个 Toffoli 只多 +0.016×。
-- 成对合并已经关闭，剩下的局部方向（链级 3→2、换架构）代价都高很多。**再次建议用户考虑换题（dqi / dfthcsos），或者停掉这个监工 routine。**
+- 监工 routine 的两次运行出现了重叠（00:10 和本次）。两次都改了 `invsqrt-supervisor-work`，`minrank_sat.py` 差点重名冲突。**建议用户把 routine 的间隔调长，或者直接停掉。**
+- 链级 3→2 的「一般」情形（秩 ≤ 4，g、h 是任意仿射函数）仍然没有判定，只是证明了现在的工具做不了。
 
 ## 5. 下一步指示（按优先级，均未做）
-1. **链级 3→2（秩 ≤ 4）**：lookup_c / late_curvature_norm 里，同一个目标上有 3~4 个连续的 CCX（例如 t=57：33038、33080、33122、33156）。对整条链求和 F，检验它的二次部分能不能写成 u1∧w1 + u2∧w2（2 个 AND 代替 3 个）。可以复用同一个 36 线的块：把 minrank_block.c 推广成每个顶点 16 种取值（4×n 的阶梯形，去掉 GL4 对称），沿用同样的线性化剪枝。先用 --plant 自检，再在 t=57 的链上试。
-2. **换赛道评估 dqi**：公开 889q 版和参考版都已经能在本地验证。可以统计 Toffoli 在各个阶段的分布，再把 minrank_pair_scan + minrank_block 这一整套直接用在 dqi 电路上。那边规模大得多，局部冗余可能更多。
-3. **用块方法把 14 对相位 tap 精确地判一遍**（k 248..711）：现在它们是用 tap 线论证关闭的，不是用算法证明的。先看它们的被碰到的块有多大；如果块 ≤ 64，可以直接跑。
-4. 已关闭、不要再试：前面列过的全部方向，再加上本次在 30 对 k≈350 上的「任意仿射 g、h 的成对合并」（精确否定），以及用 SAT 证 UNSAT。
+1. **换赛道评估 dqi**（已经第三次建议）：公开 889q 版和参考版都已经能本地验证（93 秒，8.7 GB）。先统计 Toffoli 在各个阶段的分布，再把 func_pair_scan、minrank_pair_scan、nonadj_pair_scan、minrank_block 这一整套直接用在 dqi 电路上。那边规模大得多，局部冗余可能更多。
+2. **链级 3→2 的「含原始乘积」子情形**：要求 u1∧w1 等于链里某个原始的 c_a∧c_b（再加任意 K），剩下的部分用秩 2 的块搜索来判。这比非相邻对更一般（相当于先把一个 p 改写，再合并另外两个），每条链 L 次块搜索，每次约 5 分钟。另一种做法是对 minrank_block 加「两组 (u,w)，第一组固定」的模式。
+3. **14 对相位 tap 用块方法精确判一遍**（k 248..711，上次的指示 3，还没做）：先看被碰到的块大小，块 ≤ 64 就可以直接跑 minrank_block。
+4. 已关闭、不要再试：前面列过的全部方向，再加上本次的非相邻对（见第 3 节的结果），「用 SAT 找秩 4 的见证」（k≥154 时连埋进去的解都找不到），以及跨目标共享（p_j 用 t1 加仿射项得到，等价于 p_j 在 op j 的活线上是仿射的，已经被 linear_and_scan 覆盖）。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -79,3 +82,4 @@
 - 2026-11-08 21:40 UTC：依然没有干活的分支；merge2 新容器重建 sha 一致，**换 salt sv0821mm 全量 PASS（100,568.55 = 20.650×）**；指示 1 试了线性松弛 f∈V+G∘V（lin_filter_scan.py），因为控制值都还活着，必然满足，69/71 没被否定，方向无效；推送 7efcac7 到 invsqrt-supervisor-work；建议考虑换题；NOT_APPROVED。
 - 2026-11-08 22:40 UTC：依然没有干活的分支；merge2 新容器重建 sha 一致，**换 salt sv0822mm 全量 PASS（100,568.51 = 20.650×）**；完成上次的指示 1：写了精确的 MinRank 成对检验（minrank_core.py，Pfaffian 线性化），25 对进位链被精确否定（对任意 g、h），2 对 dirty 不是二次，30 对 k 约 350 的还没判定；推送 4fd014f 到 invsqrt-supervisor-work；NOT_APPROVED。
 - 2026-11-09 00:15 UTC：依然没有干活的分支；merge2 新容器重建 sha 一致，**换 salt sv0823mm 全量 PASS（100,568.57 = 20.650×）**；完成上次的指示 1：发现 30 对只碰到 36 根线组成的块，写了精确的分支剪枝搜索（minrank_block.c，4/4 埋解自检通过），**30 对全部精确否定**，这样 merge2 上的成对合并全部关闭；SAT 只能找解，证不了 UNSAT；推送到 invsqrt-supervisor-work；NOT_APPROVED。
+- 2026-11-09 00:50 UTC（中间版）：依然没有干活的分支；merge2 新容器重建 sha 一致，**换 salt sv0900mm 全量 PASS（100,568.52 = 20.650×）**；和上一次运行重叠，丢掉重复的 SAT 部分；链级 3→2：SAT 和块外秩下界都判不了，精确块搜索推广到秩 4 约 2^48 节点，不可行；改测非相邻对（3→2 的子情形），正在跑；NOT_APPROVED。
