@@ -6,7 +6,7 @@
 ## 1. 干活的状态
 - 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**，PR 只有监工的 draft PR #2（open）。干活的最后一次推送在 11-04，早就超过 70 分钟，所以监工继续在 `claude/invsqrt-supervisor-work` 上接手。
 - 又和 05:10 那次运行重叠：它在 06:30 推了 d0edc43（33888 链 36/36）。本次按它的指示改跑 33195，没有重复；推送前 rebase 了一次。
-- 本次推送到 invsqrt-supervisor-work：5401e77。
+- 本次推送到 invsqrt-supervisor-work：5401e77、edad8b2。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | C | cost | × 参考 | 本次复核 |
@@ -19,7 +19,7 @@
 ## 3. 本次做法
 - 在新容器里重新生成 chain dump（25 秒）。
 - **lookup L3 链 33195-33267（k 349）：剩下的 28 个顶点全部跑完，加上之前的 8 个，36/36 NONE(exact)**（`star_lookup_33195_results.txt`，每个顶点 2.39e8~2.41e8 个节点；4 路并行，和 verifier 一起跑时每个约 6.5 分钟）。
-- 目前 lookup L3 链的单线 star 进度：**33038、34604、34192、33888、33195 已经关闭**；33329 的 v0~3 在 06:53 开跑，本次运行结束前大概跑不完，没有记录；33481、33623、33763 还没开始。
+- 目前 lookup L3 链的单线 star 进度：**33038、34604、34192、33888、33195 已经关闭**；33329 做了 4/36（v0~3 NONE(exact)，`star_lookup_33329_partial.txt`）；33481、33623、33763 还没开始。
 
 ## 4. 问题和可疑点
 - 连续 20 多次运行没有数值提升。lookup 链上 5 条已经全部是「没有」，剩下 4 条预期也一样，就算命中也只省 1 个 Toffoli（+0.016×）。**投入产出比非常低，强烈建议用户停掉这个 routine，或者换题。**
@@ -27,7 +27,7 @@
 - 干活的会话从 11-04 之后就没有任何推送，可以认为已经停了。
 
 ## 5. 下一步指示（按优先级，均未做）
-1. **跑完 lookup L3 的 star**：33329（36 个顶点，从 v0 开始）、33481、33623、33763。下一次运行请先 fetch 分支，看有没有 `star_lookup_33329_*.txt`。用 `MR_KMAX=0 MR_DUMP=<dir>/c python3.13 chain_dump_scan.py p62mm.json 3000 2 60` 生成 dump，然后 `star_scan.py dump out v1,v2,...`，开 4 路并行，每个顶点约 5 分钟。命中就用 phase_trace 和 verifier 验证。
+1. **跑完 lookup L3 的 star**：33329 剩下的 32 个顶点（v18 起）、33481、33623、33763。下一次运行请先 fetch 分支，看有没有 `star_lookup_33329_*.txt`。用 `MR_KMAX=0 MR_DUMP=<dir>/c python3.13 chain_dump_scan.py p62mm.json 3000 2 60` 生成 dump，然后 `star_scan.py dump out v1,v2,...`，开 4 路并行，每个顶点约 5 分钟。命中就用 phase_trace 和 verifier 验证。
 2. **改搜索算法**：节点数固定在 2.39e8~2.41e8，和 v 无关（5 条链 178 个顶点都是这样），说明前十几层基本没有剪枝。可以试中途相遇（前后两半分别枚举，对共享方程做哈希连接），或者按「能新线性化的方程数」做前瞻排序。目标是每个顶点降到 30 秒以内。
 3. **在 lookup 链上做 star_basis ctrl2**（中心取 4 个控制值的 XOR 组合，每条链 11 个组合）。
 4. **14 对相位 tap 用块方法精确判一遍**（k 248..711），把「tap-wire 论证」换成精确证明。
@@ -84,4 +84,4 @@
 - 2026-11-09 04:35 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv0904mm 全量 PASS（100,568.53 = 20.650×）**；lookup 33038 链 star 剩下的 27 个顶点跑完（36/36 NONE(exact)），33195 链 8/36；新写 star_basis.py（中心取基线的 XOR 组合，埋解自检 3/3），carry L3 上控制值组合 77/77、权重 2 组合 2961/2961 全部 NONE(exact)；推送 70012e8、12e740a、c8ae946；NOT_APPROVED。
 - 2026-11-09 05:05 UTC：依然没有干活的分支；又和另一次运行重叠（发现后改跑别的链）；merge2 新容器重建 sha 一致，**salt sv0904mm 全量 PASS，score 100,568.5291，和对方用同一个 salt 的结果逐位相同（20.650×）**；minrank_block.c 提速约 1.4 倍（节点数逐位相同，埋解自检 2/2 HIT）；lookup 34604 链 star 21/36 NONE(exact)，其余还在跑；推送 b10278a；NOT_APPROVED。
 - 2026-11-09 05:45 UTC：依然没有干活的分支；又和 04:06 那次运行重叠（rebase 了一次，重叠的 5 个顶点节点数逐位相同）；merge2 新容器重建 sha 一致，**换 salt sv0905mm 全量 PASS（100,568.54 = 20.650×）**；34192 埋解自检 HIT；**lookup 34604 链 star 36/36、34192 链 35/35、33888 链 36/36 NONE(exact)**；推送 e40abc0、4cc1008；建议停掉 routine 或把间隔调长；NOT_APPROVED。
-- 2026-11-09 07:00 UTC：依然没有干活的分支；和 05:10 那次运行重叠，按它的指示改跑 33195，没有重复；merge2 新容器重建 sha 一致，**换 salt sv0906mm 全量 PASS（100,568.53 = 20.650×）**；**lookup 33195 链 star 36/36 NONE(exact)**（5 条 lookup 链已关闭）；33329 开了 4 个顶点但没跑完；推送 5401e77；建议停掉 routine；NOT_APPROVED。
+- 2026-11-09 07:00 UTC：依然没有干活的分支；和 05:10 那次运行重叠，按它的指示改跑 33195，没有重复；merge2 新容器重建 sha 一致，**换 salt sv0906mm 全量 PASS（100,568.53 = 20.650×）**；**lookup 33195 链 star 36/36 NONE(exact)**（5 条 lookup 链已关闭）；33329 链 4/36；推送 5401e77、edad8b2；建议停掉 routine；NOT_APPROVED。
