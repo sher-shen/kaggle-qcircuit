@@ -145,6 +145,18 @@ def minrank(Vj, Vend, f, P=None):
     for t in range(npair):
         E[t, 0] = (Q0 >> t) & 1
         for i in range(k): E[t, i + 1] = (Ks[i] >> t) & 1
+    if os.environ.get('MR_DUMP') and k > KMAX:
+        np.savez_compressed(os.environ['MR_DUMP'] + f"_{P.get('i', len(f)) if P else len(f)}_{k}.npz", E=E, pairs=np.array(pairs), n=n)
+        return None, f'n={n} k={k} dumped'
+    if os.environ.get('MR_SAT') == 'all' or (os.environ.get('MR_SAT') and k > KMAX):
+        from minrank_sat import sat_test
+        res, msg = sat_test(E, pairs, n)
+        if res is False: return None, f'n={n} k={k} {msg}'
+        if res is None: return ('sat timeout',), f'n={n} k={k} {msg}'
+        u_, w_, l_ = res
+        # g = u.v, h = w.v on the sample states; store for re-validation by the caller
+        if P is not None: P['sat_gh'] = (X @ u_.astype(np.uint8) & 1, X @ w_.astype(np.uint8) & 1, S, nj, ne)
+        return ('sat witness',), f'n={n} k={k} {msg}'
     if k <= KMAX:
         ok, msg = lin_test(E, pairs, n)
         return (None if not ok else ('linearised consistent',)), f'n={n} k={k} {msg}'

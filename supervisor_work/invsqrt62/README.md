@@ -340,3 +340,22 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
     by the tap-wire argument (shared AND sits in another tap, needs an extra wire at width 62).
   - **30 pairs in 33038..34819 (lookup_c / late_curvature_norm chains, k 311..350): OPEN.** Linearisation would need ~60k unknowns;
     the principal-submatrix restrictions are always feasible because the relations (product wires) make almost every entry free.
+
+## Exact block search closes the k~350 pairs (2026-11-08 23:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv0823mm: PASS,
+  score 100,568.57 = 20.650x** (`verify_p62_merge2_sv0823mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `minrank_sat.py` (MR_SAT=1 in minrank_core): CryptoMiniSat with native XOR clauses for `Q0 + sum l_i K_i = u^w`.
+  Finds the merge2 witness instantly (21455/21459 on the original ops.json), but cannot prove UNSAT even for a k=154 pair that the
+  linearisation rejects (600 s timeout). Kept only as a witness finder.
+- Structure of the 30 open pairs (dumps via `MR_DUMP=prefix`): Q0 = c0^c1 + c2^c3 (weight 2), and only **36 of the 61 basis wires
+  are touched by any relation** (the touched graph is ~K_36 minus 7 edges). So u^w (a complete 3-partite graph on the classes
+  {u,w} = 10/01/11) must live inside that 36-wire block; any wire outside must be 00 (or u^w = 0, which means Q0 in span K: tested, false).
+- `minrank_block.py dump.npz [--plant]` + `minrank_block.c`: eliminate l (equations c.(u^w) = c.Q0 for c in Ann(K), 280..284 of them),
+  write each as u^T C w, and assign (u_a, w_a) vertex by vertex in reduced echelon form (GL2 symmetry removed). After m vertices,
+  every equation whose entries all touch an assigned vertex is linear in the unassigned (u_R, w_R); the system is kept in echelon form
+  incrementally (pivot = highest bit, interleaved bits, substitution clears the lowest bits) and any inconsistency prunes.
+  Exhaustive => exact. Vertex order `ORDER=auto2` (Q0 wires first, then the reverse of the greedy order): the tree dies at depth 16.
+  Self-test `--plant` (Q0 replaced by a random u^w + K l): the planted solution is found for 3/3 seeds tried to completion.
+- **Result: all 30 pairs NONE(exact)** (25M..199M nodes, 42..235 s each; `minrank_block_results.txt`). Together with the 25 carry-chain
+  pairs (linearisation), the 2 dirty pairs (not quadratic) and the 14 tap pairs (tap-wire argument), every same-target CCX pair of
+  merge2 within maxgap 60 is now closed for arbitrary affine g, h (relative to the sampled relations, so rejections are sound).
