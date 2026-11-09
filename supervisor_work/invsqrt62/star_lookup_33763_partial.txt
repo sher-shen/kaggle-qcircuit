@@ -1,0 +1,4 @@
+c_33763-33826-L3_348 v 0 n=61 k=348 rankK=348 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=247 nodes=239428839 leaves=0 solutions=0 
+c_33763-33826-L3_348 v 1 n=61 k=348 rankK=348 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=247 nodes=239430073 leaves=0 solutions=0 
+c_33763-33826-L3_348 v 2 n=61 k=348 rankK=348 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=247 nodes=239428667 leaves=0 solutions=0 
+c_33763-33826-L3_348 v 3 n=61 k=348 rankK=348 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=247 nodes=239248932 leaves=0 solutions=0 

@@ -446,3 +446,10 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - **Lookup L3 chain 33329-33403 (k 349): remaining 32 vertices done -> all 36 touched vertices NONE(exact)**
   (`star_lookup_33329_results.txt`, 2.39e8..2.42e8 nodes each, ~5 min each at 4 parallel jobs).
 - Lookup L3 single-centre star status: 33038, 34604, 34192, 33888, 33195, 33329 closed; 33481, 33623, 33763 not started.
+
+## 2026-11-09 22:05 UTC run (supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv0922mm: PASS,
+  score 100,568.537 = 20.650x** (`verify_p62_merge2_sv0922mm.json`). Nothing was submitted to Kaggle.
+- Plant self-test on chain 33481 (`star_plant.py ... 13`, v 57): **HIT** (8.8e5 nodes).
+- Lookup L3 chain 33481-33569 (k 350): partial, all NONE(exact) so far (`star_lookup_33481_partial.txt`);
+  chain 33763-33826 (k 348): partial, all NONE(exact) (`star_lookup_33763_partial.txt`). 2.39e8..2.42e8 nodes each, ~8-10 min at 4 jobs.
