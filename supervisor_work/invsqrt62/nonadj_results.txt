@@ -71,3 +71,7 @@ pair 23440-23508-NA 23508 t=26 exec=1.000 end=23540 tested=n=55 k=154 lin-incons
 pair 23207-23283-NA 23283 t=17 exec=1.000 end=23544 tested=n=55 k=155 lin-inconsistent rows=26045 rank=12085/12090 -> none None
 pair 23207-23316-NA 23316 t=17 exec=1.000 end=23544 tested=n=55 k=155 lin-inconsistent rows=22205 rank=12085/12090 -> none None
 pair 23248-23316-NA 23316 t=17 exec=1.000 end=23544 tested=n=55 k=155 lin-inconsistent rows=22205 rank=12085/12090 -> none None
+pair 22686-22767-NA 22767 t=25 exec=1.000 end=23167 tested=n=55 k=156 lin-inconsistent rows=22205 rank=12241/12246 -> none None
+pair 22686-22797-NA 22797 t=25 exec=1.000 end=23197 tested=n=55 k=156 lin-inconsistent rows=25467 rank=12241/12246 -> none None
+pair 22686-22825-NA 22825 t=25 exec=1.000 end=23225 tested=n=55 k=157 lin-inconsistent rows=26045 rank=12398/12403 -> none None
+pair 22686-22852-NA 22852 t=25 exec=1.000 end=23252 tested=n=55 k=157 lin-inconsistent rows=22205 rank=12398/12403 -> none None
