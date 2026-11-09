@@ -420,3 +420,12 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   Profile note: the Su/Sw update loop is NOT the bottleneck (restricting it gave ~5%); the remaining cost is in insert() and the order.
 - Lookup L3 chain 34604-34699 (k 346), single-wire star, ORDER=auto2: partial results in `star_lookup_rev_partial.txt`
   (all NONE(exact) so far; job list runs 34604 -> 34192 -> 33888, so it does not overlap the other run's 33195).
+
+## Lookup star on 34604 finished; 34192 started (2026-11-09 05:06-06:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv0905mm: PASS,
+  score 100,568.544 = 20.650x** (`verify_p62_merge2_sv0905mm.json`). Nothing was submitted to Kaggle.
+- Chain dumps regenerated from scratch (`chain_dump_scan.py p62mm.json 3000 2 60`, python3.13; same k per chain as before).
+- Plant self-test on the new chain 34192 (`star_plant.py ... 7`, v 58): **HIT** (4.8e7 nodes).
+- **Lookup L3 chain 34604-34699 (k 346): remaining 20 vertices done -> all 36 touched vertices NONE(exact)**
+  (`star_lookup_34604_results.txt`, ~5 min each at 4 parallel jobs; the 5 vertices the overlapping 04:06 run also finished (31-34, 44) have identical node counts).
+- Lookup L3 chain 34192-34286 (k 311, 35 vertices): running, partial results in `star_lookup_34192_partial.txt`.

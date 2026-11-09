@@ -1,0 +1,2 @@
+c_34192-34286-L3_311 v 1 n=61 k=311 rankK=311 block=34 Q0 in span(K): False | RESULT NONE(exact) s=34 ne=250 nodes=59644137 leaves=0 solutions=0 
+c_34192-34286-L3_311 v 19 n=61 k=311 rankK=310 block=34 Q0 in span(K): False | RESULT NONE(exact) s=34 ne=251 nodes=59577310 leaves=0 solutions=0 
