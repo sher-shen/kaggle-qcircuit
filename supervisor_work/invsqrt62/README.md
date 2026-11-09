@@ -383,3 +383,5 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   covers a 3->2 star on a mid-chain triple, since the left-over original AND is itself a star on its control).
 - Self-test `star_plant.py` (plants v^w1 + u^w + K l): 3/3 HIT (296..665 nodes); two-star plant: HIT (653 nodes).
 - **Carry L3 chains (7 chains, k 73..157, every touched vertex v): 196 / 196 NONE(exact)** (`star_carry_L3_results.txt`, < 1 s each).
+- **Carry L4 chains, two stars (6 chains, all vertex pairs): 2526 / 2526 NONE(exact)** (`star2_carry_L4_results.txt`, ~10 min on 4 cores).
+  So on the carry chains no 3->2 with a wire-star and no 4->3 with two wire-stars exists (relative to the sampled relations: sound rejections).
