@@ -394,6 +394,16 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 
 ## Star 3->2 (continued, 2026-11-09 02:xx UTC run)
 - **Lookup L3 chain 33038-33122 (k 349), star on vertex v, ORDER=auto2: 9 of the 35 block vertices NONE(exact)**
-  (v 0, 1, 2, 3, 18, 19, 20, 21, 22; ~2.4e8 nodes, ~5 min each; `star_lookup_33038_partial.txt`). The greedy order (ORDER='') hits a
+  (v 0, 1, 2, 3, 18, 19, 20, 21, 22; ~2.4e8 nodes, ~5 min each; `star_lookup_33038_results.txt`). The greedy order (ORDER='') hits a
   4e8-node limit on v 0, so use auto2. Not done: the other 26 vertices of this chain and the other 8 lookup L3 chains
   (~35 x 5 min each, ~6.5 h on 4 cores in total), and two-star on the lookup L4 chains (C(35,2) per chain, not feasible this way).
+
+## Star 3->2: lookup chain 33038 finished, general star centre on carry chains (2026-11-09 03:xx-04:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv0904mm: PASS,
+  score 100,568.53 = 20.650x** (`verify_p62_merge2_sv0904mm.json`). Nothing was submitted to Kaggle.
+- Lookup L3 chain 33038-33122 (k 349): the remaining 27 vertices done (ORDER=auto2, ~2.4e8 nodes each) -> **all 36 touched
+  vertices NONE(exact)** (`star_lookup_33038_results.txt`; the one LIMIT line is the old greedy-order attempt on v 0).
+- `star_basis.py dump.npz out COMBOS`: star centre v = any XOR of basis wires (basis change x'_{c0} = v, A -> M^T A M, then the
+  star_scan test). Plant self-test with v = 0+1, 2+5+9, 3+20: 3/3 HIT. Carry L3 chains (7), v in span of the 4 control values
+  (11 non-basis combos each): **77 / 77 NONE(exact)** (`star_basis_carry_ctrl2_results.txt`). Weight-2 centres over the whole block
+  (2961 combos): see `star_basis_carry_pairs_results.txt`.
