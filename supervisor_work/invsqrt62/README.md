@@ -372,3 +372,14 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - `nonadj_pair_scan.py`: decidable sub-case, non-adjacent pairs (ia, ic) of a chain (p_ib stays; same-target CCX commute).
   Lookup: **40 pairs, all NONE(exact)** via minrank_block (plant self-test on one dump: found, 284k nodes). Carry: **all lin-inconsistent**
   (exact reject). `nonadj_results.txt`.
+
+## Star 3->2 / two-star 4->3 (2026-11-09 02:xx UTC, supervisor)
+- merge2 rebuilt (sha fc153f1f); **official verifier full run, salt sv0902mm: PASS, score 100,568.59 = 20.650x**
+  (`verify_p62_merge2_sv0902mm.json`). Nothing was submitted to Kaggle.
+- New decidable sub-case of chain 3->2 (rank 4 is out of reach): one of the two new ANDs uses a basis wire v,
+  F = v*w1 + u*w (w1, u, w arbitrary affine). Since v*w1 = sum_i w1_i (v^e_i), every entry (v, i) is free: drop the pairs that
+  contain v and run the exact rank<=2 block search. `star_scan.py dump.npz out [v,...]` (dumps from `chain_dump_scan.py`,
+  MR_KMAX=0 MR_DUMP=prefix, on merge2 with 3000 2 60). `STAR2=1`: two stars v1, v2 (F = v1 w1 + v2 w2 + u w, 4 -> 3; this also
+  covers a 3->2 star on a mid-chain triple, since the left-over original AND is itself a star on its control).
+- Self-test `star_plant.py` (plants v^w1 + u^w + K l): 3/3 HIT (296..665 nodes); two-star plant: HIT (653 nodes).
+- **Carry L3 chains (7 chains, k 73..157, every touched vertex v): 196 / 196 NONE(exact)** (`star_carry_L3_results.txt`, < 1 s each).
