@@ -385,3 +385,9 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - **Carry L3 chains (7 chains, k 73..157, every touched vertex v): 196 / 196 NONE(exact)** (`star_carry_L3_results.txt`, < 1 s each).
 - **Carry L4 chains, two stars (6 chains, all vertex pairs): 2526 / 2526 NONE(exact)** (`star2_carry_L4_results.txt`, ~10 min on 4 cores).
   So on the carry chains no 3->2 with a wire-star and no 4->3 with two wire-stars exists (relative to the sampled relations: sound rejections).
+
+## Independent re-run (2026-11-09 01:05-03:00 UTC, overlapping supervisor run)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full run, salt sv0901mm: PASS, score 100,568.50 = 20.650x**
+  (`verify_p62_merge2_sv0901mm.json`). Nothing was submitted to Kaggle.
+- Re-ran `nonadj_pair_scan.py` from scratch in a separate container: same result, 35 carry pairs lin-inconsistent, 40 lookup pairs
+  NONE(exact) (`nonadj_results_rerun0901.txt`). `rank4_sat.py --T 2000` on the 21884 chain also as L=4 (R=3): TIMEOUT too.
