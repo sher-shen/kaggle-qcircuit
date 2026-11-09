@@ -429,4 +429,5 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - **Lookup L3 chain 34604-34699 (k 346): remaining 20 vertices done -> all 36 touched vertices NONE(exact)**
   (`star_lookup_34604_results.txt`, ~5 min each at 4 parallel jobs; the 5 vertices the overlapping 04:06 run also finished (31-34, 44) have identical node counts).
 - **Lookup L3 chain 34192-34286 (k 311): all 35 touched vertices NONE(exact)** (`star_lookup_34192_results.txt`, ~3 min each).
-- Lookup L3 chain 33888-33963 (k 347): started at 05:45 UTC (results go to `star_lookup_33888_*.txt` when pushed).
+- **Lookup L3 chain 33888-33963 (k 347): all 36 touched vertices NONE(exact)** (`star_lookup_33888_results.txt`).
+- Lookup L3 single-wire star status: 33038, 34604, 34192, 33888 closed; 33195 8/36; 33329, 33481, 33623, 33763 not started.
