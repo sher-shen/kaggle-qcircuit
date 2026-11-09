@@ -355,7 +355,7 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   every equation whose entries all touch an assigned vertex is linear in the unassigned (u_R, w_R); the system is kept in echelon form
   incrementally (pivot = highest bit, interleaved bits, substitution clears the lowest bits) and any inconsistency prunes.
   Exhaustive => exact. Vertex order `ORDER=auto2` (Q0 wires first, then the reverse of the greedy order): the tree dies at depth 16.
-  Self-test `--plant` (Q0 replaced by a random u^w + K l): the planted solution is found for 3/3 seeds tried to completion.
+  Self-test `--plant` (Q0 replaced by a random u^w + K l): the planted solution is found for 4/4 seeds (11k..189M nodes).
 - **Result: all 30 pairs NONE(exact)** (25M..199M nodes, 42..235 s each; `minrank_block_results.txt`). Together with the 25 carry-chain
   pairs (linearisation), the 2 dirty pairs (not quadratic) and the 14 tap pairs (tap-wire argument), every same-target CCX pair of
   merge2 within maxgap 60 is now closed for arbitrary affine g, h (relative to the sampled relations, so rejections are sound).
