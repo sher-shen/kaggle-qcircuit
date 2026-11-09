@@ -391,3 +391,9 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   (`verify_p62_merge2_sv0901mm.json`). Nothing was submitted to Kaggle.
 - Re-ran `nonadj_pair_scan.py` from scratch in a separate container: same result, 35 carry pairs lin-inconsistent, 40 lookup pairs
   NONE(exact) (`nonadj_results_rerun0901.txt`). `rank4_sat.py --T 2000` on the 21884 chain also as L=4 (R=3): TIMEOUT too.
+
+## Star 3->2 (continued, 2026-11-09 02:xx UTC run)
+- **Lookup L3 chain 33038-33122 (k 349), star on vertex v, ORDER=auto2: 9 of the 35 block vertices NONE(exact)**
+  (v 0, 1, 2, 3, 18, 19, 20, 21, 22; ~2.4e8 nodes, ~5 min each; `star_lookup_33038_partial.txt`). The greedy order (ORDER='') hits a
+  4e8-node limit on v 0, so use auto2. Not done: the other 26 vertices of this chain and the other 8 lookup L3 chains
+  (~35 x 5 min each, ~6.5 h on 4 cores in total), and two-star on the lookup L4 chains (C(35,2) per chain, not feasible this way).
