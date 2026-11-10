@@ -19,6 +19,7 @@
   - K=3、span 40：只有 25425（arith_b → fine_phase_stream）有 11 个跨边界窗口，**全都含已知的 dirty-CCCX 对（25610, 25613）**，第三个 AND 只是顺带进来的，属于伪影。其余 15 个边界都是 0。
   - K=4、span 12：全部 16 个边界的跨边界窗口都是 0（结果见 `supervisor_work/invsqrt62/boundary_scan_1005.txt`）。
   - **指示 3 关闭**：连形式上的跨 stage 3→2 / 4→3 候选都没有。
+- **间隔超过 60 的同目标 CCX 对**（之前只关闭了 maxgap≤60）：`func_pair_scan.py` 用 maxgap 5000 跑，215 对候选，**0 命中**；同一命令在原始 ops.json 上正好找回 merge2 的 2 对（自检通过）。关闭。
 - 复查 cost 公式：T 角度的 Z_POW 按 1 T（=0.25 Toffoli）计费，但门集里没有 H（只有 HMR），做不了相对相位 Toffoli；用 7 个 T 实现 CCZ 要 1.75 > 1。**这个方向不可行。**
 
 ## 4. 问题和可疑点
@@ -28,9 +29,9 @@
 ## 5. 下一步指示（按优先级，都还没做）
 1. **换分支变量的求解器**：不按顶点分支，改为在平台 11 个顶点的 (u,w) 上做中途相遇（两半各自算出平台变量上的线性约束，然后哈希连接）。基准用 33195 L3（目标 <10 秒，节点数从 1.99e8 降到 ≤1e6），用 star_plant 埋解自检。
 2. 有了快求解器之后，在 9 条 lookup 链上跑 **star_basis pairs（权重 2 的中心，每条约 600 个）**，以及 lookup L4 链上的两颗星（4→3）。
-3. **间隔超过 60 的同目标 CCX 对**：之前的精确关闭只覆盖 maxgap≤60（71 对）；放宽到 maxgap 5000 时一共有 215 对候选。本次已经在跑采样版 `func_pair_scan.py p62mm.json 2000 8 5000`（结果会写进 README）；如果有命中，就用 minrank_block_big.py 做精确判定，然后改电路、跑全量 verifier。
-4. **换赛道评估**：1~2 预期全部 NONE；3 命中也只省 1 个 Toffoli。建议停止 invsqrt 微优化。
-5. 已经关闭、不要再试：前面列过的全部方向，再加上跨 stage 窗口（本次关闭）、T 门相对相位（门集里没有 H）、按条件腾线做 clean CCCX（经典比特都是 X 基测量出来的随机数，跟数据无关，没法拿来当条件）。
+3. **跨 stage 的 dirty-CCCX 目标改用相位形式**：检查那 12 对 dirty CCCX 的目标线后面是不是只被 HMR 或相位门消费；如果是，就把 CCCX 换成 CCCZ，再和后面的相位修正合并，看能不能少 1 个 Toffoli（先用 stage_xag 看目标线的消费者）。
+4. **换赛道评估**：1~2 预期全部 NONE；3 命中也最多省几个 Toffoli。建议停止 invsqrt 微优化。
+5. 已经关闭、不要再试：前面列过的全部方向，再加上跨 stage 窗口（本次关闭）、T 门相对相位（门集里没有 H）、间隔 >60 的同目标对、按条件腾线做 clean CCCX（经典比特都是 X 基测量出来的随机数，跟数据无关，没法拿来当条件）。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -91,4 +92,4 @@
 - 2026-11-10 03:20 UTC：依然没有干活的分支；和 01:07 那次运行（以及另一次推送 sv1003mm 的运行）重叠，33195、33329 反序跑来避免重复；merge2 新容器重建 sha 一致，**换 salt sv1002mm 全量 PASS（100,568.55 = 20.650×）**；本次 ctrl2 22/22 NONE(exact)，**9 条 lookup 链的 ctrl2 全部关闭**；深度剖面显示块搜索的成本全在前 14 层几乎没有方程的前缀上；推送 bedbbc5、828818c；建议停掉 routine；NOT_APPROVED。
 - 2026-11-10 03:50 UTC：依然没有干活的分支；和 02:06 那次运行重叠；merge2 新容器重建 sha 一致，**换 salt sv1003mm 全量 PASS（100,568.56 = 20.650×）**；star_basis 埋解自检 HIT；ctrl2 剩下的 16 个组合 NONE(exact)，和对方逐位相同（**9 条 lookup 链的 ctrl2 全部关闭**）；推送 9956d7a、0e932fd、6564fa9；建议停掉 routine；NOT_APPROVED。
 - 2026-11-10 04:40 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1004mm 全量 PASS（100,568.54 = 20.650×）**；完成指示 3：新写 minrank_block_big.py（无 s≤64 限制，和 C 版节点数逐位相同，埋解自检 HIT），**14 对相位 tap 全部 NONE(exact)**，merge2 的同目标 CCX 对全部精确关闭；顶点重排序实验（三种顺序都约 2e8 节点）说明按顶点分支有 4^11 平台；推送 2aa4247；建议停掉 routine；NOT_APPROVED。
-- 2026-11-10 05:30 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1005mm 全量 PASS（100,568.53 = 20.650×）**；完成指示 3：新写 boundary_qform_core.py，16 个 stage 边界的跨边界窗口 K=3 只有 dirty-CCCX 伪影，K=4 为 0，关闭；T 门相对相位 Toffoli 因为门集里没有 H 而关闭；新开间隔 >60 的同目标对扫描（215 对候选）；建议停掉 routine；NOT_APPROVED。
+- 2026-11-10 05:30 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1005mm 全量 PASS（100,568.53 = 20.650×）**；完成指示 3：新写 boundary_qform_core.py，16 个 stage 边界的跨边界窗口 K=3 只有 dirty-CCCX 伪影，K=4 为 0，关闭；T 门相对相位 Toffoli 因为门集里没有 H 而关闭；间隔 >60 的同目标对 215 对采样扫描 0 命中（自检能找回 merge2），关闭；建议停掉 routine；NOT_APPROVED。
