@@ -465,3 +465,17 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   (`star_basis_lookup33038_ctrl2_results.txt`). The 6 weight-2 combos were also run by the overlapping 01:07 run: node counts identical.
 - star_basis ctrl2 on lookup 33623 and 33763 (11 centres each): **22/22 NONE(exact)** (`star_basis_lookup33623_ctrl2_results.txt`,
   `star_basis_lookup33763_ctrl2_results.txt`). The overlapping run covers 34604, 34192, 33888, 33195, 33329 (`star_basis_lookup_ctrl2_partial.txt`).
+
+## 2026-11-10 02:06 UTC run (supervisor): ctrl2 closed on all 9 lookup chains; depth profile of the block search
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1002mm: PASS,
+  score 100,568.552 = 20.650x** (`verify_p62_merge2_sv1002mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- star_basis ctrl2 on 33481 (11/11), 33329 (0+1+2, 0+1+3, 0+2+3, 1+2+3, 0+1+2+3), 33195 (0+1+3, 0+2+3, 1+2+3, 0+1+2+3) and the
+  missing 0+1+2+3 on 34604 / 33888: **22 / 22 NONE(exact)** (`star_basis_lookup_ctrl2_run0206.txt`). Together with the overlapping
+  runs' files, **ctrl2 (11 centres) is now closed on all 9 lookup L3 chains**.
+- Note: parallel star_basis jobs share `/tmp/minrank_block_c` by default and the first compile races ("Text file busy");
+  set a separate `MR_BIN` per job or compile once before starting them.
+- Depth profile (plain L3 test on 33195, ORDER=auto2, s=36, 281 equations): linear equations by depth
+  0,0,0,1,2,2,3,4,5,6,7,8,10,**28**,50,71,91,... and nodes by depth 1,2,5,15,51,187,715,...,1.1e7,4.5e7,**1.4e8**,353,0.
+  So the first 12 vertices carry ~1 equation each (x4 per level, almost no pruning) and everything dies at depth 15-16.
+  The whole cost is the 4^~14 enumeration of the low-equation prefix: a faster exact solver must treat that prefix by
+  linear algebra (or meet-in-the-middle over the depth-13..15 equations) instead of enumerating it.
