@@ -497,3 +497,13 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   (59 flat up to depth 14) and the tree grows x4 per level, exactly like auto2. The 4^~11 plateau is intrinsic to vertex branching,
   so ordering alone cannot give the 10-s solver; a different branching variable (e.g. on the linear forms of the depth-15+ equations)
   would be needed.
+
+## 2026-11-10 05:05 UTC run (supervisor): cross-stage-boundary windows (instruction 3 of 04:40)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1005mm: PASS,
+  score 100,568.533 = 20.650x** (`verify_p62_merge2_sv1005mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `boundary_qform_core.py st.json K SPAN BND out.json`: stage_qform's formal window test on a `stage_xag.py` range [BND-500, BND+500),
+  keeping only windows whose ANDs straddle the stage boundary BND (stage table from kickmix-macos `stages.json`; all 16 boundaries).
+- K=3, span 40: straddling windows only at 25425 (arith_b -> fine_phase_stream), 11 of them, **all contain the known dirty-CCCX pair
+  (25610, 25613)** (q0 dirty, `(q28*q17)*q19 -> q25` computed twice; that pair alone is already the within-stage (2,1) artefact),
+  so the third AND only tags along. Every other boundary: 0. K=4, span 12: see `boundary_scan_1005.txt`.
+- **Instruction 3 closed**: no cross-stage 3->2 / 4->3 candidate, even formally.
