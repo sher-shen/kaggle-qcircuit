@@ -482,4 +482,4 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - 2026-11-10 03:40 UTC: merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv1003mm:
   PASS, score 100,568.56 = 20.650x** (`verify_p62_merge2_sv1003mm.json`). star_basis plant self-test on 33329 (0+1+2): HIT (58 nodes).
   Remaining ctrl2 combos (33195 x3, 33329 x5, 33481 x8): **16/16 NONE(exact)** (`star_basis_lookup_ctrl2_rest_1003.txt`).
-  These 16 overlap the 02:06 run's 22 (independent duplicate, all agree); node counts match to within the usual 1e3 jitter. Nothing was submitted to Kaggle.
+  These 16 overlap the 02:06 run's 22 (independent duplicate, all agree); node counts bit-identical on all 16. Nothing was submitted to Kaggle.
