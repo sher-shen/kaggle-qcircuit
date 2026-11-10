@@ -1,34 +1,38 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-10 01:25（中间版本，本次运行还在跑） UTC
-**结论**：**NOT_APPROVED**（当前最好仍然是公开 62q 电路加 merge2：62 q / 1325.48 Toffoli / 100,568.55 = **20.650×**。本次没有数值提升）
+**时间戳**：2026-11-10 02:05（中间版本，本次运行还在跑） UTC
+**结论**：**NOT_APPROVED**（当前最好仍然是公开 62q 电路加 merge2：62 q / 1325.48 Toffoli / 100,568.57 = **20.650×**。本次没有数值提升）
 
 ## 1. 干活的状态
-- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**，干活的会话 11-04 之后没有推送，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2）。
-- 本次 01:07 开始。00:06 那次运行写的是"中间版本"，最后提交 00:49，可能还在跑 33763/33623 的单中心 star。**本次按它的要求不碰这两条链**，改做它列的指示 3（lookup 链上的 star_basis ctrl2）。
+- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**。干活的会话从 11-04 起就没有推送，可以认为已经停了，监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2）。
+- 本次 00:06 开始。上次运行最后一个提交是 23:59，开始时没有重叠。**01:07 起有另一次运行和本次重叠**：它用 salt sv1001mm 复核（PASS 100,568.548），并在 33038、34604、34192、33888 四条链上跑 ctrl2（`star_basis_lookup_ctrl2_partial.txt`）。为了避免重复，本次的 ctrl2 只跑 33623 和 33763；33038 上双方重叠的 6 个组合节点数逐位相同。另外，本次中途容器重启过一次，scratchpad 里的结果都保留了，没跑完的部分已重新启动。
+- 本次推送：30fe56f（复核 json）、f68bf7a（部分结果）、1141962（33763/33623 关闭，33038 ctrl2）。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|---|
-| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.55** | **20.650** | 重新 clone manwithacat/kickmix-macos，用 ops.json 加 `edits/merge2.json` 重建，sha 一致；**官方 verifier 全量 200,540,928 shot，新 salt sv1001mm：PASS**，score 100,568.548（worst 0.99932，x=161），见 `verify_p62_merge2_sv1001mm.json` |
-- 倍数 = 2,076,774.23 / 100,568.548 = 20.650。score 是 verifier 输出的总 cost（Q × C），不是子项。
+| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.57** | **20.650** | 重新 clone manwithacat/kickmix-macos，用 ops.json 加 `edits/merge2.json` 重建，sha 一致；**官方 verifier 全量 200,540,928 shot 跑完，用了新 salt sv1000mm：PASS**，score 100,568.568（worst 0.99932，x=161），见 `verify_p62_merge2_sv1000mm.json` |
+- 倍数 = 2,076,774.23 / 100,568.568 = 20.650。score 是 verifier 输出的总 cost（Q × C），不是某个子项。
 - 硬规则检查：没有向 Kaggle 提交；没有推 main；新增文件都是 KB 级（dump 和电路放在 scratchpad，没有提交）；没有密钥，也没有比赛非公开信息。
 
 ## 3. 本次做法
-- 重新生成 chain dump（`chain_dump_scan.py m2.json 3000 2 60`，MR_KMAX=0）。
-- star_basis 埋解自检（33038 L3，PLANT=1，中心 0+1）：**HIT**（58 个节点）。
-- 33038 L3 中心 0+1（控制值 XOR）：**NONE(exact)**（2.42e8 节点）。
-- （进行中）ctrl2（11 个组合）在 33038、34604、34192、33888 四条已关闭单中心 star 的 lookup 链上，4 路并行。
+- 重新生成 chain dump（24 秒），编译 minrank_block.c。
+- 33623 链的埋解自检（`star_plant.py ... 17`，v 49）：**HIT**（8.5e5 个节点），说明搜索在这条链上能找到解。
+- **lookup 33763-33826（k 348）：剩下的 27 个顶点跑完，全部 NONE(exact)，36/36 关闭**（`star_lookup_33763_results.txt`）；**lookup 33623-33693（k 349）：36/36 NONE(exact)**（`star_lookup_33623_results.txt`）。每个顶点 2.39e8~2.42e8 个节点，4 路并行时约 4~5 分钟。
+- star_basis ctrl2 在 33038 上（中心取控制值 0..3 的 11 种 XOR 组合）：**11/11 NONE(exact)**（`star_basis_lookup33038_ctrl2_results.txt`）。
+- （进行中）ctrl2 在 33623 和 33763 上（共 22 个组合），4 路并行。**重叠的运行请不要跑这两条链**。
+- 单中心 star 的总进度：**9 条 lookup L3 链的单中心 star 全部关闭**（33038、33195、33329、33481、33623、33763、33888、34192、34604，共 323 个顶点，全是 NONE(exact)，每条链都有埋解自检 HIT）。
 
 ## 4. 问题和可疑点
-- 已经连续三十次左右运行没有数值提升；lookup 链上任何命中也只省 1 个 Toffoli（+0.016×）。**投入产出比非常低，强烈建议用户停掉这个 routine，或者把额度转到其他题。**
+- 已经连续二十多次运行没有数值提升。lookup 链上单中心 star 跑过的 300 多个顶点全部是 NONE(exact)；就算命中，也只省 1 个 Toffoli（+0.016×）。**投入产出比非常低，强烈建议用户停掉这个 routine，或者把额度转到其他题。**
 - 干活的会话从 11-04 之后就没有推送。
 
 ## 5. 下一步指示（按优先级，都还没做）
-1. 跑完 ctrl2 剩下的 lookup 链（33195、33329、33481，以及 00:06 那次跑完后的 33623、33763）。
-2. 改搜索算法（中途相遇或前瞻排序），目标每个顶点 30 秒以内；现在的节点数几乎恒定在 2.4e8，说明剪枝基本没起作用，值得先查清原因。
-3. lookup 链上的权重 2 中心（star_basis pairs），先估算组合数和耗时再决定。
-4. 换赛道评估（其他题）。
+1. **跑完 ctrl2 剩下的 lookup 链**：33195、33329、33481（另一次运行负责的 34604、34192、33888 请先看它的 `star_basis_lookup_ctrl2_partial.txt`，不要重复）。用法：`MR_BIN=<dir> python3.13 star_basis.py <dir>/c_<chain>.npz out "0+1,0+2,..."`，每条链 11 个组合，每个约 5 分钟。命中就用 phase_trace 和 verifier 验证。
+2. **改搜索算法**：节点数几乎恒定在 2.4e8，和中心无关，说明前十几层基本没有剪枝。先用 MR_LIMIT 打印每一层的节点数，找出从哪一层开始剪枝；再试中途相遇（两半分别枚举，对共享方程做哈希连接），目标每个实例 30 秒以内，这样权重 2 的中心（star_basis pairs，每条链约 600 个）才跑得动。
+3. **14 对相位 tap 用块方法精确判一遍**（k 248..711），把「tap-wire 论证」换成精确证明。
+4. **换赛道评估**：1~3 预期全部 NONE，命中也只省 1 个 Toffoli（+0.016×）。建议停止 invsqrt 微优化，把额度转到其他题，或者停掉本 routine。
+5. 已关闭、不要再试：前面列过的全部方向，加上 9 条 lookup 链上的单中心 star，以及 33038 上的 ctrl2。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
