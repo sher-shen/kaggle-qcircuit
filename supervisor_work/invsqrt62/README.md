@@ -513,7 +513,7 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   the 2 merge2 pairs (21455/21459, 25505/25509). Sampled test, so 0 hits = no candidate to send to the exact solver. **Closed.**
 
 ## 2026-11-10 06:xx UTC (supervisor)
-- merge2 rebuilt in a fresh container (sha fc153f1f, identical); official verifier full run with salt sv1006mm (result in SUPERVISOR.md).
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); official verifier full 200,540,928 shots, salt sv1006mm: **PASS, score 100,568.59 = 20.650x** (`verify_p62_merge2_sv1006mm.json`, worst 0.99932 at x=161).
 - Instruction 3 (dirty-CCCX -> phase form) **closed**: the 12 dirty compute/uncompute pairs (`dirty_pairs.py`, all at width 62, no clean
   wire) include the two 4-Toffoli CCCX blocks 25608..25614 / 28847..28853, which compute `q19 ^= q28 q17` and `q25 ^= q28 q17 q19`.
   The target q25 is live (not clean) before the block (`live_trace.py`) and is later consumed **as data** (CX source at 25869/25870,
