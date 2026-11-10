@@ -582,5 +582,7 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   CSWAP), pruned by rank and by res(ab) in R while rank == K; reports SLACK when rank < K (not searched). Planted n=6/7/10 recovered;
   on 5 real full-rank blocks (n 9..12, K 4..6) it re-finds a K-gate decomposition in <= 4 s (`block_peel_result.txt`).
   **Block 260 full domain K=4: NONE(exact), 256 nodes, no slack** -> no 5->4 rewrite on the full domain.
+  **With reach D (|D| = 82, seeds 7/11): NONE(exact), 16,321 nodes, no slack** (~19 min) -> no 5->4 even with don't-cares.
+  So every extracted <= 16-wire block with rank >= t-1 is closed for t -> t-1.
 - Not closed: the 8 dirty-CCCX-type blocks with rank < t-1 ((5,4) r2, (7,6) r3, (9,8) r4, (11,9) r5; ops 25583/25601/28822/28840 families)
   — peel cannot prune there (SLACK).
