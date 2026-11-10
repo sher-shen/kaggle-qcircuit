@@ -507,3 +507,7 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   (25610, 25613)** (q0 dirty, `(q28*q17)*q19 -> q25` computed twice; that pair alone is already the within-stage (2,1) artefact),
   so the third AND only tags along. Every other boundary: 0. K=4, span 12: see `boundary_scan_1005.txt`.
 - **Instruction 3 closed**: no cross-stage 3->2 / 4->3 candidate, even formally.
+- K=4, span 12: 0 straddling windows at all 16 boundaries (`boundary_scan_1005.txt`).
+- **Same-target CCX pairs with gap > 60** (the exact closures so far only covered maxgap <= 60): `func_pair_scan.py p62mm.json 2000 8 5000`
+  -> 215 candidate pairs (vs 71 at maxgap 60), **hits 0**. Sanity: the same command on the original ops.json (217 pairs) finds exactly
+  the 2 merge2 pairs (21455/21459, 25505/25509). Sampled test, so 0 hits = no candidate to send to the exact solver. **Closed.**
