@@ -586,3 +586,17 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   So every extracted <= 16-wire block with rank >= t-1 is closed for t -> t-1.
 - Not closed: the 8 dirty-CCCX-type blocks with rank < t-1 ((5,4) r2, (7,6) r3, (9,8) r4, (11,9) r5; ops 25583/25601/28822/28840 families)
   — peel cannot prune there (SLACK).
+
+## Non-greedy block extraction, n <= 20 (2026-11-10 23:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv1023mm: PASS,
+  score 100,568.52 = 20.650x** (`verify_p62_merge2_sv1023mm.json`). Nothing was submitted to Kaggle.
+- `block_extract2.py ops.json NMAX MAXST out.json`: same block definition as block_extract.py, but growth branches (absorb the
+  blocking op before or after, BFS, <= MAXST wire sets per seed) and the residue rank is computed vectorised (n = 20 in 36 s).
+  NMAX 20, MAXST 64: **4257 distinct blocks, 179 with rank < t, 0 with rank > t** (`block_extract2_n20_summary.txt`).
+  New: 7 blocks with 3 Toffolis and rank 1 (target ^= x1x2 + x3x4 + x5x6, ops 21942.., 22775.., 33380..) and 114 large 2-Toffoli rank-1 blocks.
+- `block_k1_anf.py`: exact K=1 test on the full domain (ANF degree <= 2, quadratic rank <= 2): **121/121 rank-1 blocks NONE**
+  (3-Toffoli ones have quadratic rank 6 = inner product, MC 3) (`block_k1_anf_n20_result.txt`).
+- `k1_split.c` + `block_dset_k1.py`: exact K=1 on the reachable set D (r|D = L + ab iff an affine hyperplane splits D into two parts
+  where r is affine; all 2^n hyperplanes in C). Self-test: planted ab found (3 hits), sum of two products rejected.
+  With D from block_reach seeds 7 and 11: **121/121 rank-1 blocks NONE on D**; no OPEN block has lower rank on D than on the full domain.
+  The 3-Toffoli blocks' six control values take 62..63 of 64 patterns on D, so 3 -> 2 is very unlikely (not proven).

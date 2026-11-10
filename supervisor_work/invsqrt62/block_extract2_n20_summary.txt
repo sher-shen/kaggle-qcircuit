@@ -1,0 +1,303 @@
+n 4 tof 2 NONE: 1
+n 5 tof 2 NONE: 237
+n 5 tof 2 OPEN: 6
+n 5 tof 3 NONE: 1
+n 5 tof 4 OPEN: 2
+n 6 tof 2 NONE: 142
+n 6 tof 2 OPEN: 8
+n 6 tof 3 NONE: 4
+n 7 tof 2 NONE: 312
+n 7 tof 3 NONE: 126
+n 7 tof 3 OPEN: 6
+n 7 tof 4 NONE: 1
+n 7 tof 6 OPEN: 2
+n 8 tof 2 NONE: 317
+n 8 tof 3 NONE: 99
+n 8 tof 3 OPEN: 8
+n 8 tof 4 NONE: 1
+n 9 tof 2 NONE: 243
+n 9 tof 3 NONE: 80
+n 9 tof 4 NONE: 77
+n 9 tof 4 OPEN: 7
+n 9 tof 8 OPEN: 2
+n 10 tof 2 NONE: 129
+n 10 tof 3 NONE: 165
+n 10 tof 4 NONE: 66
+n 10 tof 4 OPEN: 10
+n 10 tof 5 OPEN: 1
+n 11 tof 2 NONE: 76
+n 11 tof 3 NONE: 135
+n 11 tof 4 NONE: 42
+n 11 tof 5 NONE: 57
+n 11 tof 9 OPEN: 2
+n 12 tof 2 NONE: 62
+n 12 tof 3 NONE: 110
+n 12 tof 4 NONE: 29
+n 12 tof 4 OPEN: 2
+n 12 tof 5 NONE: 52
+n 12 tof 6 NONE: 2
+n 13 tof 2 NONE: 62
+n 13 tof 2 OPEN: 1
+n 13 tof 3 NONE: 59
+n 13 tof 4 NONE: 67
+n 13 tof 4 OPEN: 2
+n 13 tof 5 NONE: 30
+n 13 tof 6 NONE: 47
+n 14 tof 2 NONE: 64
+n 14 tof 2 OPEN: 1
+n 14 tof 3 NONE: 45
+n 14 tof 4 NONE: 38
+n 14 tof 4 OPEN: 2
+n 14 tof 5 NONE: 13
+n 14 tof 6 NONE: 47
+n 14 tof 7 NONE: 5
+n 15 tof 2 NONE: 58
+n 15 tof 2 OPEN: 3
+n 15 tof 3 NONE: 40
+n 15 tof 4 NONE: 38
+n 15 tof 4 OPEN: 2
+n 15 tof 5 NONE: 10
+n 15 tof 6 NONE: 31
+n 15 tof 7 NONE: 34
+n 15 tof 8 NONE: 4
+n 16 tof 2 NONE: 44
+n 16 tof 2 OPEN: 5
+n 16 tof 3 NONE: 36
+n 16 tof 4 NONE: 26
+n 16 tof 4 OPEN: 2
+n 16 tof 5 NONE: 20
+n 16 tof 6 NONE: 9
+n 16 tof 7 NONE: 48
+n 16 tof 8 NONE: 4
+n 16 tof 9 NONE: 2
+n 17 tof 2 NONE: 33
+n 17 tof 2 OPEN: 9
+n 17 tof 3 NONE: 35
+n 17 tof 4 NONE: 18
+n 17 tof 4 OPEN: 2
+n 17 tof 5 NONE: 11
+n 17 tof 6 NONE: 6
+n 17 tof 7 NONE: 31
+n 17 tof 8 NONE: 25
+n 17 tof 9 NONE: 1
+n 17 tof 10 NONE: 2
+n 18 tof 2 NONE: 27
+n 18 tof 2 OPEN: 19
+n 18 tof 3 NONE: 33
+n 18 tof 4 NONE: 18
+n 18 tof 4 OPEN: 2
+n 18 tof 5 NONE: 11
+n 18 tof 6 NONE: 6
+n 18 tof 7 NONE: 10
+n 18 tof 8 NONE: 48
+n 18 tof 9 NONE: 5
+n 18 tof 10 NONE: 1
+n 19 tof 2 NONE: 27
+n 19 tof 2 OPEN: 23
+n 19 tof 3 NONE: 32
+n 19 tof 3 OPEN: 3
+n 19 tof 4 NONE: 17
+n 19 tof 4 OPEN: 2
+n 19 tof 5 NONE: 8
+n 19 tof 6 NONE: 7
+n 19 tof 7 NONE: 2
+n 19 tof 8 NONE: 34
+n 19 tof 9 NONE: 24
+n 19 tof 10 NONE: 1
+n 19 tof 11 NONE: 4
+n 20 tof 2 NONE: 27
+n 20 tof 2 OPEN: 39
+n 20 tof 3 NONE: 30
+n 20 tof 3 OPEN: 4
+n 20 tof 4 NONE: 17
+n 20 tof 4 OPEN: 1
+n 20 tof 5 NONE: 8
+n 20 tof 5 OPEN: 1
+n 20 tof 6 NONE: 4
+n 20 tof 7 NONE: 3
+n 20 tof 8 NONE: 10
+n 20 tof 9 NONE: 48
+n 20 tof 10 NONE: 4
+n 20 tof 11 NONE: 1
+n 20 tof 12 NONE: 1
+n 20 tof 13 NONE: 1
+distinct blocks 4257 open 179
+OPEN n 10 tof 4 rank 3 ops 15363..15367
+OPEN n 10 tof 4 rank 3 ops 15417..15421
+OPEN n 10 tof 4 rank 3 ops 25753..25761
+OPEN n 10 tof 4 rank 3 ops 25764..25772
+OPEN n 10 tof 4 rank 3 ops 25775..25783
+OPEN n 10 tof 4 rank 3 ops 25786..25794
+OPEN n 10 tof 4 rank 3 ops 25836..25844
+OPEN n 10 tof 4 rank 3 ops 25847..25855
+OPEN n 10 tof 4 rank 3 ops 25858..25866
+OPEN n 10 tof 4 rank 3 ops 25869..25877
+OPEN n 10 tof 5 rank 4 ops 25671..25682
+OPEN n 11 tof 9 rank 5 ops 25601..25621
+OPEN n 11 tof 9 rank 5 ops 28840..28860
+OPEN n 12 tof 4 rank 3 ops 15363..15368
+OPEN n 12 tof 4 rank 3 ops 15417..15422
+OPEN n 13 tof 2 rank 1 ops 33421..33462
+OPEN n 13 tof 4 rank 3 ops 15363..15370
+OPEN n 13 tof 4 rank 3 ops 15417..15423
+OPEN n 14 tof 2 rank 1 ops 33421..33465
+OPEN n 14 tof 4 rank 3 ops 15363..15371
+OPEN n 14 tof 4 rank 3 ops 15417..15424
+OPEN n 15 tof 2 rank 1 ops 22811..22865
+OPEN n 15 tof 2 rank 1 ops 33419..33465
+OPEN n 15 tof 2 rank 1 ops 33421..33466
+OPEN n 15 tof 4 rank 3 ops 15363..15372
+OPEN n 15 tof 4 rank 3 ops 15417..15425
+OPEN n 16 tof 2 rank 1 ops 21981..22026
+OPEN n 16 tof 2 rank 1 ops 22811..22866
+OPEN n 16 tof 2 rank 1 ops 33417..33465
+OPEN n 16 tof 2 rank 1 ops 33419..33466
+OPEN n 16 tof 2 rank 1 ops 33421..33467
+OPEN n 16 tof 4 rank 3 ops 15363..15373
+OPEN n 16 tof 4 rank 3 ops 15417..15427
+OPEN n 17 tof 2 rank 1 ops 21952..22005
+OPEN n 17 tof 2 rank 1 ops 21978..22026
+OPEN n 17 tof 2 rank 1 ops 21981..22027
+OPEN n 17 tof 2 rank 1 ops 22804..22865
+OPEN n 17 tof 2 rank 1 ops 22811..22867
+OPEN n 17 tof 2 rank 1 ops 33416..33465
+OPEN n 17 tof 2 rank 1 ops 33417..33466
+OPEN n 17 tof 2 rank 1 ops 33419..33467
+OPEN n 17 tof 2 rank 1 ops 33421..33469
+OPEN n 17 tof 4 rank 3 ops 15363..15374
+OPEN n 17 tof 4 rank 3 ops 15417..15428
+OPEN n 18 tof 2 rank 1 ops 21950..22005
+OPEN n 18 tof 2 rank 1 ops 21952..22010
+OPEN n 18 tof 2 rank 1 ops 21975..22026
+OPEN n 18 tof 2 rank 1 ops 21978..22027
+OPEN n 18 tof 2 rank 1 ops 21981..22028
+OPEN n 18 tof 2 rank 1 ops 22784..22847
+OPEN n 18 tof 2 rank 1 ops 22803..22865
+OPEN n 18 tof 2 rank 1 ops 22804..22866
+OPEN n 18 tof 2 rank 1 ops 22811..22868
+OPEN n 18 tof 2 rank 1 ops 23017..23075
+OPEN n 18 tof 2 rank 1 ops 23264..23330
+OPEN n 18 tof 2 rank 1 ops 33381..33443
+OPEN n 18 tof 2 rank 1 ops 33415..33465
+OPEN n 18 tof 2 rank 1 ops 33416..33466
+OPEN n 18 tof 2 rank 1 ops 33417..33467
+OPEN n 18 tof 2 rank 1 ops 33419..33469
+OPEN n 18 tof 2 rank 1 ops 33421..33471
+OPEN n 18 tof 2 rank 1 ops 33813..33864
+OPEN n 18 tof 2 rank 1 ops 33946..34004
+OPEN n 18 tof 4 rank 3 ops 15363..15375
+OPEN n 18 tof 4 rank 3 ops 15417..15429
+OPEN n 19 tof 2 rank 1 ops 21942..22010
+OPEN n 19 tof 2 rank 1 ops 21975..22027
+OPEN n 19 tof 2 rank 1 ops 21978..22043
+OPEN n 19 tof 2 rank 1 ops 22475..22546
+OPEN n 19 tof 2 rank 1 ops 22751..22810
+OPEN n 19 tof 2 rank 1 ops 22775..22847
+OPEN n 19 tof 2 rank 1 ops 22803..22866
+OPEN n 19 tof 2 rank 1 ops 22804..22869
+OPEN n 19 tof 2 rank 1 ops 23016..23075
+OPEN n 19 tof 2 rank 1 ops 23017..23076
+OPEN n 19 tof 2 rank 1 ops 23264..23331
+OPEN n 19 tof 2 rank 1 ops 33244..33312
+OPEN n 19 tof 2 rank 1 ops 33380..33443
+OPEN n 19 tof 2 rank 1 ops 33415..33466
+OPEN n 19 tof 2 rank 1 ops 33416..33467
+OPEN n 19 tof 2 rank 1 ops 33417..33469
+OPEN n 19 tof 2 rank 1 ops 33419..33471
+OPEN n 19 tof 2 rank 1 ops 33421..33472
+OPEN n 19 tof 2 rank 1 ops 33671..33746
+OPEN n 19 tof 2 rank 1 ops 33811..33864
+OPEN n 19 tof 2 rank 1 ops 33939..34004
+OPEN n 19 tof 2 rank 1 ops 33946..34005
+OPEN n 19 tof 2 rank 1 ops 34803..34861
+OPEN n 19 tof 3 rank 1 ops 21952..22026
+OPEN n 19 tof 3 rank 1 ops 22784..22865
+OPEN n 19 tof 3 rank 1 ops 33381..33465
+OPEN n 19 tof 4 rank 3 ops 15363..15376
+OPEN n 19 tof 4 rank 3 ops 15417..15431
+OPEN n 20 tof 2 rank 1 ops 21905..21986
+OPEN n 20 tof 2 rank 1 ops 21938..22010
+OPEN n 20 tof 2 rank 1 ops 21975..22043
+OPEN n 20 tof 2 rank 1 ops 21978..22051
+OPEN n 20 tof 2 rank 1 ops 22473..22556
+OPEN n 20 tof 2 rank 1 ops 22745..22810
+OPEN n 20 tof 2 rank 1 ops 22751..22820
+OPEN n 20 tof 2 rank 1 ops 22774..22847
+OPEN n 20 tof 2 rank 1 ops 22803..22869
+OPEN n 20 tof 2 rank 1 ops 22804..22872
+OPEN n 20 tof 2 rank 1 ops 23007..23075
+OPEN n 20 tof 2 rank 1 ops 23016..23076
+OPEN n 20 tof 2 rank 1 ops 23017..23077
+OPEN n 20 tof 2 rank 1 ops 23261..23331
+OPEN n 20 tof 2 rank 1 ops 23264..23337
+OPEN n 20 tof 2 rank 1 ops 23465..23525
+OPEN n 20 tof 2 rank 1 ops 33056..33144
+OPEN n 20 tof 2 rank 1 ops 33094..33175
+OPEN n 20 tof 2 rank 1 ops 33241..33312
+OPEN n 20 tof 2 rank 1 ops 33244..33314
+OPEN n 20 tof 2 rank 1 ops 33379..33443
+OPEN n 20 tof 2 rank 1 ops 33415..33467
+OPEN n 20 tof 2 rank 1 ops 33416..33469
+OPEN n 20 tof 2 rank 1 ops 33417..33471
+OPEN n 20 tof 2 rank 1 ops 33419..33472
+OPEN n 20 tof 2 rank 1 ops 33421..33475
+OPEN n 20 tof 2 rank 1 ops 33543..33612
+OPEN n 20 tof 2 rank 1 ops 33608..33679
+OPEN n 20 tof 2 rank 1 ops 33664..33746
+OPEN n 20 tof 2 rank 1 ops 33671..33752
+OPEN n 20 tof 2 rank 1 ops 33808..33864
+OPEN n 20 tof 2 rank 1 ops 33811..33869
+OPEN n 20 tof 2 rank 1 ops 33937..34004
+OPEN n 20 tof 2 rank 1 ops 33939..34005
+OPEN n 20 tof 2 rank 1 ops 33946..34014
+OPEN n 20 tof 2 rank 1 ops 34513..34577
+OPEN n 20 tof 2 rank 1 ops 34764..34842
+OPEN n 20 tof 2 rank 1 ops 34794..34861
+OPEN n 20 tof 2 rank 1 ops 34803..34862
+OPEN n 20 tof 3 rank 1 ops 21942..22027
+OPEN n 20 tof 3 rank 1 ops 22775..22865
+OPEN n 20 tof 3 rank 1 ops 22784..22866
+OPEN n 20 tof 3 rank 1 ops 33380..33466
+OPEN n 20 tof 4 rank 3 ops 15363..15377
+OPEN n 20 tof 5 rank 4 ops 15417..15451
+OPEN n 5 tof 2 rank 1 ops 15286..15290
+OPEN n 5 tof 2 rank 1 ops 15295..15299
+OPEN n 5 tof 2 rank 1 ops 15363..15364
+OPEN n 5 tof 2 rank 1 ops 15417..15418
+OPEN n 5 tof 2 rank 1 ops 25744..25748
+OPEN n 5 tof 2 rank 1 ops 25880..25881
+OPEN n 5 tof 4 rank 2 ops 25608..25615
+OPEN n 5 tof 4 rank 2 ops 28847..28854
+OPEN n 6 tof 2 rank 1 ops 25753..25759
+OPEN n 6 tof 2 rank 1 ops 25764..25770
+OPEN n 6 tof 2 rank 1 ops 25775..25781
+OPEN n 6 tof 2 rank 1 ops 25786..25792
+OPEN n 6 tof 2 rank 1 ops 25836..25842
+OPEN n 6 tof 2 rank 1 ops 25847..25853
+OPEN n 6 tof 2 rank 1 ops 25858..25864
+OPEN n 6 tof 2 rank 1 ops 25869..25875
+OPEN n 7 tof 3 rank 2 ops 15286..15291
+OPEN n 7 tof 3 rank 2 ops 15295..15300
+OPEN n 7 tof 3 rank 2 ops 15363..15365
+OPEN n 7 tof 3 rank 2 ops 15417..15419
+OPEN n 7 tof 3 rank 2 ops 25744..25749
+OPEN n 7 tof 3 rank 2 ops 25880..25882
+OPEN n 7 tof 6 rank 3 ops 25605..25618
+OPEN n 7 tof 6 rank 3 ops 28844..28857
+OPEN n 8 tof 3 rank 2 ops 25753..25760
+OPEN n 8 tof 3 rank 2 ops 25764..25771
+OPEN n 8 tof 3 rank 2 ops 25775..25782
+OPEN n 8 tof 3 rank 2 ops 25786..25793
+OPEN n 8 tof 3 rank 2 ops 25836..25843
+OPEN n 8 tof 3 rank 2 ops 25847..25854
+OPEN n 8 tof 3 rank 2 ops 25858..25865
+OPEN n 8 tof 3 rank 2 ops 25869..25876
+OPEN n 9 tof 4 rank 3 ops 15286..15292
+OPEN n 9 tof 4 rank 3 ops 15295..15301
+OPEN n 9 tof 4 rank 3 ops 15363..15366
+OPEN n 9 tof 4 rank 3 ops 15417..15420
+OPEN n 9 tof 4 rank 3 ops 25674..25682
+OPEN n 9 tof 4 rank 3 ops 25744..25750
+OPEN n 9 tof 4 rank 3 ops 25880..25883
+OPEN n 9 tof 8 rank 4 ops 25602..25621
+OPEN n 9 tof 8 rank 4 ops 28841..28860
