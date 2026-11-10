@@ -1,0 +1,20 @@
+# 14 phase-tap pairs, exact rank<=2 block search (2026-11-10 04 UTC). dumps: chain_dump_scan.py merge2 3000 2 60; prep: MR_NOC=1 ORDER=auto2 minrank_block.py; solver: minrank_block_big.py
+c_15288-15290-L2_632.npz RESULT NONE(exact) s=60 ne=1138 nodes=25 solutions=0
+c_15297-15299-L2_631.npz RESULT NONE(exact) s=60 ne=1139 nodes=25 solutions=0
+c_15363-15364-L2_711.npz RESULT NONE(exact) s=58 ne=942 nodes=28 solutions=0
+c_15417-15418-L2_711.npz RESULT NONE(exact) s=58 ne=942 nodes=28 solutions=0
+c_25746-25748-L2_248.npz RESULT NONE(exact) s=93 ne=4030 nodes=8 solutions=0
+c_25755-25758-L2_248.npz RESULT NONE(exact) s=93 ne=4030 nodes=8 solutions=0
+c_25766-25769-L2_252.npz RESULT NONE(exact) s=94 ne=4119 nodes=8 solutions=0
+c_25777-25780-L2_256.npz RESULT NONE(exact) s=95 ne=4209 nodes=8 solutions=0
+c_25788-25791-L2_260.npz RESULT NONE(exact) s=96 ne=4300 nodes=8 solutions=0
+c_25838-25841-L2_256.npz RESULT NONE(exact) s=95 ne=4209 nodes=8 solutions=0
+c_25849-25852-L2_256.npz RESULT NONE(exact) s=95 ne=4209 nodes=8 solutions=0
+c_25860-25863-L2_260.npz RESULT NONE(exact) s=96 ne=4300 nodes=8 solutions=0
+c_25871-25874-L2_256.npz RESULT NONE(exact) s=95 ne=4209 nodes=8 solutions=0
+# cross-check with minrank_block.c on the s<=64 ones (identical node counts):
+c_15288-15290-L2_632.npz C: RESULT NONE(exact) s=60 ne=1138 nodes=25 leaves=0 solutions=0
+c_15297-15299-L2_631.npz C: RESULT NONE(exact) s=60 ne=1139 nodes=25 leaves=0 solutions=0
+c_15363-15364-L2_711.npz C: RESULT NONE(exact) s=58 ne=942 nodes=28 leaves=0 solutions=0
+c_15417-15418-L2_711.npz C: RESULT NONE(exact) s=58 ne=942 nodes=28 leaves=0 solutions=0
+# plant self-test on 25746 (--plant): HIT s=93 nodes=108 (found u+w,w = same u^w)

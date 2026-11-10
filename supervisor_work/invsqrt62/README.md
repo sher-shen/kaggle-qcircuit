@@ -483,3 +483,17 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   PASS, score 100,568.56 = 20.650x** (`verify_p62_merge2_sv1003mm.json`). star_basis plant self-test on 33329 (0+1+2): HIT (58 nodes).
   Remaining ctrl2 combos (33195 x3, 33329 x5, 33481 x8): **16/16 NONE(exact)** (`star_basis_lookup_ctrl2_rest_1003.txt`).
   These 16 overlap the 02:06 run's 22 (independent duplicate, all agree); node counts bit-identical on all 16. Nothing was submitted to Kaggle.
+
+## 2026-11-10 04:06 UTC run (supervisor): 14 phase-tap pairs closed exactly; vertex order does not help
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1004mm: PASS,
+  score 100,568.540 = 20.650x** (`verify_p62_merge2_sv1004mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `minrank_block_big.py`: Python big-int port of `minrank_block.c` (same .txt input from `MR_NOC=1 minrank_block.py`), no s<=64 limit.
+  Agrees with the C solver node-for-node on the four s=58/60 dumps; plant self-test on 25746 (s=93): HIT in 108 nodes.
+- **14 phase-tap pairs (early 15288..15417 s 58/60, fine 25746..25871 s 93..96): all NONE(exact)**, 8..28 nodes each
+  (`tap_pairs_exact_1004.txt`). This replaces the earlier tap-wire argument by an exact proof: no affine g, h with f = g*h + r.
+  Every same-target CCX pair of merge2 within maxgap 60 is now closed by exact tests.
+- Vertex-order experiment for the block solver (`order_experiment_33195_1004.txt`, 33195 L3, s 36): auto2 1.99e8 nodes, plain greedy
+  2.35e8, greedy NFIX=0 2.35e8. Greedy front-loads 59 equations by depth 4, then **11 vertices in a row add no equation**
+  (59 flat up to depth 14) and the tree grows x4 per level, exactly like auto2. The 4^~11 plateau is intrinsic to vertex branching,
+  so ordering alone cannot give the 10-s solver; a different branching variable (e.g. on the linear forms of the depth-15+ equations)
+  would be needed.
