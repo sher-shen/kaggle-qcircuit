@@ -1,36 +1,38 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-10 07:00 UTC（本次运行 06:09 开始）
-**结论**：**NOT_APPROVED**（当前最好的仍然是公开 62q 电路加 merge2：62 q / 1325.48 Toffoli / 100,568.59 = **20.650×**。本次没有数值提升）
+**时间戳**：2026-11-10 07:50 UTC（本次运行 07:07 开始）
+**结论**：**NOT_APPROVED**（当前最好的仍然是公开 62q 电路加 merge2：62 q / 1325.48 Toffoli / 100,568.56 = **20.650×**。本次没有数值提升）
 
 ## 1. 干活的状态
-- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**还是没有干活的分支 W**，干活的会话从 11-04 之后就没有推送，视为已经停了。监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2）。本次没有发现重叠运行。
+- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**还是没有干活的分支 W**，干活的会话从 11-04 之后就没有推送，视为已经停了。监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2）。上一次运行在 07:00 结束，本次没有发现重叠运行。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|---|
-| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.59** | **20.650** | 重新 clone manwithacat/kickmix-macos，用 ops.json 加 `edits/merge2.json` 重建，sha 一致；**官方 verifier 全量 200,540,928 shot，新 salt sv1006mm：PASS**，worst 0.99932（x=161），41 个旋转，eps 2.43e-13，见 `verify_p62_merge2_sv1006mm.json` |
-- 倍数 = 2,076,774.23 / 100,568.59 = 20.650。score 是 verifier 输出的总 cost（Q × C），不是只算了子项。
+| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.56** | **20.650** | 重新 clone manwithacat/kickmix-macos，用 ops.json 加 `edits/merge2.json` 重建，sha 一致；**官方 verifier 全量 200,540,928 shot，新 salt sv1007mm：PASS**，worst 0.99932（x=161），41 个旋转，eps 2.43e-13，见 `verify_p62_merge2_sv1007mm.json` |
+- 倍数 = 2,076,774.23 / 100,568.56 = 20.650。score 是 verifier 输出的总 cost（Q × C），不是只算了子项。
 - 硬规则检查：没有向 Kaggle 提交；没有推 main；新增文件都是 KB 级；没有密钥，也没有比赛非公开信息。
 
-## 3. 本次做法
-- **指示 3（dirty-CCCX 改相位形式）关闭**：两个 4-Toffoli 块（25608..25614 / 28847..28853）实际做的是 `q19 ^= q28·q17; q25 ^= q28·q17·q19`，借 dirty 的 q0。目标线 q25 在块之前就不干净（live_trace），后面又被当作数据用（25869/25870 做 CX 源，25902 做 CCX 控制位；第二个块的 31426 也是 CCX 控制位），所以不能改成 CCCZ 并入相位修正。
-- **新方向：精确证明这个块 4 个 Toffoli 已经最优**（`cccx_enum.py`、`cccx_enum_n.py`）。把 Toffoli 在任意仿射映射下的共轭写成 x → x + v·[x∈F]（F 是余维 2 的平坦，v 在 F 的方向里），然后穷举 P = g1 g2 g3 A：
-  - 5 根线（a,b,s,t + dirty q0）：4340 个门，**NONE（精确）**，3 个 Toffoli 做不到；埋解自检 5/5 找回。
-  - 6 根线（再多借一根 dirty 线）：39060 个门，埋解自检 HIT（seed 7），全量结果：**NONE（精确）**，约 11 分钟（4 核）。所以这个块在 6 根线以内 4 个 Toffoli 已经最优。
-  - 如果 3 个 Toffoli 能做到，两个块一共可以省 2 个 Toffoli（约 +0.03×）；结果是否定的。
-- 起初写的 SAT 编码（`cccx_sat.py`，层用一般仿射矩阵）10 分钟内连 K=4 都解不出，已经弃用。
+## 3. 本次做法（指示 1：把精确枚举推广到所有小块）
+- 新写 `block_extract.py`：从每个 CCX/CSWAP 出发扩线集合 W（≤NMAX 根线），取最大的区间，要求区间里碰到 W 的 op 都是纯置换门（X/CX/CCX/SWAP/CSWAP）、全部落在 W 内、条件上下文相同（PUSH 栈加 cond 位），其余 op 和 W 不相交，可以交换。merge2 上：≤5 线 248 个块，≤6 线 333 个，去重后一共 397 个；≤7 线另有 463 个 7 线块。
+- `block_enum.py`（全定义域）：判断 P = g_K…g_1 A（门集和 cccx_enum_n 相同），K = tof−1。**n=4 1/1、n=5 247/247、n=6 164/164 全部 NONE(exact)**。埋解自检：n=4 K0~3、n=5 K1~3、n=6 K1~2 全部 HIT。（第一版自检的 rand_affine 对每个 x 抽了不同的常数，造成假 MISS，已修好；被检验的逻辑本身没问题。）
+- **新方向，带无关项（don't-care）**：`block_reach.py` 跑全部 3,133,452 个 x（HMR 结果随机，用 seed 7 和 11 两次），记录每个块入口真正可达的 W 模式集合 D；`block_dc.py` 只要求在 D 上相等，暴力判断 K = tof−1 和 tof−2（子集上二次型过滤不成立，所以没用）。
+  - ≤6 线 397 个块：tof=2 的块 K0/K1，tof≥3 的 7 个块 K1/K2，**0 命中**。
+  - 7 线 463 个块：tof=2 的块 K0/K1，tof=3 的块 K1（3→1），**0 命中**。
+  - 对照：用 stride 97 抽样（3.2 万个 x）时有 31 个“命中”（比如 ops 42..45 的前缀 AND 链漏掉了罕见的全 1 模式），换全量 x 后全部消失。这说明 D 允许时工具确实能找到化简，同时再次证明抽样 D 不可信。
+- **指示 1 关闭**：≤6 线（7 线只做到 K≤1）不存在 2→1、3→2、3→1、4→3、4→2 的块重写，即使用精确的可达入口集做无关项也不行。
+- 推送 97fa843、cbbc609 到 invsqrt-supervisor-work（结果文件 `block_*_result.txt`，README 有新的一节）。
 
 ## 4. 问题和可疑点
-- 已经连续四十多次运行没有数值提升。剩下的只有块搜索 / 求解器方向，命中最多也只省 1~2 个 Toffoli（+0.016~0.03×）。
+- 已经连续四十多次运行没有数值提升。局部块方向（成对、三元组、链、star、边界、小块全定义域和可达无关项）基本都已经精确关闭。
 - **强烈建议用户停掉这个 routine，或者把间隔改成每天一次，或者把额度转到别的题（dqi / dfthcsos）。**
 
 ## 5. 下一步指示（按优先级，都还没做）
-1. **把 cccx_enum 推广到其他小块**：对每个 ≤6 根线、≤5 个 Toffoli 的局部块（比如加法器里的 MAJ/UMA 段、unnormalize 的条件段、coeff_lookup 的局部窗口），用同样的「共轭 Toffoli 枚举 + 中途相遇」精确判断 k→k−1。先写一个提取器：沿电路滑动窗口，只取线集合 ≤6、Toffoli 数在 3~5 的块，导出成置换（要处理 HMR 和条件段：只取无测量、无条件的纯置换段）。
-2. **换分支变量的求解器**（上次的指示 1）：在平台 11 个顶点的 (u,w) 上做中途相遇，基准用 33195 L3（目标 <10 秒），用 star_plant 埋解自检；然后在 9 条 lookup 链上跑 star_basis pairs 和 L4 两颗星。
-3. **7 根线的 cccx**：39060 个门已经要约 11 分钟（4 核），7 线约 33 万个门，需要改写成 C 并用 g1 的对称性约简，才有可能跑完。
-4. **换赛道评估**：1~3 命中也最多省几个 Toffoli。建议停止 invsqrt 微优化。
-5. 已经关闭、不要再试：前面列过的全部方向，再加上 dirty-CCCX 改相位形式（本次关闭）、5 线下用 3 个 Toffoli 实现 dirty-CCCX（精确 NONE）。
+1. **输出端无关项**：现在 block_dc 只用了入口无关项，出口还要求 W 的每根线都相等。用 live_trace 找出块后面“下一次使用是 R / 被重新计算 / 只被 CX 读后覆盖”的线（**注意被 HMR 的线带相位信息，不能当作无关**），把这些线从出口比较里去掉，再跑 n≤7 的 K≤2。
+2. **7~8 线的 K=2**：n=7 有 33 万个门，K=2 要改写成 C：外层枚举 g1，内层用 D 上的仿射检验做位并行（|D|≤128 时一个 uint128 掩码），目标是 134 个 (7,3) 块和 110 个 (8,3) 块各 <1 小时。
+3. **换分支变量的求解器**（上次的指示 2）：在平台 11 个顶点的 (u,w) 上做中途相遇，基准用 33195 L3（目标 <10 秒），用 star_plant 埋解自检。
+4. **换赛道评估**：1~3 命中最多也只省几个 Toffoli（每个约 +0.016×）。建议停止 invsqrt 微优化，把额度转到 dqi。
+5. 已经关闭、不要再试：前面列过的全部方向，再加上本次的小块全定义域枚举（≤6 线）和入口无关项枚举（≤6 线，7 线 K≤1）。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -93,3 +95,4 @@
 - 2026-11-10 04:40 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1004mm 全量 PASS（100,568.54 = 20.650×）**；完成指示 3：新写 minrank_block_big.py（无 s≤64 限制，和 C 版节点数逐位相同，埋解自检 HIT），**14 对相位 tap 全部 NONE(exact)**，merge2 的同目标 CCX 对全部精确关闭；顶点重排序实验（三种顺序都约 2e8 节点）说明按顶点分支有 4^11 平台；推送 2aa4247；建议停掉 routine；NOT_APPROVED。
 - 2026-11-10 05:30 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1005mm 全量 PASS（100,568.53 = 20.650×）**；完成指示 3：新写 boundary_qform_core.py，16 个 stage 边界的跨边界窗口 K=3 只有 dirty-CCCX 伪影，K=4 为 0，关闭；T 门相对相位 Toffoli 因为门集里没有 H 而关闭；间隔 >60 的同目标对 215 对采样扫描 0 命中（自检能找回 merge2），关闭；建议停掉 routine；NOT_APPROVED。
 - 2026-11-10 07:00 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1006mm 全量 PASS（100,568.59 = 20.650×）**；指示 3 关闭（目标 q25 后面被当作数据用）；新写 cccx_enum：dirty-CCCX 块在 5 线下用 3 个 Toffoli 做不到（精确 NONE，自检 5/5），6 线（多借一根 dirty 线）也是精确 NONE；推送 7140454、50c068e、b914d40 到 invsqrt-supervisor-work；建议停掉 routine；NOT_APPROVED。
+- 2026-11-10 07:50 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1007mm 全量 PASS（100,568.56 = 20.650×）**；完成指示 1：新写 block_extract/block_enum/block_reach/block_dc，≤6 线 397 个块全定义域精确 NONE（自检 HIT），用全量可达入口集做无关项，≤6 线和 7 线（K≤1）一共 860 个块 0 命中；推送 97fa843、cbbc609 到 invsqrt-supervisor-work；建议停掉 routine；NOT_APPROVED。
