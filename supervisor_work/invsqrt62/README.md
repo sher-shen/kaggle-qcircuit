@@ -489,7 +489,7 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   score 100,568.540 = 20.650x** (`verify_p62_merge2_sv1004mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
 - `minrank_block_big.py`: Python big-int port of `minrank_block.c` (same .txt input from `MR_NOC=1 minrank_block.py`), no s<=64 limit.
   Agrees with the C solver node-for-node on the four s=58/60 dumps; plant self-test on 25746 (s=93): HIT in 108 nodes.
-- **14 phase-tap pairs (early 15288..15417 s 58/60, fine 25746..25871 s 93..96): all NONE(exact)**, 8..28 nodes each
+- **14 phase-tap pairs (early 15288..15417 s 58/60, fine 25746..25880 s 93..96): all NONE(exact)**, 8..28 nodes each
   (`tap_pairs_exact_1004.txt`). This replaces the earlier tap-wire argument by an exact proof: no affine g, h with f = g*h + r.
   Every same-target CCX pair of merge2 within maxgap 60 is now closed by exact tests.
 - Vertex-order experiment for the block solver (`order_experiment_33195_1004.txt`, 33195 L3, s 36): auto2 1.99e8 nodes, plain greedy
