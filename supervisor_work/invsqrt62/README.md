@@ -546,3 +546,21 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   **0 hits** (`block_dc7_result.txt`). Not run at n=7: K=2 (330k^2 gate pairs) and the two 6-Toffoli dirty-CCCX supersets.
 - **Instruction 1 closed** for windows of <= 6 wires (and 7 wires at depth K<=1): no 2->1, 3->2, 3->1, 4->3 (full domain, n=5), 4->2
   block rewrite exists, even using the exact reachable entry set as don't-cares.
+
+## 2026-11-10 21:06 UTC run (supervisor): output don't-cares, 7/8-wire 3->2, 8..12-wire K=1 (instructions 1, 2 of 07:50)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv1021mm: PASS,
+  score 100,568.55 = 20.650x** (`verify_p62_merge2_sv1021mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- **Instruction 1 (output don't-cares) closed by argument + check**: a wire's value at a block exit can only be irrelevant if it is
+  later discarded by `R`. Simulating all x with R instrumented (stride 7, seed 7): **all 93 R ops act on wires that are already 0**.
+  Every other wire is either kept, HMR'd (value enters the phase via the X-basis outcome, so it must match) or used as data.
+  So there are no output don't-cares in this circuit beyond what the entry-reach sets already give.
+- New `block_dc_res.py reach.json ... -- n maxK`: fast sound K=1 test with don't-cares: if P|D = (g A)|D then mod V = {affine
+  functions restricted to D} every output bit's residue is 0 or one common r, and r is the residue of a product of two affine
+  functions. K=2 = loop g2 over all gates, test g2 P (vectorised); relaxation passes go to block_dc's exact checker.
+  Planted selftests (n=5, n=7, random D of 40..80 points): K1 and K2 HIT 6/6. Random P with |D|>=16: 0 of 330,708 g2 pass.
+  - 7 wires, tof >= 3 (137 blocks): full domain K2 135/135 NONE (`block_res7_full_result.txt`); with reach D (seeds 7, 11) K1 and K2
+    135/135 NONE, 0 relaxation passes (`block_res7_dc_result.txt`). Two 6-Toffoli dirty-CCCX supersets skipped (K>2).
+  - 8 wires, tof >= 3 (111 blocks, |G| = 2,720,340, ~70 s/block): with reach D, K1 and K2 **NONE on all** (`block_res8_dc_result.txt`).
+- New `block_k1_big.py` (no gate table, so any n): the same K=1 relaxation on 1093 blocks of 8..12 wires (`block_extract.py` NMAX 8/10/12,
+  reach over all x, seeds 7/11), tof 2..9: **1093/1093 NONE** (`block_k1_big_result.txt`); planted n=9/10/12 detected, random rejected.
+- So: no 3->2 on <= 8 wires and no k->1 on <= 12 wires exists, even with the exact reachable entry sets as don't-cares.
