@@ -564,3 +564,23 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - New `block_k1_big.py` (no gate table, so any n): the same K=1 relaxation on 1093 blocks of 8..12 wires (`block_extract.py` NMAX 8/10/12,
   reach over all x, seeds 7/11), tof 2..9: **1093/1093 NONE** (`block_k1_big_result.txt`); planted n=9/10/12 detected, random rejected.
 - So: no 3->2 on <= 8 wires and no k->1 on <= 12 wires exists, even with the exact reachable entry sets as don't-cares.
+
+## 2026-11-10 22:11 UTC run (supervisor): residue-rank bound for any K, exact 4->3 / 5->4 peel search (instruction 2 of 22:00)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv1022mm: PASS,
+  score 100,568.52 = 20.650x** (`verify_p62_merge2_sv1022mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- New `block_rank.py blocks.json [reach ...]`: if P|D = (g_K..g_1 A)|D then the n output-bit residues mod V (affine functions on D)
+  span <= K dimensions (each Toffoli/CSWAP adds one function f_i' to every output bit). So rank >= t closes t -> t-1 for any K, any n,
+  no gate table. Never exceeded t on 1582 blocks (0 bugs). `block_extract` NMAX 12 (1277 blocks) and NMAX 16 (1582 blocks):
+  only 52 blocks have rank < t (`block_rank12_full_result.txt`, `block_rank12_dc_result.txt` with reach D seeds 7/11 -> same open set,
+  `block_rank16_full_summary.txt`, `block_rank16_dc_summary.txt`; all 13..16-wire blocks except 5 have rank = t).
+- New `block_rank_prod.py`: when rank r == t-1 == K, R must contain res(a*b) for the first gate, and (inverse on P(D)) for the last;
+  for fixed a, b -> a*b is linear, so it is a rank test. Planted selftest: 18/18 rank==K cases pass both sides (sound); random perms fail.
+  **Full domain 33/34 NONE, reach D 48/49 NONE (12- and 16-wire extractions)** (`block_rank_prod_full_result.txt`, `block_rank_prod_dc_result.txt`), including
+  the three 16-wire 2-Toffoli rank-1 blocks and the 12/16-wire tap-stream heads 15363/15417. Only block 260 (ops 25671..25682,
+  fine_phase_stream head, 10 wires, 5 Toffoli, rank 4) passes.
+- New `block_peel.py`: exact recursive search P = Q o T, T(x) = x + w a(x) b(x) with U = span{a,b} canonical, w in ker U (covers CCX and
+  CSWAP), pruned by rank and by res(ab) in R while rank == K; reports SLACK when rank < K (not searched). Planted n=6/7/10 recovered;
+  on 5 real full-rank blocks (n 9..12, K 4..6) it re-finds a K-gate decomposition in <= 4 s (`block_peel_result.txt`).
+  **Block 260 full domain K=4: NONE(exact), 256 nodes, no slack** -> no 5->4 rewrite on the full domain.
+- Not closed: the 8 dirty-CCCX-type blocks with rank < t-1 ((5,4) r2, (7,6) r3, (9,8) r4, (11,9) r5; ops 25583/25601/28822/28840 families)
+  — peel cannot prune there (SLACK).
