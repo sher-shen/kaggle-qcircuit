@@ -463,3 +463,5 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   -> single-centre star closed on all 9 lookup L3 chains (33038, 33195, 33329, 33481, 33623, 33763, 33888, 34192, 34604).
 - star_basis ctrl2 on lookup 33038 (11 centres = XOR combos of control values 0..3): **11/11 NONE(exact)**, 2.42e8 nodes each
   (`star_basis_lookup33038_ctrl2_results.txt`). The 6 weight-2 combos were also run by the overlapping 01:07 run: node counts identical.
+- star_basis ctrl2 on lookup 33623 and 33763 (11 centres each): **22/22 NONE(exact)** (`star_basis_lookup33623_ctrl2_results.txt`,
+  `star_basis_lookup33763_ctrl2_results.txt`). The overlapping run covers 34604, 34192, 33888, 33195, 33329 (`star_basis_lookup_ctrl2_partial.txt`).
