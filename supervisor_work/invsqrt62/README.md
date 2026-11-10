@@ -541,4 +541,8 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   **Result: 0 hits over all 397 blocks** (tof-2 blocks K0/K1; tof-3 blocks K1, K2; dirty-CCCX K2) (`block_dc_result.txt`).
   On a stride-97 sample (32k x) there were 31 "hits" (e.g. the prefix-AND chain ops 42..45, D={0,1,2,3,7} missing the rare all-ones
   pattern) -- sampling artefacts that vanish with all x, but they show the machinery finds a reduction when D allows one.
-- **Instruction 1 closed** for windows of <= 6 wires: no 2->1, 3->2, 3->1, 4->3 (full domain, n=5) or 4->2 (with don't-cares) block rewrite exists.
+  K=2 on the 7 blocks with tof >= 3 (n=5: 3, n=6: 4; ~6 min): all NONE (`block_dc_k2_result.txt`).
+- 7 wires (`block_extract.py ... 7`, 463 7-wire blocks, reach over all x with seeds 7/11): tof-2 blocks K0/K1 and tof-3 blocks K1 (3->1):
+  **0 hits** (`block_dc7_result.txt`). Not run at n=7: K=2 (330k^2 gate pairs) and the two 6-Toffoli dirty-CCCX supersets.
+- **Instruction 1 closed** for windows of <= 6 wires (and 7 wires at depth K<=1): no 2->1, 3->2, 3->1, 4->3 (full domain, n=5), 4->2
+  block rewrite exists, even using the exact reachable entry set as don't-cares.
