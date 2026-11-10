@@ -511,3 +511,11 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - **Same-target CCX pairs with gap > 60** (the exact closures so far only covered maxgap <= 60): `func_pair_scan.py p62mm.json 2000 8 5000`
   -> 215 candidate pairs (vs 71 at maxgap 60), **hits 0**. Sanity: the same command on the original ops.json (217 pairs) finds exactly
   the 2 merge2 pairs (21455/21459, 25505/25509). Sampled test, so 0 hits = no candidate to send to the exact solver. **Closed.**
+
+## 2026-11-10 06:xx UTC (supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); official verifier full run with salt sv1006mm (result in SUPERVISOR.md).
+- Instruction 3 (dirty-CCCX -> phase form) **closed**: the 12 dirty compute/uncompute pairs (`dirty_pairs.py`, all at width 62, no clean
+  wire) include the two 4-Toffoli CCCX blocks 25608..25614 / 28847..28853, which compute `q19 ^= q28 q17` and `q25 ^= q28 q17 q19`.
+  The target q25 is live (not clean) before the block (`live_trace.py`) and is later consumed **as data** (CX source at 25869/25870,
+  CCX control at 25902; CCX control at 31426 for the second block), so it can't become a CCCZ merged into phase fix-ups.
+  The 4th Toffoli is the dirty-ancilla correction d*(~u), which can't be removed without a clean wire.
