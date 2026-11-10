@@ -1,0 +1,14 @@
+c_33623-33693-L3_349 v 0 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=240320800 leaves=0 solutions=0 
+c_33623-33693-L3_349 v 2 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=239971199 leaves=0 solutions=0 
+c_33623-33693-L3_349 v 18 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=239969670 leaves=0 solutions=0 
+c_33623-33693-L3_349 v 20 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=240323162 leaves=0 solutions=0 
+c_33623-33693-L3_349 v 22 n=61 k=349 rankK=347 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=248 nodes=238954418 leaves=0 solutions=0 
+c_33623-33693-L3_349 v 24 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=239968156 leaves=0 solutions=0 
+c_33623-33693-L3_349 v 27 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=239968521 leaves=0 solutions=0 
+c_33623-33693-L3_349 v 1 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=240320037 leaves=0 solutions=0 
+c_33623-33693-L3_349 v 3 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=239971332 leaves=0 solutions=0 
+c_33623-33693-L3_349 v 19 n=61 k=349 rankK=348 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=247 nodes=239428377 leaves=0 solutions=0 
+c_33623-33693-L3_349 v 21 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=239968799 leaves=0 solutions=0 
+c_33623-33693-L3_349 v 23 n=61 k=349 rankK=348 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=247 nodes=239429944 leaves=0 solutions=0 
+c_33623-33693-L3_349 v 25 n=61 k=349 rankK=347 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=248 nodes=238855223 leaves=0 solutions=0 
+c_33623-33693-L3_349 v 28 n=61 k=349 rankK=348 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=247 nodes=239250225 leaves=0 solutions=0 
