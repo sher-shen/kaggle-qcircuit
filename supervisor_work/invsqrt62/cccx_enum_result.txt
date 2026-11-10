@@ -1,0 +1,2 @@
+gates 4340
+P hits (3 Toffolis): []
