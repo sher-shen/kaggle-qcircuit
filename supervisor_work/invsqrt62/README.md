@@ -453,3 +453,13 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - Plant self-test on chain 33481 (`star_plant.py ... 13`, v 57): **HIT** (8.8e5 nodes).
 - Lookup L3 chain 33481-33569 (k 350): partial, all NONE(exact) so far (`star_lookup_33481_partial.txt`);
   chain 33763-33826 (k 348): partial, all NONE(exact) (`star_lookup_33763_partial.txt`). 2.39e8..2.42e8 nodes each, ~8-10 min at 4 jobs.
+
+## 2026-11-10 00:06 UTC run (supervisor): all 9 lookup chains closed for the single-centre star
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1000mm: PASS,
+  score 100,568.568 = 20.650x** (`verify_p62_merge2_sv1000mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- Plant self-test on chain 33623 (`star_plant.py ... 17`, v 49): **HIT** (8.5e5 nodes).
+- **Lookup L3 chain 33763-33826 (k 348): all 36 touched vertices NONE(exact)** (`star_lookup_33763_results.txt`).
+- **Lookup L3 chain 33623-33693 (k 349): all 36 touched vertices NONE(exact)** (`star_lookup_33623_results.txt`).
+  -> single-centre star closed on all 9 lookup L3 chains (33038, 33195, 33329, 33481, 33623, 33763, 33888, 34192, 34604).
+- star_basis ctrl2 on lookup 33038 (11 centres = XOR combos of control values 0..3): **11/11 NONE(exact)**, 2.42e8 nodes each
+  (`star_basis_lookup33038_ctrl2_results.txt`). The 6 weight-2 combos were also run by the overlapping 01:07 run: node counts identical.
