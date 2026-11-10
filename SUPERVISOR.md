@@ -1,35 +1,34 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-10 00:55（中间版本，本次运行还在跑） UTC
-**结论**：**NOT_APPROVED**（当前最好仍然是公开 62q 电路加 merge2：62 q / 1325.48 Toffoli / 100,568.57 = **20.650×**。本次没有数值提升）
+**时间戳**：2026-11-10 01:25（中间版本，本次运行还在跑） UTC
+**结论**：**NOT_APPROVED**（当前最好仍然是公开 62q 电路加 merge2：62 q / 1325.48 Toffoli / 100,568.55 = **20.650×**。本次没有数值提升）
 
 ## 1. 干活的状态
-- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**。干活的会话从 11-04 起就没有推送，可以认为已经停了，监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2）。
-- 本次 00:06 开始。上次运行最后一个提交是 23:59，本次和它没有重叠。
-- 本次推送：30fe56f（复核 json）、f68bf7a（部分结果）。
+- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**，干活的会话 11-04 之后没有推送，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2）。
+- 本次 01:07 开始。00:06 那次运行写的是"中间版本"，最后提交 00:49，可能还在跑 33763/33623 的单中心 star。**本次按它的要求不碰这两条链**，改做它列的指示 3（lookup 链上的 star_basis ctrl2）。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|---|
-| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.57** | **20.650** | 重新 clone manwithacat/kickmix-macos，用 ops.json 加 `edits/merge2.json` 重建，sha 一致；**官方 verifier 全量 200,540,928 shot 跑完，用了新 salt sv1000mm：PASS**，score 100,568.568（worst 0.99932，x=161），见 `verify_p62_merge2_sv1000mm.json` |
-- 倍数 = 2,076,774.23 / 100,568.568 = 20.650。score 是 verifier 输出的总 cost（Q × C），不是某个子项。
+| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.55** | **20.650** | 重新 clone manwithacat/kickmix-macos，用 ops.json 加 `edits/merge2.json` 重建，sha 一致；**官方 verifier 全量 200,540,928 shot，新 salt sv1001mm：PASS**，score 100,568.548（worst 0.99932，x=161），见 `verify_p62_merge2_sv1001mm.json` |
+- 倍数 = 2,076,774.23 / 100,568.548 = 20.650。score 是 verifier 输出的总 cost（Q × C），不是子项。
 - 硬规则检查：没有向 Kaggle 提交；没有推 main；新增文件都是 KB 级（dump 和电路放在 scratchpad，没有提交）；没有密钥，也没有比赛非公开信息。
 
 ## 3. 本次做法
-- 重新生成 chain dump（24 秒），编译 minrank_block.c。
-- 33623 链的埋解自检（`star_plant.py ... 17`，v 49）：**HIT**（8.5e5 个节点），说明搜索在这条链上能找到解。
-- （进行中）33763 链到 26/36，33623 链到 14/36，目前全部 NONE(exact)。4 路并行还在跑：33763 剩 v 47-49、51-53、55-60 等 10 个，33623 剩 22 个。**下一次运行如果和本次重叠，请不要重跑这两条链**
-- 单中心 star 的总进度：33038、34604、34192、33888、33195、33329、33481 已关闭（7/9）；33763 26/36；33623 14/36。
+- 重新生成 chain dump（`chain_dump_scan.py m2.json 3000 2 60`，MR_KMAX=0）。
+- star_basis 埋解自检（33038 L3，PLANT=1，中心 0+1）：**HIT**（58 个节点）。
+- 33038 L3 中心 0+1（控制值 XOR）：**NONE(exact)**（2.42e8 节点）。
+- （进行中）ctrl2（11 个组合）在 33038、34604、34192、33888 四条已关闭单中心 star 的 lookup 链上，4 路并行。
 
 ## 4. 问题和可疑点
-- 已经连续二十多次运行没有数值提升。lookup 链上单中心 star 跑过的 300 多个顶点全部是 NONE(exact)；就算命中，也只省 1 个 Toffoli（+0.016×）。**投入产出比非常低，强烈建议用户停掉这个 routine，或者把额度转到其他题。**
+- 已经连续三十次左右运行没有数值提升；lookup 链上任何命中也只省 1 个 Toffoli（+0.016×）。**投入产出比非常低，强烈建议用户停掉这个 routine，或者把额度转到其他题。**
 - 干活的会话从 11-04 之后就没有推送。
 
 ## 5. 下一步指示（按优先级，都还没做）
-1. 等本次跑完 33763 和 33623（见 `star_lookup_33*_partial.txt`）。
-2. 改搜索算法（中途相遇或前瞻排序），目标每个顶点 30 秒以内。
-3. 在 lookup 链上做 star_basis ctrl2。
-4. 换赛道评估。
+1. 跑完 ctrl2 剩下的 lookup 链（33195、33329、33481，以及 00:06 那次跑完后的 33623、33763）。
+2. 改搜索算法（中途相遇或前瞻排序），目标每个顶点 30 秒以内；现在的节点数几乎恒定在 2.4e8，说明剪枝基本没起作用，值得先查清原因。
+3. lookup 链上的权重 2 中心（star_basis pairs），先估算组合数和耗时再决定。
+4. 换赛道评估（其他题）。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
