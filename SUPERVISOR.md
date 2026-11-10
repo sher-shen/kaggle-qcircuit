@@ -20,8 +20,8 @@
   - **全定义域 33/34 NONE，可达 D 48/49 NONE**（含 16 线的 3 个 2-Toffoli 秩 1 块，以及 15363/15417 两个 tap 流头）。只剩块 260（ops 25671..25682，fine_phase_stream 的头，10 线、5 Toffoli、秩 4）通过。
 - **新写 `block_peel.py`（精确递归剥离）**：P = Q∘T，T(x) = x + w·a(x)b(x)，U = span{a,b} 取规范代表，w ∈ ker U（覆盖 CCX 和 CSWAP）；秩 = K 时用 res(ab) ∈ R 剪枝；秩 < K 时报 SLACK（不搜）。埋解 n=6/7/10 都能找回；5 个真实满秩块（n 9~12，K 4~6）都在 ≤4 秒内重新找到 K 门分解。
   - **块 260 全定义域 K=4：NONE(exact)**，256 个节点，没有 SLACK，所以全定义域上不存在 5→4。
-  - 块 260 用可达 D（|D| = 82）：剪枝很弱，**本次没跑完**（40 分钟超时；结果见下次运行）。
-- 结论：提取出来的 ≤16 线块里，除了块 260（有 D）和 8 个秩亏的 dirty-CCCX 类块，t→t−1 改写全部精确关闭。
+  - **块 260 用可达 D（|D| = 82）K=4：也是 NONE(exact)**，16,321 个节点，没有 SLACK（约 19 分钟），所以即使有无关项也不存在 5→4。
+- 结论：提取出来的 ≤16 线块里，除了 8 个秩亏的 dirty-CCCX 类块，t→t−1 改写全部精确关闭。
 
 ## 4. 问题和可疑点
 - 已经连续四十多次运行没有数值提升。现在 ≤16 线的局部块改写基本全部有证明地关闭。
@@ -30,12 +30,11 @@
 - **强烈建议用户停掉这个 routine，或者把间隔改成每天一次，或者把额度转到别的题（dqi / dfthcsos）。**
 
 ## 5. 下一步指示（按优先级，都还没做）
-1. **跑完块 260 在可达 D 上的 K=4**：用 C 重写 block_peel 的内层循环（U 枚举加秩检验，打包成 uint64），或者先用 D 的仿射包做额外剪枝；单块预算 30 分钟。
-2. **秩亏的 dirty-CCCX 块（9,8,r4）和（11,9,r5）**：用"剪掉中间垃圾"的思路，把 dirty 线的往返段拆成 compute/uncompute 两半，对一半跑 peel（秩 = K 的那半可以剪枝）；或者在 C 里做有界深度的 SLACK 搜索（每层秩 ≤ 剩余 K）。
-3. **非贪心提取**：对每个 tof≥3 的块，枚举能覆盖同一批 op 的不同 ≤12 线集合 W（加上中间不碰 W 的 op），把新块喂给 block_rank → block_rank_prod → block_peel。现在这条流水线对任意 n 都很快（每块 ≤ 几秒），可以把提取放宽到 NMAX 20。
-4. **跨条件上下文的块**：block_extract 要求同一个 PUSH_CONDITION 上下文；把条件块当作"受控的置换"扩一根条件线，看看测量修正块和相邻计算块能不能合并。
-5. **换赛道评估**：1~4 即使命中，每处也只省 1 个 Toffoli（约 +0.016×）。建议停止 invsqrt 微优化，把额度转到 dqi。
-6. 已经关闭、不要再试：前面列过的全部方向，再加上本次的 ≤16 线块秩 = t、秩 = t−1 且没有乘积、块 260 全定义域 5→4。
+1. **秩亏的 dirty-CCCX 块（9,8,r4）和（11,9,r5）**：用"剪掉中间垃圾"的思路，把 dirty 线的往返段拆成 compute/uncompute 两半，对一半跑 peel（秩 = K 的那半可以剪枝）；或者在 C 里做有界深度的 SLACK 搜索（每层秩 ≤ 剩余 K）。
+2. **非贪心提取**：对每个 tof≥3 的块，枚举能覆盖同一批 op 的不同 ≤12 线集合 W（加上中间不碰 W 的 op），把新块喂给 block_rank → block_rank_prod → block_peel。现在这条流水线对任意 n 都很快（每块 ≤ 几秒），可以把提取放宽到 NMAX 20。
+3. **跨条件上下文的块**：block_extract 要求同一个 PUSH_CONDITION 上下文；把条件块当作"受控的置换"扩一根条件线，看看测量修正块和相邻计算块能不能合并。
+4. **换赛道评估**：1~3 即使命中，每处也只省 1 个 Toffoli（约 +0.016×）。建议停止 invsqrt 微优化，把额度转到 dqi。
+5. 已经关闭、不要再试：前面列过的全部方向，再加上本次的 ≤16 线块秩 = t、秩 = t−1 且没有乘积、块 260 的 5→4（全定义域和可达 D）。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -100,4 +99,4 @@
 - 2026-11-10 07:00 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1006mm 全量 PASS（100,568.59 = 20.650×）**；指示 3 关闭（目标 q25 后面被当作数据用）；新写 cccx_enum：dirty-CCCX 块在 5 线下用 3 个 Toffoli 做不到（精确 NONE，自检 5/5），6 线（多借一根 dirty 线）也是精确 NONE；推送 7140454、50c068e、b914d40 到 invsqrt-supervisor-work；建议停掉 routine；NOT_APPROVED。
 - 2026-11-10 07:50 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1007mm 全量 PASS（100,568.56 = 20.650×）**；完成指示 1：新写 block_extract/block_enum/block_reach/block_dc，≤6 线 397 个块全定义域精确 NONE（自检 HIT），用全量可达入口集做无关项，≤6 线和 7 线（K≤1）一共 860 个块 0 命中；推送 97fa843、cbbc609 到 invsqrt-supervisor-work；建议停掉 routine；NOT_APPROVED。
 - 2026-11-10 22:00 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1021mm 全量 PASS（100,568.55 = 20.650×）**；指示 1 关闭（93 个 R 都作用在 0 线上，没有出口无关项）；新写 block_dc_res（余项松弛，埋解自检 6/6），7 线 135/135、8 线 111/111 的 K2（3→2）在可达 D 上 NONE；block_k1_big：8~12 线 1093 个块 K1 NONE；推送 c1bec0a；建议停掉 routine；NOT_APPROVED。
-- 2026-11-10 22:55 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1022mm 全量 PASS（100,568.52 = 20.650×）**；新写 block_rank（余项秩 ≤ K，任意 n）、block_rank_prod、block_peel（精确剥离，埋解和 5 个真实块自检通过）：≤16 线 1582 个块只剩块 260（有 D 时没跑完）和 8 个秩亏 dirty-CCCX 块没关；块 260 全定义域 5→4 NONE(exact)；推送 4dd7b76、eac023c 到 invsqrt-supervisor-work；建议停掉 routine；NOT_APPROVED。
+- 2026-11-10 22:55 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1022mm 全量 PASS（100,568.52 = 20.650×）**；新写 block_rank（余项秩 ≤ K，任意 n）、block_rank_prod、block_peel（精确剥离，埋解和 5 个真实块自检通过）：≤16 线 1582 个块只剩 8 个秩亏 dirty-CCCX 块没关；块 260 的 5→4 在全定义域和可达 D 上都 NONE(exact)；推送 4dd7b76、eac023c、97ecdd8 到 invsqrt-supervisor-work；建议停掉 routine；NOT_APPROVED。
