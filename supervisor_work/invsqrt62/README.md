@@ -519,3 +519,8 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   The target q25 is live (not clean) before the block (`live_trace.py`) and is later consumed **as data** (CX source at 25869/25870,
   CCX control at 25902; CCX control at 31426 for the second block), so it can't become a CCCZ merged into phase fix-ups.
   The 4th Toffoli is the dirty-ancilla correction d*(~u), which can't be removed without a clean wire.
+- New: `cccx_enum.py` / `cccx_enum_n.py n nproc [selftest seed]`: exact test whether the dirty-CCCX block map
+  (`q19 ^= q28 q17; q25 ^= q28 q17 q19`, dirty q0 restored) equals g1 g2 g3 A (A any CNOT/X circuit, g_i = affine conjugates of a
+  Toffoli = x -> x + v[x in F], F a codim-2 flat). 5 wires: 4,340 gates, **NONE (exact)**; 6 wires (one more dirty wire restored):
+  39,060 gates, **NONE (exact)**, ~11 min on 4 cores. Planted selftests HIT (5 on n=5, 1 on n=6). So the 4-Toffoli block is optimal up to
+  6 wires. (`cccx_sat.py`, a generic SAT encoding, could not even solve K=4 in 10 min; abandoned.)
