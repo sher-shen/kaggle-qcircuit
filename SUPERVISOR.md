@@ -1,36 +1,35 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-10 03:50 UTC（本次运行 03:05 开始）
-**结论**：**NOT_APPROVED**（当前最好仍然是公开 62q 电路加 merge2：62 q / 1325.48 Toffoli / 100,568.56 = **20.650×**。本次没有数值提升）
+**时间戳**：2026-11-10 04:40 UTC（本次运行 04:06 开始）
+**结论**：**NOT_APPROVED**（当前最好仍然是公开 62q 电路加 merge2：62 q / 1325.48 Toffoli / 100,568.54 = **20.650×**。本次没有数值提升）
 
 ## 1. 干活的状态
 - 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**，干活的会话 11-04 之后没有推送，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2）。
-- 本次 03:05 开始，又和 02:06 那次运行重叠（它 03:15 推送了 828818c、03:20 写了上一版 SUPERVISOR.md）。本次跑的 16 个 ctrl2 组合和它的 22 个完全重叠，**节点数 16/16 逐位相同**，算作独立复现。
-- 本次推送：9956d7a（sv1003mm 复核 json）、0e932fd、6564fa9（ctrl2 复现结果 + README）。
+- 本次没有发现重叠运行（04:06~04:40 期间远端没有别的新推送）。
+- 本次推送：2aa4247（到 claude/invsqrt-supervisor-work）。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|---|
-| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.56** | **20.650** | 重新 clone manwithacat/kickmix-macos，用 ops.json 加 `edits/merge2.json` 重建，sha 一致；**官方 verifier 全量 200,540,928 shot，新 salt sv1003mm：PASS**，score 100,568.563（worst 0.99932，x=161），见 `verify_p62_merge2_sv1003mm.json` |
-- 倍数 = 2,076,774.23 / 100,568.56 = 20.650。score 是 verifier 输出的总 cost（Q × C），不是子项。
-- 没有复核 02:06 运行的 sv1002mm json（不过本次用另一个 salt 得到的结果一致）。
+| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.54** | **20.650** | 重新 clone manwithacat/kickmix-macos，用 ops.json 加 `edits/merge2.json` 重建，sha 一致；**官方 verifier 全量 200,540,928 shot，新 salt sv1004mm：PASS**，score 100,568.540（worst 0.99932，x=161），见 `verify_p62_merge2_sv1004mm.json` |
+- 倍数 = 2,076,774.23 / 100,568.54 = 20.650。score 是 verifier 输出的总 cost（Q × C），不是子项。
 - 硬规则检查：没有向 Kaggle 提交；没有推 main；新增文件都是 KB 级（dump、电路放在 scratchpad，没有提交）；没有密钥，也没有比赛非公开信息。
 
 ## 3. 本次做法
-- chain dump 重新生成（28 秒），star_basis 埋解自检（33329，0+1+2）：**HIT**（58 个节点）。
-- ctrl2 剩下的组合：33195 ×3、33329 ×5、33481 ×8，**16/16 NONE(exact)**（`star_basis_lookup_ctrl2_rest_1003.txt`），和 02:06 运行逐位相同。**9 条 lookup 链的 ctrl2（99 个中心）全部关闭，并且有两份独立复现。**
+- **完成上次的指示 3**：新写 `minrank_block_big.py`（minrank_block.c 的 Python 大整数版，没有 s≤64 的限制）。在 s=58/60 的 4 个 dump 上和 C 版节点数逐位相同；在 25746（s=93）上埋解自检 HIT（108 个节点）。
+- **14 对相位 tap（early 15288..15417，fine 25746..25871）全部 NONE(exact)**，每个 8~28 个节点（`tap_pairs_exact_1004.txt`）。原来的「tap-wire 论证」换成了精确证明。**这样 merge2 上 maxgap 60 以内的所有同目标 CCX 对都有精确否定。**
+- **指示 1 的预实验**：在 33195 L3（s=36）上比较了三种顶点顺序，auto2 1.99e8 个节点，greedy 2.35e8，NFIX=0 2.35e8。greedy 在第 4 层就有 59 个方程，但随后**连续 11 个顶点不增加任何方程**，树每层 ×4，和 auto2 一样。所以 4^11 的平台是按顶点分支本身决定的，**单靠换顺序做不出 10 秒的求解器**（`order_experiment_33195_1004.txt`）。
 
 ## 4. 问题和可疑点
 - 已经连续三十多次运行没有数值提升；lookup 链上任何命中也只省 1 个 Toffoli（+0.016×）。
-- routine 每小时叠出 2~3 次并发运行，本次的全部搜索都和别的运行重复，额度基本浪费了。**强烈建议用户停掉这个 routine，或者把间隔改成每天一次，或者把额度转到其他题。**
-- 干活的会话从 11-04 之后就没有推送。
+- 干活的会话从 11-04 之后就没有推送；监工 routine 每小时的额度几乎都花在已知 NONE 的精确证明上。**强烈建议用户停掉这个 routine，或者把间隔改成每天一次，或者把额度转到其他题（dqi / dfthcsos）。**
 
 ## 5. 下一步指示（按优先级，都还没做）
-1. **重写块求解器的前缀处理**（依据 02:06 运行的深度剖面）：前 13 个顶点几乎不带方程，不要逐个枚举，先枚举方程密集的第 13~16 层顶点，或者在第 13 层做中途相遇（前缀拆两半，对第 13~15 层的方程做哈希连接）。目标是每个实例从约 6 分钟降到 10 秒以内；基准用 33195 的 2.4e8 节点实例，用 star_plant 埋解自检。
+1. **换分支变量**：不按顶点分支，改为在第 15 层以后才线性化的方程上分支（先枚举这些方程涉及的平台 11 个顶点之外的部分，或者把平台 11 个顶点的 (u,w) 当作未知数，对其余 25 个顶点的赋值做中途相遇：两半各自算出平台变量上的线性约束，哈希连接）。基准仍用 33195 L3（目标 <10 秒，节点数 1.99e8 → ≤1e6），用 star_plant 埋解自检。
 2. 有了快求解器之后，在 9 条 lookup 链上跑 **star_basis pairs（权重 2 的中心，每条约 600 个）**，以及 lookup L4 链上的两颗星（4→3）。
-3. **14 对相位 tap 用块方法精确判一遍**（k 248..711），把「tap-wire 论证」换成精确证明。
+3. **跨 stage 窗口的 3→2**：现在全部扫描都只在同目标 CCX 链内部；可以试 stage 边界（arith_b → fine_phase_stream、lookup_c → late_curvature_norm）上目标不同但控制共享的 AND，用 minrank_block_big.py 做精确判定（不受 64 限制了）。
 4. **换赛道评估**：1~3 预期全部 NONE，命中也只省 1 个 Toffoli。建议停止 invsqrt 微优化。
-5. 已关闭、不要再试：前面列过的全部方向，加上 9 条 lookup 链上的单中心 star 和 ctrl2。
+5. 已关闭、不要再试：前面列过的全部方向，加上 9 条 lookup 链上的单中心 star 和 ctrl2、14 对相位 tap（本次精确关闭）、顶点重排序。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -90,3 +89,4 @@
 - 2026-11-10 03:00 UTC：依然没有干活的分支；和 00:06、02:0x 两次运行重叠，按链分工；merge2 新容器重建 sha 一致，**换 salt sv1001mm 全量 PASS（100,568.55 = 20.650×）**；star_basis 埋解自检 HIT；**lookup ctrl2 在 34192、34604、33888 上 33/33 NONE(exact)**（关闭），33195 8/11、33329 6/11、33481 3/11 也全是 NONE(exact)，33038 上和另一次运行重叠的 8 个组合节点数逐位相同；推送 bfdc6be、24084c3、6d672dd；建议停掉 routine；NOT_APPROVED。
 - 2026-11-10 03:20 UTC：依然没有干活的分支；和 01:07 那次运行（以及另一次推送 sv1003mm 的运行）重叠，33195、33329 反序跑来避免重复；merge2 新容器重建 sha 一致，**换 salt sv1002mm 全量 PASS（100,568.55 = 20.650×）**；本次 ctrl2 22/22 NONE(exact)，**9 条 lookup 链的 ctrl2 全部关闭**；深度剖面显示块搜索的成本全在前 14 层几乎没有方程的前缀上；推送 bedbbc5、828818c；建议停掉 routine；NOT_APPROVED。
 - 2026-11-10 03:50 UTC：依然没有干活的分支；和 02:06 那次运行重叠；merge2 新容器重建 sha 一致，**换 salt sv1003mm 全量 PASS（100,568.56 = 20.650×）**；star_basis 埋解自检 HIT；ctrl2 剩下的 16 个组合 NONE(exact)，和对方逐位相同（**9 条 lookup 链的 ctrl2 全部关闭**）；推送 9956d7a、0e932fd、6564fa9；建议停掉 routine；NOT_APPROVED。
+- 2026-11-10 04:40 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1004mm 全量 PASS（100,568.54 = 20.650×）**；完成指示 3：新写 minrank_block_big.py（无 s≤64 限制，和 C 版节点数逐位相同，埋解自检 HIT），**14 对相位 tap 全部 NONE(exact)**，merge2 的同目标 CCX 对全部精确关闭；顶点重排序实验（三种顺序都约 2e8 节点）说明按顶点分支有 4^11 平台；推送 2aa4247；建议停掉 routine；NOT_APPROVED。
