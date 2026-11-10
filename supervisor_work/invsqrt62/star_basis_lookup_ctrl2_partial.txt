@@ -1,15 +1,28 @@
-# star_basis ctrl2 (centre = XOR of >=2 of the last CCX pair's 4 control values) on lookup L3 chains, merge2 dumps (chain_dump_scan.py m2.json 3000 2 60). Supervisor 2026-11-10 01-02 UTC. Plant self-test 33038 S 0+1: HIT (58 nodes).
+# star_basis ctrl2 (centre = XOR of >=2 of the last CCX pair's 4 control values) on lookup L3 chains, merge2 dumps (chain_dump_scan.py m2.json 3000 2 60). Supervisor run started 2026-11-10 01:07 UTC. Plant self-test 33038 S 0+1: HIT (58 nodes). 33038: the 8 combos also run by the overlapping 00:06 run have bit-identical node counts (see star_basis_lookup33038_ctrl2_results.txt).
 c_33038-33122-L3_349 S 0+1 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242070416 leaves=0 solutions=0 
 c_33038-33122-L3_349 S 0+2 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242069377 leaves=0 solutions=0 
 c_33038-33122-L3_349 S 0+3 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242074307 leaves=0 solutions=0 
 c_33038-33122-L3_349 S 1+2 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242069701 leaves=0 solutions=0 
 c_33038-33122-L3_349 S 1+3 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242067813 leaves=0 solutions=0 
 c_33038-33122-L3_349 S 2+3 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242069947 leaves=0 solutions=0 
+c_33038-33122-L3_349 S 0+1+2 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242070041 leaves=0 solutions=0 
+c_33038-33122-L3_349 S 0+1+3 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242069184 leaves=0 solutions=0 
+c_33195-33267-L3_349 S 0+1 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=241374614 leaves=0 solutions=0 
+c_33195-33267-L3_349 S 0+2 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=241376390 leaves=0 solutions=0 
+c_33195-33267-L3_349 S 0+3 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=241375668 leaves=0 solutions=0 
+c_33195-33267-L3_349 S 1+2 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=241373785 leaves=0 solutions=0 
+c_33329-33403-L3_349 S 0+1 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242067836 leaves=0 solutions=0 
+c_33329-33403-L3_349 S 0+2 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=241373839 leaves=0 solutions=0 
 c_33888-33963-L3_347 S 0+1 n=61 k=347 rankK=347 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=248 nodes=239248419 leaves=0 solutions=0 
 c_33888-33963-L3_347 S 0+2 n=61 k=347 rankK=347 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=248 nodes=239246882 leaves=0 solutions=0 
 c_33888-33963-L3_347 S 0+3 n=61 k=347 rankK=347 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=248 nodes=239249224 leaves=0 solutions=0 
 c_33888-33963-L3_347 S 1+2 n=61 k=347 rankK=347 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=248 nodes=239249791 leaves=0 solutions=0 
 c_33888-33963-L3_347 S 1+3 n=61 k=347 rankK=347 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=248 nodes=239248268 leaves=0 solutions=0 
+c_33888-33963-L3_347 S 2+3 n=61 k=347 rankK=347 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=248 nodes=239249165 leaves=0 solutions=0 
+c_33888-33963-L3_347 S 0+1+2 n=61 k=347 rankK=347 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=248 nodes=239248509 leaves=0 solutions=0 
+c_33888-33963-L3_347 S 0+1+3 n=61 k=347 rankK=347 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=248 nodes=239249967 leaves=0 solutions=0 
+c_33888-33963-L3_347 S 0+2+3 n=61 k=347 rankK=347 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=248 nodes=239249192 leaves=0 solutions=0 
+c_33888-33963-L3_347 S 1+2+3 n=61 k=347 rankK=347 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=248 nodes=239247819 leaves=0 solutions=0 
 c_34192-34286-L3_311 S 0+1 n=61 k=311 rankK=311 block=34 Q0 in span(K): False | RESULT NONE(exact) s=34 ne=250 nodes=59644502 leaves=0 solutions=0 
 c_34192-34286-L3_311 S 0+2 n=61 k=311 rankK=311 block=34 Q0 in span(K): False | RESULT NONE(exact) s=34 ne=250 nodes=59644144 leaves=0 solutions=0 
 c_34192-34286-L3_311 S 0+3 n=61 k=311 rankK=311 block=34 Q0 in span(K): False | RESULT NONE(exact) s=34 ne=250 nodes=59644631 leaves=0 solutions=0 
@@ -27,3 +40,7 @@ c_34604-34699-L3_346 S 0+3 n=61 k=346 rankK=346 block=35 Q0 in span(K): False | 
 c_34604-34699-L3_346 S 1+2 n=61 k=346 rankK=346 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=249 nodes=238953187 leaves=0 solutions=0 
 c_34604-34699-L3_346 S 1+3 n=61 k=346 rankK=346 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=249 nodes=238855067 leaves=0 solutions=0 
 c_34604-34699-L3_346 S 2+3 n=61 k=346 rankK=346 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=249 nodes=238855397 leaves=0 solutions=0 
+c_34604-34699-L3_346 S 0+1+2 n=61 k=346 rankK=346 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=249 nodes=238855742 leaves=0 solutions=0 
+c_34604-34699-L3_346 S 0+1+3 n=61 k=346 rankK=346 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=249 nodes=238953402 leaves=0 solutions=0 
+c_34604-34699-L3_346 S 0+2+3 n=61 k=346 rankK=346 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=249 nodes=238953396 leaves=0 solutions=0 
+c_34604-34699-L3_346 S 1+2+3 n=61 k=346 rankK=346 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=249 nodes=238954032 leaves=0 solutions=0 
