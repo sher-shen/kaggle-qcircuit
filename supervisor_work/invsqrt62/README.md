@@ -524,3 +524,21 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   Toffoli = x -> x + v[x in F], F a codim-2 flat). 5 wires: 4,340 gates, **NONE (exact)**; 6 wires (one more dirty wire restored):
   39,060 gates, **NONE (exact)**, ~11 min on 4 cores. Planted selftests HIT (5 on n=5, 1 on n=6). So the 4-Toffoli block is optimal up to
   6 wires. (`cccx_sat.py`, a generic SAT encoding, could not even solve K=4 in 10 min; abandoned.)
+
+## 2026-11-10 07:07 UTC run (supervisor): small-block exact optimality, with and without don't-cares (instruction 1 of 07:00)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv1007mm: PASS,
+  score 100,568.56 = 20.650x** (`verify_p62_merge2_sv1007mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `block_extract.py ops.json NMAX out.json`: grows, from every CCX/CSWAP seed, wire sets W (|W| <= NMAX) and the maximal op interval in
+  which every op touching W is a classical permutation gate (X/CX/CCX/SWAP/CSWAP) inside W with the same condition context (PUSH stack +
+  cond bit); keeps maximal blocks with >= 2 Toffolis and their 2^|W| permutation. On merge2: NMAX 5 -> 248 blocks
+  ((5,2) 244, (5,3) 1, (5,4) 2 = the dirty CCCX, (4,2) 1); NMAX 6 -> 333 ((6,2) 160, (6,3) 4, ...); 397 distinct in all.
+- `block_enum.py blocks.json n nproc [selftest seed Ks]`: exact test "P = g_K..g_1 A" (gate set of cccx_enum_n.py) with K = tof-1;
+  K=1/2 with the rank-2 quadratic filter, K=3 = cccx_enum_n. **Full domain: n=4 1/1, n=5 247/247, n=6 164/164 NONE(exact)**
+  (`block_enum5_result.txt`, `block_enum6_result.txt`). Planted selftests (`block_enum_selftest.txt`): n=4 K0..3, n=5 K1..3, n=6 K1..2 all HIT
+  (first version's selftest drew a fresh constant per x in rand_affine -> fake MISS; fixed).
+- Don't-cares: `block_reach.py` simulates all 3,133,452 x (HMR outcomes random; two seeds 7, 11) and records the reachable W-patterns D at each
+  block's entry; `block_dc.py` brute-forces P|D = (g_K..g_1 A)|D for K = tof-1 and tof-2 (no quadratic filter, it is not valid on a subset).
+  **Result: 0 hits over all 397 blocks** (tof-2 blocks K0/K1; tof-3 blocks K1, K2; dirty-CCCX K2) (`block_dc_result.txt`).
+  On a stride-97 sample (32k x) there were 31 "hits" (e.g. the prefix-AND chain ops 42..45, D={0,1,2,3,7} missing the rare all-ones
+  pattern) -- sampling artefacts that vanish with all x, but they show the machinery finds a reduction when D allows one.
+- **Instruction 1 closed** for windows of <= 6 wires: no 2->1, 3->2, 3->1, 4->3 (full domain, n=5) or 4->2 (with don't-cares) block rewrite exists.

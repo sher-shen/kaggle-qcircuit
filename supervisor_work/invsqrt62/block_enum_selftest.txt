@@ -1,0 +1,14 @@
+n 5 gates 4340 blocks 247
+selftest K 1 HIT
+selftest K 2 HIT
+selftest K 3 HIT
+n 5 gates 4340 blocks 247
+selftest K 1 HIT
+selftest K 2 HIT
+selftest K 3 HIT
+n 6 gates 39060 blocks 164
+selftest K 1 HIT
+selftest K 2 HIT
+n 6 gates 39060 blocks 164
+selftest K 1 HIT
+selftest K 2 HIT
