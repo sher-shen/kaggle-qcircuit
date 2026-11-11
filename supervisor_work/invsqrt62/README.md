@@ -667,3 +667,18 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   symmetry breaking the solver does not scale; the n=7 K=5 run (and K=6 sanity, planted K=5) were stopped after ~17 min without result.
   Direction "n=7 6->5 by plain SAT" is therefore **open, not closed**.  Block function (hand derivation): with M = maj(26,61,28),
   t=25 ^= M*17*19, 19 ^= M*17, 17 ^= M (the dirty CCCX is fused with two CX updates), 0 restored.
+
+## 2026-11-11 05:xx UTC — n=7 block analysed by hand; normalize CSWAP usage
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1105mm: PASS, score 100,568.59 = 20.650x**
+  (`verify_p62_merge2_sv1105mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- block_extract2 NMAX 20 MAXST 64 regenerated: 4257 / 179 OPEN (identical).
+- n=7 block 25605..25618 (and 28844..): it is one Cuccaro MAJ (28 = maj(26,61,28), 1 Toffoli), a carry-controlled 3-bit increment of
+  (17,19,25) with dirty wire 0 (4 Toffoli, = block 86), and the UMA (1 Toffoli, leaves 26 = sum).  The "structured" 6->5 plan of the
+  last report (fix the MAJ, ask for the rest in 3) is **the same question as block 86 4->3, already NONE(exact) on D**.  So a 5-Toffoli
+  version would have to avoid holding M in a wire at all.  An exhaustive search of that (K=5 at n=7, ~3.3e5 gates per layer) is not
+  possible with dc3 or plain SAT.  Left open, low value (1 Toffoli = +0.016x).
+- `normalize_cswap_use.py ops.json a b`: classical simulation of the normalize stage for all x.  The q45 CSWAP level (12 CSWAPs, ops
+  202..217) swaps differing values on only 0.26 % of x (ops 216/217: 31 x).  The other 40 CSWAPs and all 19 CCX are used often.  This
+  stage touches only q0..q47 (<= 48 live, 14 spare clean wires).  Unnormalize runs at <= 36.  Together they are 138 Toffoli.  Spare clean
+  wires do not make a CSWAP cheaper, though: AND into a fresh wire + free measured uncompute is also 1 Toffoli.  Any gain must come from
+  restructuring the shift itself.
