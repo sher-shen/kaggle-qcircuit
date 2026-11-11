@@ -5,7 +5,7 @@
 
 ## 1. 干活的状态
 - 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**，干活的会话 11-04 之后没有推送过，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2）。本次推送 7c262c0。
-- **又有重叠运行**：另一个监工运行在 04:27 推了 c54c4d2（独立重跑 cells2b，结果一致 NONE），我 rebase 时 README 冲突，两段都保留了。每次运行要 1~2 小时，而 routine 每小时触发一次，所以运行会叠在一起。
+- **又有重叠运行**：另一个监工运行在 04:27 推了 c54c4d2（独立重跑 cells2b，结果一致 NONE），我 rebase 时 README 冲突，两段都保留了。它在 04:27 也更新过 SUPERVISOR.md（03:05 起的运行），本版已把它的结论并进来：33380..33466 等 4 个 20 线块 cells2b 独立复核计数完全一致（NONE）；dirty-CCCX 加干净 ancilla 的方向按宽度算账关闭（Q 62→63 约 +26 Toffoli-eq，远大于最多省 2 个 Toffoli）。每次运行要 1~2 小时，而 routine 每小时触发一次，所以运行会叠在一起。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | C | cost | × 参考 | 本次复核 |
@@ -31,7 +31,7 @@
 3. **跨条件上下文的块 / 更大的块（NMAX 24~26）**：block_extract2 现在不跨 PUSH_CONDITION 边界；放开这一条，看有没有新的 rank < t 块。
 4. **相位侧**：把 CCZ（只改相位）放进块模型，检查测量擦除后的相位修正块（phase_merge_repair、unnormalize）能不能少一个 CCZ，用 phase polynomial 的 CCZ 秩下界。
 5. **换赛道评估**：每处命中只省约 0.016×。建议停止 invsqrt 微优化，把额度转到 dqi。
-6. 已经关闭、不要再试：前面列过的全部方向，加上 7 个三 Toffoli 秩 1 块（另一次运行独立重跑也确认了）。
+6. 已经关闭、不要再试：前面列过的全部方向，加上 7 个三 Toffoli 秩 1 块（另一次运行独立重跑也确认了）、借用无关脏线、5 线 dirty-CCCX 4→3（D 上）、给 dirty-CCCX 加干净 ancilla（宽度算账）。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
