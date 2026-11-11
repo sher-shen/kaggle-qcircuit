@@ -1,39 +1,37 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-11 00:30 UTC（本次运行 00:06 开始）
-**结论**：**NOT_APPROVED**（当前最好的仍是公开 62q 电路加 merge2：62 q / 1325.48 Toffoli / 100,568.59 = **20.650×**，本次没有数值提升）
+**时间戳**：2026-11-11 02:00 UTC（本次运行 01:05 开始）
+**结论**：**NOT_APPROVED**（当前最好的仍是公开 62q 电路加 merge2：62 q / 1325.48 Toffoli / 100,568.50 = **20.650×**，本次没有数值提升）
 
 ## 1. 干活的状态
-- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**；干活的会话 11-04 之后没有推送过，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2）。本次推送 fdc46c9 … a0f495e。上次运行在 23:58 结束，本次 00:06 开始，没有重叠。
+- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**；干活的会话 11-04 之后没有推送过，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2）。本次推送 fe11577。上次运行 00:30 结束，本次 01:05 开始，没有重叠。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|---|
-| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.59** | **20.650** | 重新 clone manwithacat/kickmix-macos，用 ops.json 加 `edits/merge2.json` 重建，sha 一致；**官方 verifier 全量 200,540,928 shot，新 salt sv1100mm：PASS**，worst 0.99932（x=161），41 个旋转，见 `verify_p62_merge2_sv1100mm.json` |
-- 倍数 = 2,076,774.23 / 100,568.59 = 20.650，用的是 verifier 输出的总 cost（Q × C），不是只算了子项。
-- 硬规则检查：没有向 Kaggle 提交；没有推 main；本次新增文件都 < 30 KB（中间数据 341 MB 的 open20p.json 只放在 scratchpad，没有提交）；没有密钥，也没有比赛非公开信息。
+| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.50** | **20.650** | 重新 clone manwithacat/kickmix-macos，用 ops.json 加 `edits/merge2.json` 重建，sha 一致；**官方 verifier 全量 200,540,928 shot，新 salt sv1101mm：PASS**，worst 0.99932（x=161），41 个旋转，见 `verify_p62_merge2_sv1101mm.json` |
+- 倍数 = 2,076,774.23 / 100,568.50 = 20.650，用的是 verifier 输出的总 cost（Q × C）。
+- 硬规则检查：没有向 Kaggle 提交；没有推 main；本次新增文件都 < 20 KB（546 MB 的 blk20rp.json 等中间数据只在 scratchpad）；没有密钥，也没有比赛非公开信息。
 
-## 3. 本次做法（上次的指示 1）
-- **新写 `block_peel2.py` + `ab_enum.c`**，解决的问题和 block_peel 一样（精确判断 P|D = g_K..g_1 A，在 D 上的秩 = K 时成立），但快了几个数量级：
-  - 条件 "ab ∈ R+V" 对交错形式 a∧b 是线性的：固定 a 后，b 是一个核空间（C 里遍历全部 2^m 个 a）；
-  - 目标 w 不再枚举 2^n：在 D 的仿射包内，秩下降当且仅当 w·C0 = 0、w·c0 = 1、a(w) = b(w) = 0（一个仿射空间）；跑出仿射包（比如写到在 D 上恒为 0 的线上）时秩一定下降，而且这些 w 互相等价，所以只需给仿射包加一个新坐标；(a, b) 的 4 种常数选择都试。
-  - **自检抓到两个 bug**（漏了仿射常数、漏了跑出仿射包的目标）：从 15417..15451 里删掉一个 Toffoli，得到 4 门、在 D 上秩 4 的块，修复前报 NONE，修复后 **HIT**（删 15417、15418 两种都 HIT）；随机埋入的电路也都 HIT。
-- **块 ops 15417..15451（20 线、5 Toffoli、秩 4，|D| = 2859，仿射包维数 19）：K = 4 NONE(exact)**，21 个节点，30 秒（D 是 block_reach seed 7 和 11 的并集，两个集合相同）。**指示 1 关闭。**
-- **block_extract2 NMAX 20 的全部 179 个 OPEN 块**（reach seed 7）：**164 个 t→t−1 在 D 上 NONE(exact)**（2 Toffoli 114 个、3 Toffoli 14 个、4 Toffoli 34 个、5 Toffoli 2 个），**0 个 HIT**；15 个 SLACK（D 上的秩 < t−1，这个方法判断不了）：7 个 3 Toffoli 秩 1 块，8 个 dirty-CCCX 嵌套块。以前这批块只用了必要条件（block_rank_prod），现在是精确关闭。
+## 3. 本次做法（上次的指示 1，3 Toffoli 秩 1 的部分）
+- 这 7 个 slack 块是 target ^= L1L2 + L3L4 + L5L6（三个线性函数乘积的和，全定义域 MC = 3），在 D 上秩 1（只有一个残差函数 f）。
+- **新写 `block_cells2.py` + `cells2.c`**：两个 AND 门的电路（任意宽度、允许免费的测量擦除、不借块外脏线）输出都在 span{1, y, a1b1, (α+s·u1)(β+t·u1)} 里，所以 f = L + αβ + γ·a1b1，γ ∈ span{1,α,β}；每种情况下 f 都在两个仿射函数划出的 4 个格子上分别是仿射的（即在某个余维 2 子空间的每个陪集上仿射）。这是**必要条件**，所以没有解就是精确 NONE。用 D 里"f 之和为 1 的 4 点仿射相关"剪枝（每个这样的四点组不能落在同一个陪集里），C 里枚举全部 2 维 H，幸存者再做逐格精确检验。m = 19 时 4 进程约 4 分钟。
+- 自检（用真实块 37 的 D）：埋 L+ab+cd → HIT；埋 L+a(b+cd) → HIT；埋三个乘积之和 → NONE。
+- **结果：块 21952..22026、22784..22865、33381..33465（19 线）3 → 2 都是 NONE(exact)**（`block_cells2_result.txt`），这三处是 7 个块对应的全部三个位置。还没跑 20 线的那 4 个变体（多一根线，m = 20，每个约 16 分钟）。
+- 中途修了两个 bug：块 22784 有一个 X 门（常数没跟踪，已改为跟踪仿射常数）；块 33381 的线性部分不是恒等（改为只要求目标线在 CCX 之后不被读）。
 
 ## 4. 问题和可疑点
-- 已经连续四十多次运行没有数值提升；在块的层面（≤20 线、同一条件上下文、借用块外的线不算），除了 15 个 slack 块外已经全部精确关闭。
-- 可靠性说明：block_extract2 每个种子最多 64 个状态，不是全部线集合；D 是 block_reach 采样得到的可达集合（seed 7），它是真实 D 的子集，所以 NONE 是相对采样 D 的结论（D 越小越容易出 HIT，因此 NONE 在真实 D 上同样成立）。peel2 不考虑借用块外的脏线。
-- 旧版 block_peel 在全坐标下枚举 w，本来就覆盖了跑出仿射包的情况，所以以前的结论不受 peel2 那两个 bug 影响。
+- 已经连续四十多次运行没有数值提升。≤20 线的块层面：除 8 个 dirty-CCCX 嵌套块、4 个 20 线内积变体外全部精确关闭。
+- 可靠性说明：D 是 block_reach（seed 7）采样的可达集合，是真实 D 的子集，所以 NONE 在真实 D 上也成立；cells2 不考虑借用块外的脏线；必要条件推导里假设门是 AND/Toffoli（CCZ 只改相位，对比特翻转残差无用）。
 - **再次强烈建议用户停掉这个 routine，或者改成每天一次，或者把额度转到别的题（dqi / dfthcsos）。**
 
 ## 5. 下一步指示（按优先级，都还没做）
-1. **slack 块的精确判定（带松弛的 peel）**：对 3 Toffoli 秩 1 的块（3→2），以及 dirty-CCCX 家族（11 线、9 Toffoli、秩 5，问能不能用 8 个），在 peel2 里加"允许 s 个不降秩的门"：不降秩的门不能用 ab ∈ W 剪枝，但 3→2 只需要一层无剪枝的枚举（2^m 个 a × 核 × w 仿射空间，在仿射包外是一个新坐标），然后接 K=1 的精确检验；在 C 里做。
-2. **借用块外的线**：在 peel2 里允许 nmax = n+1（多一根在 D 上未知的脏线，或者一根干净的 0 线）——"case B 新坐标"的机制已经有了，只要把 nmax 放开，同时要求最后还原那根线。先在 15 个 slack 块和 dirty-CCCX 上试。
-3. **跨条件上下文的块**：block_extract2 要求同一个 PUSH_CONDITION 上下文；把条件块看成多一根条件线的受控置换，然后跑同一条流水线（extract2 → reach → peel2）。
-4. **更大的块（NMAX 24~26）**：peel2 每层 2^m 个 a，在 C 里 m=24 也只要几秒；extract2 的 res_rank 需要改成在可达 D 上算（全定义域 2^24 太大）。
-5. **换赛道评估**：1~4 即使命中，每处也只省 1 个 Toffoli（约 +0.016×）。建议停止 invsqrt 微优化，把额度转到 dqi。
-6. 已经关闭、不要再试：前面列过的全部方向，再加上本次的 164 个 OPEN 块 t→t−1（在 D 上精确）和块 15417..15451。
+1. **补完 20 线内积变体**：`block_cells2.py cells2 slack3.json {1,3,4,6}`（块 21942..22027、22775..22865、22784..22866、33380..33466），每个约 16 分钟，后台跑。
+2. **dirty-CCCX 家族（块 25601.., 28840..，11 线 9 Toffoli 秩 5 → 8）**：把 cells 思路推广到多个残差函数：8 个门的输出在 span{1,y,u1..u8} 里；先做"秩 5 的残差需要 ≥ 5 个降秩门 + ≤ 3 个松弛门"的剥离：peel2 外面套一层枚举松弛门的位置，在 C 里做；先试最小的 n=7 tof 6 秩 3（6→5）。
+3. **借用块外的线**：在 peel2/cells2 里允许多一根未知脏线 e（输出必须还原 e），即坐标多一维且 D 变成 D × {0,1}；先在 3 个内积块上试 3→2。
+4. **跨条件上下文的块 / 更大的块（NMAX 24~26）**：同上次指示 3、4。
+5. **换赛道评估**：每处命中只省 1 个 Toffoli（约 +0.016×）。建议停止 invsqrt 微优化，把额度转到 dqi。
+6. 已经关闭、不要再试：前面列过的全部方向，再加上本次 3 个内积块（19 线）的 3→2。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -101,3 +99,4 @@
 - 2026-11-10 22:55 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1022mm 全量 PASS（100,568.52 = 20.650×）**；新写 block_rank（余项秩 ≤ K，任意 n）、block_rank_prod、block_peel（精确剥离，埋解和 5 个真实块自检通过）：≤16 线 1582 个块只剩 8 个秩亏 dirty-CCCX 块没关；块 260 的 5→4 在全定义域和可达 D 上都 NONE(exact)；推送 4dd7b76、eac023c、97ecdd8 到 invsqrt-supervisor-work；建议停掉 routine；NOT_APPROVED。
 - 2026-11-10 23:58 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1023mm 全量 PASS（100,568.52 = 20.650×）**；新写 block_extract2（非贪心、NMAX 20，4257 个块）、block_k1_anf、k1_split.c/block_dset_k1：121 个秩 1 块的 K=1 在全定义域和可达 D 上都 NONE；秩 t−1 块在 D 上只剩新块 15417..15451（5→4，peel 超时没关）；推送 14b35d9 到 invsqrt-supervisor-work；建议停掉 routine；NOT_APPROVED。
 - 2026-11-11 00:30 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1100mm 全量 PASS（100,568.59 = 20.650×）**；新写 block_peel2 + ab_enum.c（目标 w 用线性方程求解，加上跑出仿射包的情况；删一个 Toffoli 的自检 HIT），**块 15417..15451 5→4 NONE(exact)**，179 个 OPEN 块里 164 个 NONE(exact)，15 个 slack，0 个 HIT；推送 a0f495e
+- 2026-11-11 02:00 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1101mm 全量 PASS（100,568.50 = 20.650×）**；新写 block_cells2 + cells2.c（两 AND 的必要条件：f 在余维 2 子空间的每个陪集上仿射；埋解自检 HIT/NONE 正确），**3 个内积块（19 线）3→2 NONE(exact)**；推送 fe11577；建议停掉 routine；NOT_APPROVED。
