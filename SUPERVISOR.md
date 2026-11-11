@@ -1,37 +1,37 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-11 07:35 UTC（本次运行 07:06 开始）
-**结论**：**NOT_APPROVED**（当前最好的仍是公开 62q 电路加 merge2：62 q / 1325.48 Toffoli / 100,568.50 = **20.650×**，本次没有数值提升）
+**时间戳**：2026-11-11 21:15 UTC（本次运行 21:06 开始）
+**结论**：**NOT_APPROVED**（当前最好的仍是公开 62q 电路加 merge2：62 q / 1325.48 Toffoli / 100,568.48 = **20.650×**，本次没有数值提升）
 
 ## 1. 干活的状态
-- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**，干活的会话 11-04 之后没有推送，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2），本次推送 596fced。
-- 本次没有和别的运行重叠（开始时最新推送是 06:11）。
+- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**，干活的会话 11-04 之后没有推送，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2），本次推送 3071363。
+- 上次运行是 07:35 UTC，中间隔了约 13.5 小时；本次没有和别的运行重叠。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|---|
-| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.50** | **20.650** | 重新 clone manwithacat/kickmix-macos，用 ops.json 加 `edits/merge2.json` 重建，sha 一致。**官方 verifier 全量 200,540,928 shot，新 salt sv1107mm：PASS**，worst 0.99932（x=161），见 `verify_p62_merge2_sv1107mm.json` |
-- 倍数 = 2,076,774.23 / 100,568.50 = 20.650，用的是 verifier 输出的总 cost（Q × C），不是子项。
+| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.48** | **20.650** | 重新 clone manwithacat/kickmix-macos，用 ops.json 加 `edits/merge2.json` 重建，sha 一致。**官方 verifier 全量 200,540,928 shot，新 salt sv1121mm：PASS**，worst 0.99932（x=161），见 `verify_p62_merge2_sv1121mm.json` |
+- 倍数 = 2,076,774.23 / 100,568.48 = 20.650，用的是 verifier 输出的总 cost（Q × C），不是子项。
 - 硬规则检查：没有向 Kaggle 提交；没有推 main；本次新增文件都 < 5 KB；没有密钥，也没有比赛非公开信息。
 
-## 3. 本次做法（上次指示 1：normalize 跨层合并）
-- 新写 `cswap_multirank.py`：对连续几个移位层，算"输出线模掉输入线仿射张成"的秩，这是 AND 数的下界。相邻层 46+42（21/21）、42+43（20/20）、43+44（19/19）都是紧的，**这三对不能靠合并省 AND**。44+45 是 21 个 CSWAP 对下界 19（差 2，但这个下界偏弱）。3 层以上的组在约 20 根活线处饱和，给不出信息。
-- 每层其实是一个受控反射（i ↔ c−i），两层合起来是旋转。每个比特做 4 选 1 要 3 个 AND，而两层 CSWAP 只要 2 个，所以一般意义上的合并是亏的。
-- 直接删掉 q45 层里很少用到的 CSWAP 216/217（只对 31/30 个 x 有用）：精确相位 trace 的 worst ratio 是 4.3e7（x=31），**FAIL，关闭**。
-- 结果在 `cswap_multirank_result.txt`，README 已更新。
+## 3. 本次做法（上次指示 2：unnormalize 的 CSWAP 层）
+- 新写 `unnorm_cswap_rank.py`：unnormalize 的移位梯子有 5 层（控制线 q15/18/14/16/19，CSWAP 数 12/10/10/10/10）。后四层每层乘积秩都是满的（10），相邻两层的下界都是紧的（20/20），**不能合并**。
+- q15 那层在抽样上秩只有 10/12，多出来的两个是 CSWAP 46791/46792。全定义域检查（`unnorm_fire_full.py`）显示它们只在 30/31 个 x 上真的交换（都在 x<300k），正好是 normalize 216/217 的镜像，全定义域上并不线性相关。
+- 把这四个 CSWAP（216、217、46791、46792）一起删掉：精确相位 trace 的 worst ratio 是 1.1e7（x=3），**FAIL，关闭**。新写 `drop_ops.py`（删 op 时同步改 zpow_exact 的编号）。
+- 结果在 `unnorm_cswap_result.txt`，README 已更新。
 
 ## 4. 问题和可疑点
-- 已经连续四十多次运行没有数值提升。normalize 这一段现在只剩 44+45 这一对的 2 个 AND 差距没有证死（大概率是下界太弱）。
+- 已经连续四十多次运行没有数值提升。normalize 和 unnormalize 两段的移位层现在都证明了逐层满秩、相邻层下界紧（只剩 normalize 44+45 差 2 没证死）。
 - 干活的会话一周没有推送，实际上一直是监工自己在干。
 - **再次强烈建议用户停掉这个 routine，或者改成每天一次，或者把额度转到别的题（dqi / dfthcsos）。**
 
 ## 5. 下一步指示（按优先级，都还没做）
-1. **44+45 对的精确判定**：两层只涉及 q0..q21 加两根控制线。把映射限制在可达入口集上（只有约 8k 个 x 的 c45=1），用 dc3/块搜索判断 20 个 AND 行不行；也可以把顺序换成 45 先 44 后，重新数每层真正需要的 CSWAP。
-2. **unnormalize（67.1 均值）**：对它的 CSWAP 层做同样的 cswap_rank / cswap_multirank 检查（每个 x 重复 32 次，覆盖测量结果的不同历史）。
+1. **normalize 44+45 对的精确判定**：两层只涉及 q0..q21 加两根控制线。把映射限制在可达入口集上，用 dc3/块搜索判断 20 个 AND 行不行；或者把顺序换成 45 先 44 后，重新数每层真正需要的 CSWAP。
+2. **稀有移位分支化**：q45 层（normalize 216/217 和 unnormalize 46791/46792）只在约 31 个 x 上有用。试着把这一档移位并到 q44 层（让 c44 的移位量覆盖它，相应调整 lzc 的编码），看能不能整体少 2~4 个 CSWAP，再用 phase_trace 和 verifier 验证。
 3. **block_satk 加对称性破缺**：门规范化、相邻对易门排序、按第一个门分治并行；先用 n=5 K=4 全定义域确认 1 分钟内出解，再跑 n=7 K=5。
 4. **跨 PUSH_CONDITION 边界的块 / NMAX 24~26**：放开 block_extract2 的条件边界限制，看有没有新的 rank < t 块。
 5. **相位侧**：把 CCZ 放进块模型，检查 phase_merge_repair 和 unnormalize 里的相位修正块能不能少一个 CCZ。
-6. 已经关闭、不要再试：前面列过的全部方向，加上 normalize 相邻层 46+42、42+43、43+44 的合并（下界紧）和删掉 CSWAP 216/217（FAIL）。
+6. 已经关闭、不要再试：前面列过的全部方向，加上 unnormalize 移位梯子的合并（逐层满秩、相邻层紧）和四个稀有 CSWAP 一起删（FAIL）。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -106,3 +106,4 @@
 - 2026-11-11 05:30 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1105mm 全量 PASS（100,568.59 = 20.650×）**；手推 n=7 块 = Cuccaro MAJ + 进位控制的 3 位自增（脏线）+ UMA，上次的"结构化 6→5"等价于已关闭的 5 线 4→3，所以没有新解；normalize 扫描：q45 那层 12 个 CSWAP 只对 0.26% 的 x 有效，normalize 最多用 48 根线（空 14 根）；推送 4405798；没有数值提升；建议停掉 routine 或转题；NOT_APPROVED。
 - 2026-11-11 06:35 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1106mm 全量 PASS（100,568.56 = 20.650×）**；新写 lzc_deg.py（c0 次数 21，所以前导零计数至少 20 个 AND，现在正好 20，最优）和 cswap_rank.py（5 个移位层的乘积全部满秩，层内不能共享 AND）；推送 407da1f；没有数值提升；NOT_APPROVED；建议停掉 routine 或转题。
 - 2026-11-11 07:35 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1107mm 全量 PASS（100,568.50 = 20.650×）**；新写 cswap_multirank.py：normalize 相邻层 46+42、42+43、43+44 下界紧，不能合并，44+45 差 2 没证死；删掉 CSWAP 216/217 精确 trace FAIL（x=31）；推送 596fced；没有数值提升；NOT_APPROVED；建议停掉 routine 或转题。
+- 2026-11-11 21:15 UTC：依然没有干活的分支（距上次运行隔了约 13.5 小时）；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1121mm 全量 PASS（100,568.48 = 20.650×）**；新写 unnorm_cswap_rank.py：unnormalize 移位梯子后四层逐层满秩、相邻层下界紧；q15 层的 46791/46792 只对 30/31 个 x 有用，是 normalize 216/217 的镜像，四个一起删精确 trace FAIL（x=3）；推送 3071363；没有数值提升；NOT_APPROVED；建议停掉 routine 或转题。
