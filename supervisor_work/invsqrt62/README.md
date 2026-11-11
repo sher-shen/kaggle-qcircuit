@@ -600,3 +600,20 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   where r is affine; all 2^n hyperplanes in C). Self-test: planted ab found (3 hits), sum of two products rejected.
   With D from block_reach seeds 7 and 11: **121/121 rank-1 blocks NONE on D**; no OPEN block has lower rank on D than on the full domain.
   The 3-Toffoli blocks' six control values take 62..63 of 64 patterns on D, so 3 -> 2 is very unlikely (not proven).
+
+## 2026-11-11 00:xx UTC — exact peel for all OPEN n<=20 blocks (block_peel2)
+- merge2 rebuilt (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1100mm: PASS, score 100,568.59 = 20.650x**
+  (`verify_p62_merge2_sv1100mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- New `block_peel2.py` + `ab_enum.c`: same exact question as block_peel ("P|D = g_K..g_1 A", valid when rank on D == K), but
+  (1) "ab in R+V" is a linear condition on the alternating form a^b, so for each a the admissible b are a kernel (C, all 2^m a);
+  (2) the target w is not enumerated: inside the affine hull of D the rank drops iff w.C0 = 0, w.c0 = 1, a(w)=b(w)=0 (affine
+  space); outside the hull (e.g. a wire that is 0 on D) the rank always drops and all such w are equivalent -> one fresh hull
+  coordinate.  All 4 constant choices of (a, b) are tried.
+  Two bugs were caught by a real-structure self-test (drop one Toffoli from block 15417..15451 -> a 4-gate block with rank 4 on D
+  must HIT): missing affine constants, missing hull-escaping targets.  After the fix: drop 15417 / 15418 -> **HIT** at K=4;
+  random planted circuits HIT (`block_peel2_droptest.txt`).
+- **Block 15417..15451 (20 wires, 5 Toffoli, rank 4, |D| 2859, hull 19): K=4 NONE(exact), 21 nodes, 30 s** (D = union of
+  block_reach seeds 7 and 11, identical sets) — instruction 1 of SUPERVISOR 11-10 23:58 closed (`block_peel2_15417_result.txt`).
+- All 179 OPEN blocks of block_extract2 NMAX 20 (reach seed 7): **164 NONE(exact)** for t -> t-1 on D
+  (tof 2: 114, tof 3: 14, tof 4: 34, tof 5: 2); 15 SLACK (rank on D < t-1, not decided): the 7 three-Toffoli rank-1 blocks
+  (21942.., 22775.., 33380..) and the 8 dirty-CCCX nested blocks (25601.., 28840..).  0 HIT (`block_peel2_all_n20_result.txt`).
