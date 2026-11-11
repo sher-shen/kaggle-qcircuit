@@ -1,37 +1,36 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-11 04:40 UTC（本次运行 04:05 开始）
-**结论**：**NOT_APPROVED**（当前最好的仍是公开 62q 电路加 merge2：62 q / 1325.48 Toffoli / 100,568.56 = **20.650×**，本次没有数值提升）
+**时间戳**：2026-11-11 05:30 UTC（本次运行 05:05 开始）
+**结论**：**NOT_APPROVED**（当前最好的仍是公开 62q 电路加 merge2：62 q / 1325.48 Toffoli / 100,568.59 = **20.650×**，本次没有数值提升）
 
 ## 1. 干活的状态
-- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**，干活的会话 11-04 之后没有推送过，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2）。本次推送 7c262c0。
-- **又有重叠运行**：另一个监工运行在 04:27 推了 c54c4d2（独立重跑 cells2b，结果一致 NONE），我 rebase 时 README 冲突，两段都保留了。它在 04:27 也更新过 SUPERVISOR.md（03:05 起的运行），本版已把它的结论并进来：33380..33466 等 4 个 20 线块 cells2b 独立复核计数完全一致（NONE）；dirty-CCCX 加干净 ancilla 的方向按宽度算账关闭（Q 62→63 约 +26 Toffoli-eq，远大于最多省 2 个 Toffoli）。每次运行要 1~2 小时，而 routine 每小时触发一次，所以运行会叠在一起。
+- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**。干活的会话 11-04 之后一次都没有推送，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2），本次推送 4405798。
+- 本次没有和别的运行重叠（开始时最新推送是 04:29）。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|---|
-| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.56** | **20.650** | 重新 clone manwithacat/kickmix-macos，用 ops.json 加 `edits/merge2.json` 重建，sha 一致；**官方 verifier 全量 200,540,928 shot，新 salt sv1104mm：PASS**，worst 0.99932（x=161），41 个旋转，见 `verify_p62_merge2_sv1104mm.json` |
-- 倍数 = 2,076,774.23 / 100,568.56 = 20.650，用的是 verifier 输出的总 cost（Q × C），不是子项。
-- 硬规则检查：没有向 Kaggle 提交；没有推 main；本次新增文件都 < 10 KB；没有密钥，也没有比赛非公开信息。
+| **p62 + merge2（sha fc153f1f）** | 62 | 1325.48 | 1622.07 | **100,568.59** | **20.650** | 重新 clone manwithacat/kickmix-macos，用 ops.json 加 `edits/merge2.json` 重建，sha 一致。**官方 verifier 全量 200,540,928 shot，新 salt sv1105mm：PASS**，worst 0.99932（x=161），见 `verify_p62_merge2_sv1105mm.json` |
+- 倍数 = 2,076,774.23 / 100,568.59 = 20.650，用的是 verifier 输出的总 cost（Q × C），不是子项。
+- block_extract2（NMAX 20，MAXST 64）重新生成：4257 个块，179 个 OPEN，和以前一致。
+- 硬规则检查：没有向 Kaggle 提交；没有推 main；本次新增文件都 < 5 KB；没有密钥，也没有比赛非公开信息。
 
-## 3. 本次做法（上次的指示 1：n=7 dirty-CCCX 6→5）
-- block_reach（stride 1，seed 7）重算块 25605..25618 / 28844..28857 的 D（W = 26,61,28,0,19,17,25），|D| = 91，和以前一致。
-- 手推块函数：M = maj(26,61,28)，25 ^= M·17·19，19 ^= M·17，17 ^= M，0 复原（dirty CCCX 和两个 CX 更新融在一起）。
-- 新写 `block_satk.py`：把「P|D = A g_K…g_1」编码成 CNF（g 是任意仿射共轭的 Toffoli，A 是仿射，A 可逆这一条放松掉，所以 UNSAT 就是精确 NONE），用 CaDiCaL 求解。自检：n=3 Toffoli K=1 HIT、K=0 NONE；n=4 CCCX K=1、2 在 2.7 s 内 NONE。**但 K=3 在 5 分钟内没跑完，5 线 dirty CCCX 全定义域 K=4（必然 SAT）17 分钟也没跑完**。n=7 K=5 和 K=6 自检跑了约 17 分钟没有结果，已经停掉。
-- 结论：不做对称性破缺的话，直接 SAT 不能扩展到这个规模，**指示 1 仍然开着，没有关闭**。
+## 3. 本次做法
+- **上次的指示 1（n=7 块 6→5，结构化搜索）**：手推了块 25605..25618 的结构。它是一个 Cuccaro MAJ（28 = maj(26,61,28)，1 个 Toffoli），然后是进位 M 控制的 3 位自增 (17,19,25)（用脏线 0，4 个 Toffoli，就是块 86），最后是 UMA（1 个 Toffoli，26 变成和位）。上次提的"先固定 MAJ，再问剩下的能不能 3 个做完"，**正好就是块 86 的 4→3，已经在 D 上证明 NONE(exact)**，所以这条路没有新解。要做到 5 个 Toffoli，就只能不把 M 放进任何一根线里，这需要在 n=7 上做 K=5 的穷举（每层约 3.3e5 个门），dc3 和 SAT 都做不了。这一项保持开着，但价值很低（命中也只多 +0.016×）。
+- **新方向探查（normalize / unnormalize 有空线）**：新写 `normalize_cswap_use.py`，对全部 x 经典模拟 normalize 阶段。结果：19 个 CCX 和 40 个 CSWAP 用得很多；q45 那层的 12 个 CSWAP 只在 0.26% 的 x 上真的交换了不同的值（op 216/217 只有 31 个 x）。normalize 只用到 q0..q47（最多 48 根线，空 14 根），unnormalize 最多 36 根。这两段合计 138 个 Toffoli，占 C 的 8.5%。但算账表明空的干净线不能让单个 CSWAP 变便宜（AND 进新线再测量擦除也是 1 个 Toffoli），所以要省就只能改移位本身的结构。
 
 ## 4. 问题和可疑点
-- 已经连续四十多次运行没有数值提升。≤20 线的块层面只剩 6 个 dirty-CCCX 嵌套块（n=7/9/11）没关；每处命中最多省 1 个 Toffoli（约 +0.016×）。
-- 运行重叠：两个监工同时改同一个 README，靠 rebase 合并，暂时没有丢东西，但很浪费。
+- 已经连续四十多次运行没有数值提升。块层面只剩 6 个 dirty-CCCX 嵌套块没关，每处命中最多 +0.016×。
+- 干活的会话一周没有推送，实际上一直是监工自己在干。
 - **再次强烈建议用户停掉这个 routine，或者改成每天一次，或者把额度转到别的题（dqi / dfthcsos）。**
 
 ## 5. 下一步指示（按优先级，都还没做）
-1. **n=7 块 6→5 换成结构化搜索**：利用块函数的形式（只有 25、19、17 变，变化量是 M·17·19、M·17、M），枚举「先在 28 上算 M（1 个 Toffoli，可以和 a、b 的 CX 融合），再在 {0,17,19,25} 上用 3 个 Toffoli 实现 (25,19,17) ^= (M·17·19, M·17, M) 并复原 0」——也就是问 4 线、借 1 根 dirty 的情况下，这个映射能不能 3 个 Toffoli 做完（dc3.c 的 n=5 K=3 枚举可以直接复用，把 28 当作已经是 M 的输入）。这样 6→5 就等价于一个 5 线 K=3 问题，几分钟能跑完。
-2. **block_satk 加对称性破缺**：门规范化（l1 < l2 < l1^l2，常数规范化）、相邻对易门排序、在第一个门上用 dc3 风格的枚举分治（每个 g1 一个 SAT 子问题，4 进程并行）；先用 n=5 K=4 全定义域（必然 SAT）确认能在 1 分钟内出解，再跑 n=7 K=5。
-3. **跨条件上下文的块 / 更大的块（NMAX 24~26）**：block_extract2 现在不跨 PUSH_CONDITION 边界；放开这一条，看有没有新的 rank < t 块。
-4. **相位侧**：把 CCZ（只改相位）放进块模型，检查测量擦除后的相位修正块（phase_merge_repair、unnormalize）能不能少一个 CCZ，用 phase polynomial 的 CCZ 秩下界。
-5. **换赛道评估**：每处命中只省约 0.016×。建议停止 invsqrt 微优化，把额度转到 dqi。
-6. 已经关闭、不要再试：前面列过的全部方向，加上 7 个三 Toffoli 秩 1 块（另一次运行独立重跑也确认了）、借用无关脏线、5 线 dirty-CCCX 4→3（D 上）、给 dirty-CCCX 加干净 ancilla（宽度算账）。
+1. **normalize + unnormalize 的移位重构（138 Toffoli，有 14 / 26 根空线）**：(a) 小 x（计数 ≥16，q45=1）的情况很少见，试试把 q45 这一层和 q44 那层合并成一次"按两位计数选择"的反转，看总 CSWAP 数能不能少于 52；(b) 前缀 AND 链（19 个 CCX）和计数编码可以换成二分法求前导零（每层检查高 2^k 位是否全 0），用空线并行算；(c) 先确认 unnormalize 是不是 normalize 的精确逆（53 个 CSWAP + 34 CCX + 14 CCZ），如果是，就检查能不能用测量擦除替掉一部分逆移位。先算账再动手：每省 1 个 Toffoli 是 +0.016×。
+2. **block_satk 加对称性破缺**：门规范化、相邻对易门排序、按第一个门分治并行；先用 n=5 K=4 全定义域（必然 SAT）确认 1 分钟内出解，再跑 n=7 K=5（这是关掉 n=7 块的唯一办法）。
+3. **跨 PUSH_CONDITION 边界的块 / NMAX 24~26**：block_extract2 现在不跨条件边界；放开这一条，看有没有新的 rank < t 块。
+4. **相位侧**：把 CCZ（只改相位）放进块模型，检查 phase_merge_repair 和 unnormalize 里测量擦除后的相位修正块能不能少一个 CCZ（用 phase polynomial 的 CCZ 秩下界）。
+5. **换赛道评估**：每处命中只省约 0.016×，建议把额度转到 dqi。
+6. 已经关闭、不要再试：前面列过的全部方向，加上 n=7 块的"固定 MAJ"结构化搜索（等价于块 86 的 4→3，已经 NONE）。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -103,3 +102,4 @@
 - 2026-11-11 04:05 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1102mm 全量 PASS（100,568.52 = 20.650×）**；新写 cells2b.c + block_cells2b.py（逐格检验放进 C，埋解自检正确，m 20 埋 L+ab+cd → HIT），**4 个 20 线内积变体 3→2 全部 NONE(exact)**，7 个秩 1 三 Toffoli 块全部关闭；和 03:xx 那次运行重叠（它做了 dc3，rebase 合并）；借无关脏线的方向用论证关闭；没有数值提升；建议停掉 routine 或转题；NOT_APPROVED。
 - 2026-11-11 04:40 UTC：依然没有干活的分支；和 02:06 那次运行重叠；merge2 新容器重建 sha 一致，**换 salt sv1103mm 全量 PASS（100,568.52 = 20.650×）**；新写 dc3.c/block_dc3.py（n≤8 精确 K=3 + 仿射，D 上），**5 线 dirty-CCCX 两个块 4→3 NONE(exact)**，埋解自检 3/3 HIT；从头独立复核重叠运行的 4 个 20 线内积块 cells2b 结果，计数完全一致、全部 NONE；干净 ancilla 方向按宽度算账关闭；推送 a94a853、c54c4d2；建议停掉 routine；NOT_APPROVED。
 - 2026-11-11 04:40 UTC：依然没有干活的分支；和 04:27 那次运行重叠（它重跑了 cells2b，rebase 合并）；merge2 新容器重建 sha 一致，**换 salt sv1104mm 全量 PASS（100,568.56 = 20.650×）**；新写 block_satk（SAT 精确检验），自检正确但不能扩展到 n=7 K=5，指示 1 仍开着；推送 7c262c0；没有数值提升；建议停掉 routine 或转题；NOT_APPROVED。
+- 2026-11-11 05:30 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1105mm 全量 PASS（100,568.59 = 20.650×）**；手推 n=7 块 = Cuccaro MAJ + 进位控制的 3 位自增（脏线）+ UMA，上次的"结构化 6→5"等价于已关闭的 5 线 4→3，所以没有新解；normalize 扫描：q45 那层 12 个 CSWAP 只对 0.26% 的 x 有效，normalize 最多用 48 根线（空 14 根）；推送 4405798；没有数值提升；建议停掉 routine 或转题；NOT_APPROVED。
