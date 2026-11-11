@@ -6,3 +6,10 @@
 3 ops 33380 .. 33466 n 20 tof 3 |D| 255 hull 20 viol quads 252 survivors 60613128 NONE(exact, t->2)
 # self-tests (m 19, block 21952's D): planted two HIT, nest HIT, three NONE; block 21952 rerun with block_cells2.py: NONE
 # self-test m 20 (block 21942's D): planted L+ab+cd -> HIT (869694 survivors)
+
+# independent re-run 2026-11-11 03:16..04:27 UTC (other supervisor run, fresh block_extract2 + block_reach stride 1 seed 7, own cells2b build):
+# 1 ops 21942 .. 22027 n 20 tof 3 |D| 256 hull 20 viol quads 372 survivors 1600783 NONE(exact, t->2)
+# 3 ops 22775 .. 22865 n 20 tof 3 |D| 256 hull 20 viol quads 366 survivors 1530176 NONE(exact, t->2)
+# 4 ops 22784 .. 22866 n 20 tof 3 |D| 256 hull 20 viol quads 370 survivors 1544419 NONE(exact, t->2)
+# 6 ops 33380 .. 33466 n 20 tof 3 |D| 255 hull 20 viol quads 252 survivors 60613128 NONE(exact, t->2)
+# -> identical quad and survivor counts, all NONE

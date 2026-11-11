@@ -655,3 +655,4 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - **Blocks 21942..22027, 22775..22865, 22784..22866, 33380..33466 (20 wires, target ^= 3 products): 3 -> 2 NONE(exact) on D**
   (`block_cells2b_n20_result.txt`, ~13 min each on 4 cores; m = 20 planted L+ab+cd on block 21942's D -> HIT).  All 7 three-Toffoli
   rank-1 slack blocks of block_extract2 NMAX 20 are now closed; of the 8 dirty-CCCX nested blocks the two 5-wire ones are closed by block_dc3 (no-ancilla model), 6 remain open.
+- Independent re-run of block_cells2b on all four 20-wire variants (fresh inputs, own build): identical quad / survivor counts, all NONE (appended to `block_cells2b_n20_result.txt`).
