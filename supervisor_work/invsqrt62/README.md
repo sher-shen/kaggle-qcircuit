@@ -691,3 +691,13 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - `cswap_rank.py`: for each CSWAP level of normalize, the products c*(a^b) over all x have full GF(2) rank modulo the affine span of the
   live wires (10/10/9/12/11). No two CSWAPs of a level can share one AND. Direction "normalize restructuring" closed at the level-local scale
   (`normalize_bounds_result.txt`).
+
+## 2026-11-11 07:xx UTC — cross-level CSWAP bound, rare-swap drop (supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1107mm: PASS, score 100,568.50 = 20.650x**
+  (`verify_p62_merge2_sv1107mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `cswap_multirank.py`: lower bound rank(outputs mod affine(inputs)) for groups of consecutive shift levels. Adjacent pairs 46+42 (21/21),
+  42+43 (20/20), 43+44 (19/19) are tight, so merging those pairs cannot save an AND. 44+45 gives 19 vs 21 CSWAPs (gap 2, bound is weak);
+  groups of 3+ saturate at ~20 live wires (uninformative). Each level is a controlled reflection; a 4-way select per bit costs 3 ANDs vs 2
+  CSWAPs, so a generic merge is negative anyway.
+- Dropping CSWAP 216/217 (useful on only 31/30 x): exact phase trace worst ratio 4.3e7 at x=31 -> FAIL. Closed.
+  (`cswap_multirank_result.txt`)
