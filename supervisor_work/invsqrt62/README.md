@@ -639,3 +639,15 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - Borrowed *uncorrelated* dirty wire (former instruction 3) is closed by argument: setting the borrowed wire to 0 turns any 2-AND circuit
   into one with a clean ancilla, which the cells test already allows (any width), so D x {0,1} adds nothing.  Borrowing a wire whose value
   is correlated with the block inputs is exactly the larger-block case (the 20-wire variants below).
+
+## 2026-11-11 03:xx UTC — dirty-CCCX 4 -> 3 on D (block_dc3); 20-wire inner-product variants run (block_cells2b)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1103mm: PASS, score 100,568.52 = 20.650x**
+  (`verify_p62_merge2_sv1103mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- Inputs regenerated from scratch: block_extract2 NMAX 20 MAXST 64 -> 4257 / 179 OPEN (identical counts); block_reach (stride 1, seed 7)
+  |D| identical to the earlier runs (256/256/255 for the inner-product blocks, 29/91/273/517 for the dirty-CCCX family).
+- New `dc3.c` + `block_dc3.py`: exact test "P|D = (A g3 g2 g1)|D" (g_i any affine conjugate of a Toffoli, A any affine map) for n <= 8:
+  g1, g2 enumerated (4340^2 = 18.8M pairs at n = 5), last gate by the K=1 residue criterion (every output bit = affine + w_k [y in F]),
+  so NONE is exact.  Self-tests on the real D: 3/3 planted random 3-gate circuits HIT.
+- **Blocks 25608..25615 and 28847..28854 (the 5-wire dirty CCCX, 4 Toffoli, rank 2 on D): K=3 NONE(exact) on D** (`block_dc3_result.txt`).
+  Together with the full-domain cccx_enum result, the 4-Toffoli dirty CCCX is optimal on its 5 wires even with don't-cares.
+- block_cells2b re-run on block 21952 (m 19): NONE, same as block_cells2.py.
