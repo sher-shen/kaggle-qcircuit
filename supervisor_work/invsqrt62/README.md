@@ -656,3 +656,14 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   (`block_cells2b_n20_result.txt`, ~13 min each on 4 cores; m = 20 planted L+ab+cd on block 21942's D -> HIT).  All 7 three-Toffoli
   rank-1 slack blocks of block_extract2 NMAX 20 are now closed; of the 8 dirty-CCCX nested blocks the two 5-wire ones are closed by block_dc3 (no-ancilla model), 6 remain open.
 - Independent re-run of block_cells2b on all four 20-wire variants (fresh inputs, own build): identical quad / survivor counts, all NONE (appended to `block_cells2b_n20_result.txt`).
+
+## 2026-11-11 04:xx UTC — n=7 dirty-CCCX block via SAT (block_satk): not tractable
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1104mm: PASS, score 100,568.56 = 20.650x**
+  (`verify_p62_merge2_sv1104mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- block_reach (stride 1, seed 7) for blocks 25605..25618 / 28844..28857 (W = 26,61,28,0,19,17,25): |D| = 91 each (same as before).
+- New `block_satk.py`: CNF for "P|D = A g_K .. g_1" (g = affine conjugate Toffoli, A affine, invertibility relaxed so UNSAT is exact),
+  solved with CaDiCaL (python-sat).  Self-tests: n=3 Toffoli K=1 HIT / K=0 NONE; n=4 CCCX (odd permutation) K=1,2 NONE in 2.7 s, but
+  **K=3 did not finish in 5 min**, and the 5-wire dirty CCCX K=4 on its full domain (must be SAT) did not finish in 17 min.  With no
+  symmetry breaking the solver does not scale; the n=7 K=5 run (and K=6 sanity, planted K=5) were stopped after ~17 min without result.
+  Direction "n=7 6->5 by plain SAT" is therefore **open, not closed**.  Block function (hand derivation): with M = maj(26,61,28),
+  t=25 ^= M*17*19, 19 ^= M*17, 17 ^= M (the dirty CCCX is fused with two CX updates), 0 restored.
