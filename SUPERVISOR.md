@@ -4,7 +4,7 @@
 **结论**：**NOT_APPROVED**（当前最好的仍是公开 62q 电路加 merge2：62 q / 1325.48 Toffoli / 100,568.52 = **20.650×**，本次没有数值提升）
 
 ## 1. 干活的状态
-- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**；干活的会话 11-04 之后没有推送过，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2）。本次推送 3520b46、。上次运行 02:00 结束，本次 02:06 开始，没有重叠。
+- 远端分支只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**仍然没有干活的分支 W**；干活的会话 11-04 之后没有推送过，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手（draft PR #2）。本次推送 3520b46、f84efa9。**本次和另一次监工运行重叠**：它在 03:20 往工作分支推了 a94a853（dc3：5 线 dirty-CCCX 4→3 在 D 上 NONE，salt sv1103mm PASS），我推送时 rebase 了一次，README 冲突已合并，两边结果都保留。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | C | cost | × 参考 | 本次复核 |
@@ -25,8 +25,9 @@
 - **再次强烈建议用户停掉这个 routine，或者改成每天一次，或者把额度转到别的题（dqi / dfthcsos）。** invsqrt 的局部优化已经基本穷尽。
 
 ## 5. 下一步指示（按优先级，都还没做）
-1. **dirty-CCCX 家族（块 25601.., 28840..）**：从最小的 n=5 tof 4 秩 2（块 25608..25615 / 28847..28854，|D|=29）开始做 4 → 3：3 个 AND 的输出在 span{1,y,u1,u2,u3} 里，在 D 上直接枚举（n=5，hull 5，带 1~2 根干净 ancilla 的 cccx_enum_n 在 D 上的版本）；然后 n=7 tof 6 秩 3（6→5）。
+1. **dirty-CCCX 家族剩下的 6 个块（块 25601.., 28840..）**：n=5 那两个已被重叠运行的 dc3 关闭（不带 ancilla）。下一步是 n=7 tof 6 秩 3（块 25605..25618 / 28844..28857，|D|=91）的 6→5：dc3 直接枚举 5 个门不可行，改成剥离：先用秩条件枚举前 2~3 个门，剩下的用 K=1/K=2 残差判据；再做 n=9、n=11。
 2. **跨条件上下文的块 / 更大的块（NMAX 24~26）**：block_extract2 现在不跨 PUSH_CONDITION 边界；放开这一条，看有没有新的 rank < t 块。
+2b. 另一次运行的 dc3 已关闭 5 线 dirty-CCCX 4→3，但它的模型是「n 线上 A·g3·g2·g1，不带 ancilla」；带 1 根干净 ancilla 的版本还没做，可以作为 1 的一部分。
 3. **相位侧**：把 CCZ（只改相位）放进块模型，检查测量擦除后的相位修正块（phase_merge_repair、unnormalize）能不能少一个 CCZ，用 phase polynomial 的 T 秩/CCZ 秩下界。
 4. **换赛道评估**：每处命中只省约 0.016×。建议停止 invsqrt 微优化，把额度转到 dqi。
 5. 已经关闭、不要再试：前面列过的全部方向，再加上本次的 4 个 20 线内积块 3→2，以及借用无关脏线。
@@ -98,4 +99,4 @@
 - 2026-11-10 23:58 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1023mm 全量 PASS（100,568.52 = 20.650×）**；新写 block_extract2（非贪心、NMAX 20，4257 个块）、block_k1_anf、k1_split.c/block_dset_k1：121 个秩 1 块的 K=1 在全定义域和可达 D 上都 NONE；秩 t−1 块在 D 上只剩新块 15417..15451（5→4，peel 超时没关）；推送 14b35d9 到 invsqrt-supervisor-work；建议停掉 routine；NOT_APPROVED。
 - 2026-11-11 00:30 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1100mm 全量 PASS（100,568.59 = 20.650×）**；新写 block_peel2 + ab_enum.c（目标 w 用线性方程求解，加上跑出仿射包的情况；删一个 Toffoli 的自检 HIT），**块 15417..15451 5→4 NONE(exact)**，179 个 OPEN 块里 164 个 NONE(exact)，15 个 slack，0 个 HIT；推送 a0f495e
 - 2026-11-11 02:00 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1101mm 全量 PASS（100,568.50 = 20.650×）**；新写 block_cells2 + cells2.c（两 AND 的必要条件：f 在余维 2 子空间的每个陪集上仿射；埋解自检 HIT/NONE 正确），**3 个内积块（19 线）3→2 NONE(exact)**；推送 fe11577；建议停掉 routine；NOT_APPROVED。
-- 2026-11-11 04:05 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1102mm 全量 PASS（100,568.52 = 20.650×）**；新写 cells2b.c + block_cells2b.py（逐格检验放进 C，埋解自检正确，m 20 埋 L+ab+cd → HIT），**4 个 20 线内积变体 3→2 全部 NONE(exact)**，7 个秩 1 三 Toffoli 块全部关闭；借无关脏线的方向用论证关闭；没有数值提升；建议停掉 routine 或转题；NOT_APPROVED。
+- 2026-11-11 04:05 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1102mm 全量 PASS（100,568.52 = 20.650×）**；新写 cells2b.c + block_cells2b.py（逐格检验放进 C，埋解自检正确，m 20 埋 L+ab+cd → HIT），**4 个 20 线内积变体 3→2 全部 NONE(exact)**，7 个秩 1 三 Toffoli 块全部关闭；和 03:xx 那次运行重叠（它做了 dc3，rebase 合并）；借无关脏线的方向用论证关闭；没有数值提升；建议停掉 routine 或转题；NOT_APPROVED。
