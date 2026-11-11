@@ -617,3 +617,15 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - All 179 OPEN blocks of block_extract2 NMAX 20 (reach seed 7): **164 NONE(exact)** for t -> t-1 on D
   (tof 2: 114, tof 3: 14, tof 4: 34, tof 5: 2); 15 SLACK (rank on D < t-1, not decided): the 7 three-Toffoli rank-1 blocks
   (21942.., 22775.., 33380..) and the 8 dirty-CCCX nested blocks (25601.., 28840..).  0 HIT (`block_peel2_all_n20_result.txt`).
+
+## 2026-11-11 01:xx UTC — 3 -> 2 for the inner-product slack blocks (block_cells2)
+- merge2 rebuilt (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1101mm: PASS, score 100,568.50 = 20.650x**
+  (`verify_p62_merge2_sv1101mm.json`). Nothing was submitted to Kaggle.
+- `block_cells2.py` + `cells2.c`: exact *necessary* test for "residue f (rank 1 on D) with two AND gates". With any width and
+  free measurement-based uncompute (no borrowed dirty wire), outputs lie in span{1, y, a1b1, (al+s u1)(be+t u1)}, so
+  f = L + al be + g a1 b1, g in span{1, al, be}; in every case f is affine on each cell of two affine functions, i.e. on every
+  coset of a codim-2 subspace of the hull coordinates.  Violating 4-point dependencies of D prune the 2-dim spaces H (C, 4 procs,
+  ~4 min at m = 19); survivors get the exact per-cell test.  Self-tests on the real D: planted L+ab+cd and L+a(b+cd) HIT,
+  sum of three products NONE.
+- **Blocks 21952..22026, 22784..22865, 33381..33465 (19 wires, target ^= 3 products): 3 -> 2 NONE(exact) on D**
+  (`block_cells2_result.txt`).  The 20-wire variants (21942.., 22775.., 22784..22866, 33380..) are not run (m = 20, ~16 min each).

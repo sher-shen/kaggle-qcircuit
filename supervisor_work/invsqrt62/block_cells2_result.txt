@@ -1,0 +1,6 @@
+# block_cells2 (t->2 exact necessary test on D, reach seed 7), 2026-11-11 01:xx UTC
+# blocks = block_extract2 NMAX 20 idx 37, 57, 130 (slack3.json idx 0, 2, 5)
+0 ops 21952 .. 22026 n 19 tof 3 |D| 256 hull 19 viol quads 724 survivors 8 NONE(exact, t->2)
+2 ops 22784 .. 22865 n 19 tof 3 |D| 256 hull 19 viol quads 706 survivors 15 NONE(exact, t->2)
+5 ops 33381 .. 33465 n 19 tof 3 |D| 255 hull 19 viol quads 454 survivors 26620 NONE(exact, t->2)
+# self-tests on block 37's D (m 19): planted L+ab+cd -> HIT (38 survivors), planted L+a(b+cd) -> HIT (636), planted sum of three products -> NONE (2)
