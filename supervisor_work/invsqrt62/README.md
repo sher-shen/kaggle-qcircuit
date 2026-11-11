@@ -701,3 +701,13 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   CSWAPs, so a generic merge is negative anyway.
 - Dropping CSWAP 216/217 (useful on only 31/30 x): exact phase trace worst ratio 4.3e7 at x=31 -> FAIL. Closed.
   (`cswap_multirank_result.txt`)
+
+## 2026-11-11 21:xx UTC — unnormalize CSWAP ladder bounds; joint rare-swap drop (supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1121mm: PASS, score 100,568.48 = 20.650x**
+  (`verify_p62_merge2_sv1121mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `unnorm_cswap_rank.py`: unnormalize ladder levels (ctrl q15/18/14/16/19, 12/10/10/10/10 CSWAPs). Per-level product rank mod affine(live)
+  is full (10) for the four 10-CSWAP levels; all adjacent pairs among them are tight (20/20). Level q15: rank 10 of 12 on a sample.
+- `unnorm_l15_dep.py` + `unnorm_fire_full.py`: the 2 "dependent" ones are CSWAP 46791/46792, which swap differing values on 30/31 x of the
+  full domain (all x < 300k) — the mirror of normalize 216/217. Full-domain they are independent.
+- Dropping all four (216, 217, 46791, 46792; `drop_ops.py` re-keys zpow_exact): exact phase trace worst ratio 1.1e7 at x=3 -> **FAIL, closed**.
+  (`unnorm_cswap_result.txt`)
