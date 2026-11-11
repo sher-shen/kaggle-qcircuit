@@ -682,3 +682,12 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   stage touches only q0..q47 (<= 48 live, 14 spare clean wires).  Unnormalize runs at <= 36.  Together they are 138 Toffoli.  Spare clean
   wires do not make a CSWAP cheaper, though: AND into a fresh wire + free measured uncompute is also 1 Toffoli.  Any gain must come from
   restructuring the shift itself.
+
+## 2026-11-11 06:xx UTC — normalize lower bounds (supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1106mm: PASS, score 100,568.56 = 20.650x**
+  (`verify_p62_merge2_sv1106mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `lzc_deg.py`: the leading-zero-count bit c0 restricted to x21=0 (all of it lies in the domain) has algebraic degree 21, so any circuit
+  needs >= 20 ANDs. normalize uses exactly 20 (19-CCX prefix chain + op 85): **the count part is optimal**.
+- `cswap_rank.py`: for each CSWAP level of normalize, the products c*(a^b) over all x have full GF(2) rank modulo the affine span of the
+  live wires (10/10/9/12/11). No two CSWAPs of a level can share one AND. Direction "normalize restructuring" closed at the level-local scale
+  (`normalize_bounds_result.txt`).
