@@ -711,3 +711,12 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   full domain (all x < 300k) — the mirror of normalize 216/217. Full-domain they are independent.
 - Dropping all four (216, 217, 46791, 46792; `drop_ops.py` re-keys zpow_exact): exact phase trace worst ratio 1.1e7 at x=3 -> **FAIL, closed**.
   (`unnorm_cswap_result.txt`)
+
+## 2026-11-11 22:xx UTC — normalize levels 44+45 by raw control case (supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1122mm: PASS, score 100,568.52 = 20.650x**
+  (`verify_p62_merge2_sv1122mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `norm4445_*.py`: split all x by the raw control bits (r43,r44,r45). Level 44 is controlled by r44^r43, level 45 by r45^r44, 216/217 by r45.
+  Five non-identity cases with explicit wire maps (A 245760 x: R[0..12]+R[14..20]; B 15360 x: shift 8; C 960 x; D 60 x; E 4 x).
+  Per-case Delta ranks 10/14/9/6/3 -> LP bound over control parities only 17 (weaker than the global 19). Current 21.
+- The 5 single-case CSWAPs (197-199 for A, 216/217 for D) act on different pairs and cannot share an AND by relabeling. Exact 19/20 search
+  (SAT over parity-controlled generators) not done. (`norm4445_result.txt`)
