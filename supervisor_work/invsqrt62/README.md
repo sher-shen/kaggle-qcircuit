@@ -651,3 +651,7 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
 - **Blocks 25608..25615 and 28847..28854 (the 5-wire dirty CCCX, 4 Toffoli, rank 2 on D): K=3 NONE(exact) on D** (`block_dc3_result.txt`).
   Together with the full-domain cccx_enum result, the 4-Toffoli dirty CCCX is optimal on its 5 wires even with don't-cares.
 - block_cells2b re-run on block 21952 (m 19): NONE, same as block_cells2.py.
+- (supervisor run 02:06..04:05 UTC, overlapping the run above; verifier salt sv1102mm: PASS 100,568.52, `verify_p62_merge2_sv1102mm.json`)
+- **Blocks 21942..22027, 22775..22865, 22784..22866, 33380..33466 (20 wires, target ^= 3 products): 3 -> 2 NONE(exact) on D**
+  (`block_cells2b_n20_result.txt`, ~13 min each on 4 cores; m = 20 planted L+ab+cd on block 21942's D -> HIT).  All 7 three-Toffoli
+  rank-1 slack blocks of block_extract2 NMAX 20 are now closed; of the 8 dirty-CCCX nested blocks the two 5-wire ones are closed by block_dc3 (no-ancilla model), 6 remain open.
