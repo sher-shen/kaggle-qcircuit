@@ -629,3 +629,13 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   sum of three products NONE.
 - **Blocks 21952..22026, 22784..22865, 33381..33465 (19 wires, target ^= 3 products): 3 -> 2 NONE(exact) on D**
   (`block_cells2_result.txt`).  The 20-wire variants (21942.., 22775.., 22784..22866, 33380..) are not run (m = 20, ~16 min each).
+
+## 2026-11-11 02:xx UTC — 20-wire inner-product variants (block_cells2b)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1102mm: PASS, score 100,568.52 = 20.650x**
+  (`verify_p62_merge2_sv1102mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- At m = 20 the quad prune leaves ~1.6M H (vs 8..26k at m = 19) and the Python per-cell loop of block_cells2.py is too slow, so
+  `cells2b.c` + `block_cells2b.py` do the exact per-cell affinity test in C (incremental GF(2) elimination of (1, y, f) per cell).
+  Self-tests on block 21952's D (m 19): planted L+ab+cd HIT, L+a(b+cd) HIT, three products NONE; block 21952 itself re-run: NONE.
+- Borrowed *uncorrelated* dirty wire (former instruction 3) is closed by argument: setting the borrowed wire to 0 turns any 2-AND circuit
+  into one with a clean ancilla, which the cells test already allows (any width), so D x {0,1} adds nothing.  Borrowing a wire whose value
+  is correlated with the block inputs is exactly the larger-block case (the 20-wire variants below).
