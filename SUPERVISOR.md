@@ -1,38 +1,39 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-12 06:58 UTC（本次运行 06:09 开始）
-**结论**：**NOT_APPROVED**（最好的仍是 merge5 = 62 q / 1322.48 Toffoli / 100,382.58 = **20.689×**，本次换新 salt 又全量 PASS；本次没有数值提升，方向还没穷尽）
+**时间戳**：2026-11-12 07:45 UTC（本次运行 07:06 开始）
+**结论**：**NOT_APPROVED**（**新最好 merge6 = 62 q / 1320.48 Toffoli / 100,258.53 = 20.714×**，官方 verifier 全量 PASS；还有方向没试完）
 
 ## 1. 干活的状态
-- 远端分支仍然只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`；PR 只有监工自己的 draft #2（open，head 已更新到 9b1344c）和已关闭的 #1。**没有干活的分支 W**，干活的会话 11-04 之后没有推送，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手。
-- 上次运行的提交在 05:38，本次 06:09 开始，没有重叠。
+- 远端分支仍然只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**没有干活的分支 W**，干活的会话 11-04 之后就没有推送，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手，draft PR #2 已更新（标题和正文改成 merge6）。
+- 上次运行的提交在 06:54，本次 07:06 开始，没有重叠。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|---|
-| **p62 + merge5（sha 3ee8e97d）** | 62 | **1322.48** | **1619.07** | **100,382.58** | **20.689** | 从公开 ops.json（manwithacat/kickmix-macos）+ `edits/merge5.json` 重建，sha 一致；**官方 verifier 全量 200,540,928 shot，新 salt sv1206m5：PASS**（`verify_p62_merge5_sv1206m5.log`，worst 0.99932 at x=161，rotation 41，eps 2.43e-13，max Toffoli 1492） |
-- 倍数 = 2,076,774.23 / 100,382.58 = 20.689，用的是 verifier 输出的总 cost（score = Q × C），不是子项。六个 salt（默认、sv1202m5 ~ sv1206m5）结果一致。
-- 硬规则检查：没有向 Kaggle 提交；没有推 main；本次新增文件合计约 20 KB，单个都 < 10 KB；没有密钥，也没有比赛非公开信息（第三方电路文件没有提交，只提交了从公开电路导出的窗口数据）。
+| **p62 + merge6（sha 4093ed04）** | 62 | **1320.48** | **1617.07** | **100,258.53** | **20.714** | 从公开 ops.json 加 `edits/merge6.json` 生成；**官方 verifier 全量 200,540,928 shot，默认 salt：PASS**（`verify_p62_merge6_default.log`，worst 0.99932 at x=161，旋转 41 个，eps 2.43e-13，max Toffoli 1490）；第二个 salt sv1207m6：见第 3 节第 5 条 |
+| p62 + merge5（sha 3ee8e97d） | 62 | 1322.48 | 1619.07 | 100,382.53 | 20.689 | 新容器重建后 sha 一致；**换 salt sv1207m5 全量 PASS**（`verify_p62_merge5_sv1207m5.log`） |
+- 倍数 = 2,076,774.23 / 100,258.53 = 20.714，用的是 verifier 输出的总 cost（score = Q × C），不是子项。
+- 硬规则检查：没有向 Kaggle 提交；没有推 main；本次新增文件都很小（merge6.json 8 KB，脚本 < 10 KB）；没有密钥；没有提交第三方电路文件，也没有比赛非公开信息。
 
-## 3. 本次做法（监工接手，推到 invsqrt-supervisor-work，提交 9b1344c）
-上次指示 1 **已完成**：把 unnormalize 的 wire-60 测量块放进模型。
-1. `prep60.py`：合法重排，X 60 和 CX 16→60 挪到 wu52 窗口前面（窗口里不碰 60 号线；控制线 16 在两个位置值相同）。qcheck 49,802 样本 worst 0.99932377、0 bad、0 dirty、均值 Toffoli 1322.495（不变）。
-2. 把 wire-22 工具推广成"测量任意线上的一个**奇偶校验**"（CX 17/40/41→60 正好就是测量前把奇偶性算到 60 上）：`extmw.py`、`tvmw_init.py`（MU 处 P 的第 Z 行 = RZ，S 行 = I⊕RZ）、`tvmw_sa.c`（z = <RZ,s>，移动里可以改 RZ）、`tvmw_build.py`（生成 CX RZ→60、CX 60→S、HMR）。
-3. 窗口 [46824,46892)：24 根数据线（含 17、60），22 个情形，52 个 CSWAP + 5 个免费 CX；K=52 初始化自洽（MU=52，S={6,41}，RZ={17,40,41,60}），SA 初始 cost 0。**构建器自检**：重建 K=52 原网络，qcheck 与 merge5 完全一致（修正门由精确求解得到，只要 1 个条件门）。
-4. tvmw_sa K=51：第 1 轮 4 条 × 21 分钟最好残差 **8**；第 2 轮 4 条 × 15 分钟（换 T0/ZW/PCS）最好 12。**没找到**：加入 60 号线奇偶测量（MU、S、RZ 可动）没有让 unnormalize 少一个 CSWAP。和上次 wu52 的残差 8 一样。
+## 3. 本次做法（监工接手，推到 invsqrt-supervisor-work，提交 8f1f2bb 以及后续）
+1. **发现**：在 128k 个 x 上比较状态（`unnorm_inv_build.py` 的 MAP：0..13 不变，14→57，15→50，16→27，17→61，18→51，19→28，20→40，21→41，控制线 42→16，43→14，44→18，45→15，46→19），unnormalize 阶梯的结束状态（p62m5 op 46892）和 normalize 的开始状态（op 144）逐线相等，阶梯的开始状态和 normalize op 247 之后的状态也逐线相等。所以 unnormalize 阶梯（52 个 CSWAP，加 wire-60 测量）算的正好是 normalize [144,248) 的逆置换，而 normalize 只用 49 个 CSWAP 加 wire-22 免费测量技巧。
+2. **构造**：把 normalize [144,248) 按 MAP 重标号后倒序放过来。正向的 wire-22 技巧是用测量免费擦掉一个值（断言过：HMR 前的值 = w44 & (w13 ^ w21)），倒过来时要把这个值重新算出来，用 **1 个 CCX** 写进干净线 47。这样阶梯是 49 个 CSWAP 加 1 个 CCX，共 50 个 Toffoli（原来 52 个）。剩下的线 47 = 1^w15^w41，线 60 = 1^w16^w17^w40^w41，都是活跃线的仿射函数（`gf2_fit.py`），用 CX 加 X 免费清掉，不需要测量。
+3. qcheck 217,896 个样本：worst 0.99932377，0 bad，0 dirty，均值 Toffoli 1320.49（少 2.0）。官方全量 PASS，cost 100,258.53。
+4. 想把倒过来要用的那个 CCX 也省掉：这个值在倒序阶梯用到它之前的 77 个位置上，以及 ops 46700..46816 里，都不是活跃线的仿射函数，所以没有免费的拷贝，这条路关闭。
+5. 新写 `mirror_scan.py`（找"状态相同、可以互相取逆、两边 Toffoli 数不同"的嵌套段对，步长 16，1.5k 个 x，排除含旋转的段）：除了这一处，只剩 15664~15920 的测量修正 CCZ 块，那些只算相位，不是置换，不能这样替换。这个方向在这个粒度下关闭。第二个 salt sv1207m6 的全量复核在后台跑；如果本次运行结束时还没出结果，下一次运行要先补上。
 
 ## 4. 问题和可疑点
-- SA 和精确局部检验都证明不了下界；unnormalize 在 CSWAP / transvection / 加测量三种模型里都卡在残差 8，看起来这条线到头了（未证明）。
-- 自从 merge5 以后连续 5 次运行没有数值提升；CSWAP 窗口这条线收益基本耗尽，应该换方向。
-- 本次只复核了 merge5（全量）；以前的 lut_* 电路没有重跑（之前已全量复核，未变）。
+- merge6 目前只有一个 salt 全量 PASS，下次要换 salt 复核（必须做）。
+- mirror_scan 用的是"线值向量的多重集"做签名，忽略相位，步长 16 可能漏掉短段；结论只算抽样。
+- 以前的 lut_* 电路本次没有重跑（之前已经全量复核过，没有变）。
 
 ## 5. 下一步指示（按优先级）
-1. **换赛道评估（升为第一）**：CSWAP 窗口方向连续多次 0 收益。把额度转到 63q/62q 公开电路里 coeff_lookup 以外的 arith_a/b/c 段：用 `stage_xag.py` 导出每段的 AND 级仿射形式，找 AND 数下降（同一目标两个 CCX 合并成一个、借比特代替干净辅助位）；先给出每段的 AND 数和"可能省多少 Toffoli"的量化估计再动手。
-2. **rotation 成本**：41 个旋转 × 28.8 T ≈ 295 Toffoli-eq，占 C 的 18%。检查能否合并相邻 Z_POW（同一线、只差 Clifford）或把某些角度换成更低精度 / 用相位梯度加法替代，计算 eps 预算是否允许（worst 0.99932 只剩 0.07% 余量，要非常小心）。
-3. **4 换 3 精确检验**（上次指示 2，未做）：tv_merge3g 推广到删一个门、重解三个门；先在 normalize MU 前 14 门段和 wu52 的 15 层 12 门上跑。
-4. **tv22 里"改 z"的精确检验**（上次指示 3，未做）：删 MU 前的门 i，MU 后的门 j 用 tv_merge2 代数精确重解，同时联合解 S 和修正方程组。
-5. **Q 维度**：cost = Q × C，Q=62。找一根全程可以被借用（dirty borrow）的线，若能降到 61 q 即 -1.6%（约等于省 21 个 Toffoli），比单个 CSWAP 合并收益大得多；用 `live_trace.py` 找每个时间段的空闲线，看能否把占线最短的辅助位挤进别的线的空闲区间。
-6. 已经关闭、不要再试：前面列过的全部方向；另外本次：unnormalize + wire-60 奇偶测量模型 K=51 SA（残差 8）。
+1. **复核 merge6**：新容器重建（sha 4093ed04），用新 salt 全量跑官方 verifier。
+2. **在 merge6 新阶梯上再跑 SA**：新的 unnormalize = 49 CSWAP + 1 CCX，结构和原来的 52 不同。把它当成初始网络，给 `tvmw_sa`/`cswap_win_sa` 跑 K=49（也就是说倒序的 wire-22 技巧要在 unnormalize 里换一种测量方式来实现）；normalize 窗口 K=34 一旦找到，unnormalize 会自动跟着少 1 个（取逆），**两边各少 1 个，收益翻倍**。所以要优先把额度放到 normalize 的 K=34 上（以前的最好残差是 8）。
+3. **把"取逆复用"推广**：normalize 有改进时，用 `unnorm_inv_build.py` 重新生成 unnormalize（脚本是通用的，只需要更新 NS/NE/US/UE 和 MAP）。另外检查 LZC（20 个 AND）的计算和反计算有没有类似的不对称：unnormalize 之后的两个互补条件块（每个约 10 个 Toffoli，执行概率 0.5）是在反计算计数位。可以考虑直接用 LZC 前缀链的逆（19 个 CCX 倒序，测量反计算），比较两边的代价。
+4. **mirror_scan 加细**：步长 1~4、更多 x，签名里加上相位标记（遇到 Z_POW/CCZ/CZ 就断开），在 arith_b/arith_c 的进位链（加法器的计算和反计算）里找"反计算比计算贵"的段。
+5. **Q 维度 / rotation**：同上次的指示 1、2（arith 段的 AND 级仿射分析，41 个旋转的成本 295 Toffoli-eq），仍然没做。
+6. 已经关闭、不要再试：前面列过的全部方向；另外本次：倒序 CCX 的仿射拷贝（0 处）；mirror_scan 步长 16 的结果（除了已用的那一处，0 处）。
 
 ## 历史
 - 2026-11-05 01:35 UTC：没有干活的分支；复核 sv_B（1.181× PASS，一致）；监工接手，做了 LUT+二次方案 lut_C 4.417× 和 lut_D 4.763×（全量 PASS），lut_E 4.792×（全量 PASS），开了 draft PR #1；NOT_APPROVED。
@@ -117,3 +118,4 @@
 - 2026-11-12 04:45 UTC：依然没有干活的分支；本次没有重叠运行；merge5 新容器重建 sha 一致，**换 salt sv1204m5 全量 PASS（100,382.50 = 20.689×）**；完成上次的指示 1、2：新写 tv_merge3（相邻 3 换 2）和 tv_merge3g（不相邻 3 换 2），自检全部通过，wn/wu/MU 前全部 0 个；新写 ext22/tv22_init/tv22_sa/tv22_build（normalize 整段 49 个 CSWAP 加 22 号线测量的模型，修正条件是精确的 GF(2) 方程组，构建器重建原网络精确 trace 一致），K=48 SA 最好残差 12；推送 765b637、da9117b 到 invsqrt-supervisor-work；没有数值提升；NOT_APPROVED。
 - 2026-11-12 05:40 UTC：依然没有干活的分支；本次没有重叠运行；merge5 新容器重建 sha 一致，**换 salt sv1205m5 全量 PASS（100,382.55 = 20.689×）**；完成上次指示 4、2：unnormalize 扩成 52 个 CSWAP 的窗口（reorder_unnorm.py），精确 2 合 1 / 3 换 2 全部 0，K=51 SA 残差 8（缺陷固定在情形 {1,9,17,25}，线性形式表达不了），新写 nearmiss_resolve.sh，三个近似解改 1~2 个门都修不好；tv22 结构化移动 K=48 残差 12；推送 581156b；没有数值提升；NOT_APPROVED。
 - 2026-11-12 06:58 UTC：依然没有干活的分支；本次没有重叠运行；merge5 新容器重建 sha 一致，**换 salt sv1206m5 全量 PASS（100,382.58 = 20.689×）**；完成上次指示 1：新写 prep60/extmw/tvmw_init/tvmw_sa/tvmw_build（unnormalize 加 60 号线奇偶测量的模型，构建器自检一致），K=51 SA 两轮 8 条最好残差 8；推送 9b1344c；没有数值提升；NOT_APPROVED；建议转到 Q 维度 / rotation / arith 段。
+- 2026-11-12 07:45 UTC：依然没有干活的分支；本次没有重叠运行；merge5 新容器重建后 sha 一致，换 salt sv1207m5 全量 PASS（20.689×）；**监工接手：发现 unnormalize 阶梯是 normalize 的逆（重标号后逐线相等），换成倒序的 normalize（49 CSWAP + 1 CCX，原来 52），merge6 = 62 q / 1320.48 / 100,258.53 = 20.714×，官方 verifier 默认 salt 全量 PASS**；新写 unnorm_inv_build/gf2_fit/mirror_scan；推送 8f1f2bb，更新 PR #2；NOT_APPROVED。
