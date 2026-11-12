@@ -822,3 +822,9 @@ python3 -I ops2kmx.py p62m3.json p62m3.kmx ; (kickmix kmx->kmb as above)   # p62
 - `tv22_build.py ops.json x22.json x22.txt sa.log out.json`: builder (gates, CTL to raw bits, CX 22->S, HMR, Z/CZ fix-ups from the
   solved system, gates, CTL end forms). **Self-test: rebuilding the K=49 original gives exact `phase_trace.py` mean Toffoli 1322.48,
   worst 0.99932377 at x=161, min margin 58,597,850 — identical to merge5.**
+- Pre-MU segment alone (14 gates, W=23, end = exact state at MU): tv_merge2 0, tv_merge3 0 (self-test 13/13, planted 8/8) (`tv22_pre_merge.log`).
+- `tv22_sa.c` K=48 (seeded from K=49 minus a random gate; 6 runs, T0 0.3..2.0, ZW 1..3, two with CSWAP-only moves `PCS=1`, ~15 min
+  each): **best residual 12**, which is exactly the cost of just deleting gate 33 (single-gate drop costs: 12..40). Not found.
+- `tv_merge3g.py`: **exact 3->2 for NON-adjacent pairs** (drop i, re-solve any j<k with the gates between fixed): with
+  b = <Lk, Y_c> (state after k) the condition X ^ M^-1 Y = a vj ^ b M^-1 vk is linear in (Lj, Lk). Self-test: every original
+  pair with gap <= 7 re-found (wn 217/217, wu 301/301, pre 70/70). **Result: wn 0, wu 0, pre-MU 0** (`tv_merge3g_result.log`).

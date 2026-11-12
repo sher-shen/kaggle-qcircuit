@@ -60,7 +60,7 @@ int main(int argc,char**argv){FILE*F=fopen(argv[1],"r");if(fscanf(F,"%d %d %d",&
   nmono2=0; for(int i=0;i<=NCT;i++) for(int j=i;j<=NCT;j++){ if(i==0&&j>0) continue; mono2[nmono2][0]=i; mono2[nmono2][1]=j; nmono2++; }
   NVAR=Z*(NCT+1)+nmono2; if(NVAR>191){printf("too many vars\n");return 1;}
   K=atoi(argv[2]);rs=atoll(argv[3])*2654435761ULL+12345;long long IT=atoll(argv[4]);int MR=argc>5?atoi(argv[5]):1<<30;
-  double T0=argc>7?atof(argv[7]):1.0; if(argc>8) ZW=atof(argv[8]);
+  double T0=argc>7?atof(argv[7]):1.0; if(argc>8) ZW=atof(argv[8]); if(argc>9) PCS=atof(argv[9]);
   int NI=0; unsigned iL[256],iv[256]; int iff[256]; int imu=0; unsigned ism=0;
   if(argc>6 && strcmp(argv[6],"-")){FILE*G=fopen(argv[6],"r");char a[64],b[64];int f; char hs[64]; if(fscanf(G,"MU %d %63s",&imu,hs)==2) ism=strtoul(hs,0,16);
     while(fscanf(G,"%63s %63s %d",a,b,&f)==3){iL[NI]=strtoul(a,0,16);iv[NI]=strtoul(b,0,16);iff[NI++]=f;} fclose(G);}
@@ -72,7 +72,7 @@ int main(int argc,char**argv){FILE*F=fopen(argv[1],"r");if(fscanf(F,"%d %d %d",&
     else {for(int t=0;t<K;t++)randgate(t); MU=rnd()%(K+1); SM=0;}
     double cur=cost();
     for(long long it=0;it<IT;it++){double T=T0*(1-(double)it/IT)+0.05;
-      int t=rnd()%K,t2=-1;unsigned sL=gL[t],sv=gv[t];int sf=gf[t]; int smu=MU; unsigned ssm=SM; int mv=rnd()%8;
+      int t=rnd()%K,t2=-1;unsigned sL=gL[t],sv=gv[t];int sf=gf[t]; int smu=MU; unsigned ssm=SM; int mv=rnd()%8; if(PCS>=1.0 && mv>=2 && mv<=4){ if(gL[t]==gv[t] && __builtin_popcount(gL[t])==2){ int a=__builtin_ctz(gL[t]); unsigned rest=gL[t]&~(1u<<a); int b; do b=rnd()%W; while(rest>>b&1); gL[t]=gv[t]=rest|(1u<<b); if(__builtin_popcount(gL[t])!=2){gL[t]=sL;gv[t]=sv;} } mv=99; }
       if(mv==0) randgate(t);
       else if(mv==1) gf[t]=1+rnd()%NF;
       else if(mv==2){unsigned L=gL[t]^(1u<<(rnd()%W)); if(!ok(L,gv[t])) L^=1u<<(rnd()%W); if(ok(L,gv[t])) gL[t]=L;}
@@ -80,7 +80,7 @@ int main(int argc,char**argv){FILE*F=fopen(argv[1],"r");if(fscanf(F,"%d %d %d",&
       else if(mv==4){unsigned b=1u<<(rnd()%W); unsigned L=gL[t]^b, v=gv[t]^b; if(ok(L,v)){gL[t]=L;gv[t]=v;}}
       else if(mv==5){ int d=(rnd()&1)?1:-1; MU+=d; if(MU<0||MU>K) MU=smu; }
       else if(mv==6){ SM^=1u<<(rnd()%(W-1)); }
-      else {t2=rnd()%K;unsigned x;x=gL[t];gL[t]=gL[t2];gL[t2]=x;x=gv[t];gv[t]=gv[t2];gv[t2]=x;int y=gf[t];gf[t]=gf[t2];gf[t2]=y;}
+      else if(mv==7){t2=rnd()%K;unsigned x;x=gL[t];gL[t]=gL[t2];gL[t2]=x;x=gv[t];gv[t]=gv[t2];gv[t2]=x;int y=gf[t];gf[t]=gf[t2];gf[t2]=y;}
       double nc=cost();
       if(nc<=cur||exp((cur-nc)/T)>(rnd()%1000000)/1e6) cur=nc;
       else{ if(t2>=0){unsigned x;x=gL[t];gL[t]=gL[t2];gL[t2]=x;x=gv[t];gv[t]=gv[t2];gv[t2]=x;int y=gf[t];gf[t]=gf[t2];gf[t2]=y;} else{gL[t]=sL;gv[t]=sv;gf[t]=sf;} MU=smu; SM=ssm; }

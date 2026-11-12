@@ -1,0 +1,10 @@
+== wn
+found 0
+== wu
+found 0
+== pre
+found 0
+== selftests (original pairs j<k, gap<=7, re-found)
+selftest gap<=7 pairs 217 miss 0
+selftest gap<=7 pairs 301 miss 0
+selftest gap<=7 pairs 70 miss 0

@@ -1,0 +1,6 @@
+x22_k48_c21.log restart 3 best 16.0
+x22_k48_c22.log restart 4 best 12.0
+x22_k48_s11.log restart 0 best 16.0
+x22_k48_s12.log restart 2 best 16.0
+x22_k48_s13.log restart 3 best 12.0
+x22_k48_s14.log restart 1 best 80.0

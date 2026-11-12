@@ -1,0 +1,5 @@
+# pre-MU segment of x22 (14 gates, W=23 incl. wire 22, end = exact state at MU)
+tv_merge2 found 0
+selftest pairs 13 miss 0
+planted 3->2 8 hit 8
+tv_merge3 found 0
