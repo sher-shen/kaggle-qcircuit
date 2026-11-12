@@ -772,3 +772,29 @@ python3 -I ops2kmx.py p62m3.json p62m3.kmx ; (kickmix kmx->kmb as above)   # p62
   Expected cost 62 x (1322.48 + 296.59) = 100,382.5 = **20.689x** 
 - **Official verifier, full 200,540,928 shots, default salt: PASS, Q 62, Toffoli 1322.48, C 1619.07, score 100,382.52 = 20.689x** (`verify_p62_merge5_default.log`). Second salt sv1202m5: PASS 100,382.56 (`verify_p62_merge5_sv1202m5.log`).
 - merge4 (27-CSWAP 43+44+45 window) is superseded by merge5; its full verify was stopped to free the cores (exact trace passed).
+
+## Transvection model for the CSWAP windows (2026-11-12 03:xx UTC, supervisor)
+- New container: `patch_ops.py` + `ops2kmx.py` + kickmix rebuild of merge5 gives sha `3ee8e97d...` again. **Official verifier, full
+  200,540,928 shots, new salt sv1203m5: PASS, Q 62, Toffoli 1322.48, score 100,382.55 = 20.689x** (`verify_p62_merge5_sv1203m5.log`).
+- Generalised gate set: `x -> x ^ f*<L,x>*v` with popcount(L&v) even (L, v masks over the window's data wires, f a control form).
+  Each one is a single CCX conjugated by a free CX network on the data wires, so it costs 1 Toffoli like a CSWAP
+  (CSWAP(a,b) = L = v = {a,b}); the CSWAP model is a strict subset.
+  - `tv_prep.py win.json out.txt`: affine-mask version of a `cswap_win_extract.py` window.
+  - `cswap_win_tv.c`: SA in that model (moves: toggle L/v bits keeping the even overlap, change form, swap order, random gate).
+  - `tv_build.py ops.json win.json tv.log out.json`: builder (A = CX synthesis by elimination, CCX, A^-1, self-checked on random
+    vectors). Fed with the K=35 CSWAP network it gives a JSON byte-identical to `cswap_win_build.py` (checked).
+  - `tv_merge2.py in_tv.txt gates.txt`: **exact 2->1 merge test**: drop gate i, re-solve gate j as the best single transvection
+    with everything else fixed (per case D_c = X_c ^ suffix^-1(target) must be 0 or rank 1 with a common v; L from a GF(2) system).
+    Validated on a planted case (drops a dummy gate and recovers the removed CSWAP).
+  - `tv_walk.py`: plateau walk (swap neighbours + exact re-solve, equivalent-gate replacement) with the merge test every 30 moves.
+  - `win_orig_gates.py ops.json win.json out.txt`: original window gates as SA init lines.
+- Results (normalize window `wn`, K=35 from merge5; unnormalize window `wu` = p62m5 ops [46824,46879), 47 CSWAPs, 22 data wires,
+  controls 15,18,14,16,19, 21 cases, extraction self-consistent at K=47):
+  - `tv_merge2.py`: **0 exact 2->1 merges** in `wn` (K=35) and in `wu` (K=47).
+  - `tv_walk.py` 1200 s each: `wn` 8280 moves / ~270 full merge tests, `wu` 3450 moves / ~115 tests: **0 merges**.
+  - `cswap_win_tv.c` K=34 on `wn` seeded from K=35 (4 seed/T0 settings, ~25 min): best residual 12 (popcount). K=46 on `wu`: best 12.
+    CSWAP-model K=34 (`cswap_win_sa.c`, ~25 min more): best residual still 8.
+- CSWAP census of p62m5: 198 CSWAPs; runs of >= 3 are only normalize (14 + 35), unnormalize (49) and two 3-CSWAP runs (ops 15275,
+  15343); the other ~91 are isolated. No other dense CSWAP window exists.
+- Next: put normalize ops 144..227 incl. wire 22 (the wire-22 trick is a transvection with L = x^x21, v = x^x21^22) into the model,
+  with wire 22's end value allowed to be any data form whose coefficients are affine in the case bits (fixed by free CZ/Z after HMR).
