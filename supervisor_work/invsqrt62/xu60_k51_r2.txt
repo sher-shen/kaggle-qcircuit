@@ -1,0 +1,9 @@
+xu60_k51_s601.log: restart 7 best 14.0
+xu60_k51_s602.log: restart 0 best 16.0
+xu60_k51_s603.log: restart 2 best 8.0
+xu60_k51_s604.log: restart 5 best 8.0
+xu60_k51_s611.log: restart 1 best 16.0
+xu60_k51_s612.log: restart 1 best 16.0
+xu60_k51_s613.log: restart 3 best 12.0
+xu60_k51_s614.log: restart 5 best 20.0
+args: seed T0 ZW PCS = 601 0.5 2 0.5 | 602 1.0 2 0.5 | 603 0.5 2 2 | 604 1.0 1 2 (21 min) ; 611 0.3 1 0.5 | 612 0.7 4 0.5 | 613 0.7 1 1 | 614 1.5 2 0.2 (15 min)

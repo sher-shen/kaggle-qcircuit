@@ -846,3 +846,20 @@ python3 -I ops2kmx.py p62m3.json p62m3.kmx ; (kickmix kmx->kmb as above)   # p62
   `cswap_win_sa_dump.c` log + 1 dummy gate, then tv_merge2/3/3g with `TV_NEARMISS=1`; any MERGE is asserted exact). Self-test with a
   corrupted original gate: repaired (1 / 2 / 61 hits). Three K=51 residual-8 states of wu52 (seeds 555-557, all failing in cases
   {1,9,17,25}): **0 repairs** with 1 or 2 re-solved gates.
+
+## 2026-11-12 06:xx UTC — unnormalize incl. the wire-60 measurement (measured-parity model) (supervisor)
+- New container: merge5 rebuilt from the public ops.json + `edits/merge5.json`, sha `3ee8e97d...` again. **Official verifier, full
+  200,540,928 shots, new salt sv1206m5: PASS, Q 62, Toffoli 1322.48, score 100,382.58 = 20.689x** (`verify_p62_merge5_sv1206m5.log`).
+- `prep60.py p62u.json p62u60.json`: legal reorder of the `reorder_unnorm.py` layout: X 60 and CX 16->60 (46882/46883) move in front of
+  the wu52 window (wire 60 is untouched there, control 16 has the same value at both points). qcheck 49,802 samples: worst
+  0.99932377, 0 bad, 0 dirty, mean Toffoli 1322.495 (unchanged).
+- Generalised the wire-22 tools to any measured wire and a measured PARITY (the free CX 17/40/41 -> 60 before the HMR):
+  `extmw.py` (ext22.py + MW arg, MW last in the data list), `tvmw_init.py` (row Z of P at MU = RZ, S rows = I ^ RZ; writes
+  `MU mu 0xS 0xRZ`), `tvmw_sa.c` (z = <RZ, s>; move 6 also toggles RZ bits), `tvmw_build.py` (emits CX RZ -> MW, CX MW -> S, HMR).
+- `extmw.py p62u60.json 46824 46892 15,18,14,16,19 xu60 2 60`: 24 data wires (incl. 17 and 60), 22 cases, 52 CSWAPs + 5 free CX;
+  init K=52, MU=52, S={6,41}, RZ={17,40,41,60}, self-check OK (`xu60*.txt`, `xu60_k52_init.txt`). tvmw_sa init cost 0.
+  **Builder self-test**: rebuilding the K=52 original gives qcheck worst 0.99932377, 0 bad, 0 dirty, mean Toffoli 1322.495 (exact
+  fix-up solve picks 1 conditioned gate instead of the original 2 CZ).
+- tvmw_sa K=51 (seeded from K=52 minus a random gate), round 1: 4 runs x 21 min (T0 0.5/1.0, ZW 1/2, PCS 0.5/2): **best residual 8**
+  (same as the plain wu52 model); round 2: 4 runs x 15 min (T0 0.3..1.5, ZW 1/2/4, PCS 0.2..1): best 12 (`xu60_k51_r2.txt`). Not found: adding the wire-60
+  parity measurement (movable MU, S, RZ) does not unlock K=51.
