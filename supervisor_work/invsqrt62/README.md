@@ -884,3 +884,6 @@ python3 -I ops2kmx.py p62m3.json p62m3.kmx ; (kickmix kmx->kmb as above)   # p62
   (`verify_p62_merge6_default.log`, worst 0.99932 at x=161, rotations 41, eps 2.43e-13, max Toffoli 1490). Nothing was submitted to Kaggle.
 - Tried to avoid the inverse-trick CCX: delta = w44 & (w13 ^ w21) is not affine in the live wires at any point of the reversed ladder
   before its use (77 positions) nor in ops 46700..46816 (fit on 34k x). Closed.
+- `mirror_scan.py ops.json 16 1500`: nested equal-state segment pairs (state = multiset of wire value vectors, so it ignores phase), skipping
+  halves that contain rotations, reporting pairs where the backward half costs more. On p62m6 it finds only the measurement fix-up CCZ
+  blocks at 15664..15920, which are phase-only, so they can't be swapped for an inverse. No other mirror at this granularity.
