@@ -863,3 +863,24 @@ python3 -I ops2kmx.py p62m3.json p62m3.kmx ; (kickmix kmx->kmb as above)   # p62
 - tvmw_sa K=51 (seeded from K=52 minus a random gate), round 1: 4 runs x 21 min (T0 0.5/1.0, ZW 1/2, PCS 0.5/2): **best residual 8**
   (same as the plain wu52 model); round 2: 4 runs x 15 min (T0 0.3..1.5, ZW 1/2/4, PCS 0.2..1): best 12 (`xu60_k51_r2.txt`). Not found: adding the wire-60
   parity measurement (movable MU, S, RZ) does not unlock K=51.
+
+## 2026-11-12 07:xx UTC — merge6: unnormalize ladder = literal inverse of normalize, 50 instead of 52 (supervisor)
+- New container: merge5 rebuilt from the public ops.json + `edits/merge5.json`, sha `3ee8e97d...` again. **Official verifier, full
+  200,540,928 shots, new salt sv1207m5: PASS, Q 62, Toffoli 1322.48, score 100,382.53 = 20.689x** (`verify_p62_merge5_sv1207m5.log`).
+- Observation (state comparison on 128k x, all x < 8192 + random): with the wire map n -> u
+  0..13 -> same, 14->57, 15->50, 16->27, 17->61, 18->51, 19->28, 20->40, 21->41, controls 42->16, 43->14, 44->18, 45->15, 46->19,
+  the state at the unnormalize ladder end (p62m5 op 46892) equals the state at the normalize start (op 144) wire for wire, and the
+  ladder start (46816) equals the state after normalize op 247. So the unnormalize ladder (52 CSWAPs + the wire-60 measurement)
+  computes exactly the inverse permutation of normalize ops [144,248) (49 CSWAPs + the wire-22 measurement trick).
+- `unnorm_inv_build.py p62m5.json uinv.json 47`: emits relabel(reverse(normalize [144,248))). The forward wire-22 trick is a free
+  measured erase (value at its HMR = w44 & (w13 ^ w21), asserted); the inverse recomputes it with **one CCX** into clean wire 47
+  (untouched after op 46700). Result: 49 CSWAP + 1 CCX = 50 Toffoli for the ladder (was 52).
+  Leftovers after the new ladder: wire 47 = 1 ^ w15 ^ w41 and wire 60 = 1 ^ w16 ^ w17 ^ w40 ^ w41 (the decoder output the
+  original wire-60 block erased), both **affine** (`gf2_fit.py`), so they are cleared with CX + X (free, no measurement).
+- `edits/merge6.json` = merge5 edits + one region edit on original ops [46782,46858) (113 ops). patch_ops on the public ops.json ->
+  p62m6.kmb sha256 `4093ed04a806b577ba3a468aa04df4b896ef8f36f2dfa23630b2519ef2ec3580`.
+- qcheck 217,896 samples (50k x x 4 repeats): worst 0.99932377, 0 bad, 0 dirty, **mean Toffoli 1320.49 (-2.0)**.
+- **Official verifier, full 200,540,928 shots, default salt: PASS, Q 62, Toffoli 1320.48, C 1617.07, score 100,258.53 = 20.714x**
+  (`verify_p62_merge6_default.log`, worst 0.99932 at x=161, rotations 41, eps 2.43e-13, max Toffoli 1490). Nothing was submitted to Kaggle.
+- Tried to avoid the inverse-trick CCX: delta = w44 & (w13 ^ w21) is not affine in the live wires at any point of the reversed ladder
+  before its use (77 positions) nor in ops 46700..46816 (fit on 34k x). Closed.
