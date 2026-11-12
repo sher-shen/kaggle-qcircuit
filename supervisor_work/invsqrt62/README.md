@@ -746,3 +746,17 @@ python3 -I ops2kmx.py p62m3.json p62m3.kmx ; (kickmix kmx->kmb as above)   # p62
 - Generic tools for other pure CSWAP windows: `cswap_win_extract.py` (per-case permutation of a window whose controls only see
   CX among themselves) + `cswap_win_sa.c` (any number of control bits). Unnormalize ladder 46805..46859 (47 CSWAPs, 5 control
   wires, 21 cases) extracted; seeded K=46 runs reach residual 8 only (see cswap_sa_result.txt). Second salt sv1201m3: PASS 100,506.55 (`verify_p62_merge3_sv1201m3.log`).
+
+## merge4: level-43 CSWAPs joined to the 44+45 window, 27 instead of 28 (2026-11-12 02:xx UTC, supervisor) — **20.678x (pending full verify, see below)**
+- `reorder434445.py p62m3.json p62r.json`: legal reorder: 8 of the 10 level-43 CSWAPs (172-175, 179-181, 183) touch neither the
+  wire-22 trick (176-178), nor 13 (CSWAP 182 / fix-up 186-190), so they move behind 190 (control r42^r43 rebuilt with free
+  CX 42->43). qcheck: identical. Pure window [183,226) of p62r: 28 CSWAPs, controls 42..45, 21 data wires, 10 cases.
+- `cswap_win_extract.py p62r.json 183 226 42,43,44,45 w43 4` + `cswap_win_sa.c`: K=28 from the original network = cost 0
+  (self-consistent); **K=27 seeded from the original (drop 1, T0=1.0, seed 11) found within a minute** (`w43_k27_sa.log`).
+- `cswap_win_build.py p62r.json w43.json w43_k27_sa.log p62m4.json` (generic builder: BFS free CX on CTL wires, restore end forms).
+  Folded into `edits/merge4.json` (merge2 edits + one region edit on original ops 172..218); `patch_ops.py` on the public
+  ops.json gives exactly the same ops / zpow keys. p62m4.kmb sha256 `925a0517842937112cc73c66f6276e63518a713cf80f840a4a793c9457ff8910`.
+- Exact `phase_trace.py`: mean Toffoli 1323.48, worst ratio 0.99932377 at x=161 (unchanged), min margin 58,597,850 (unchanged).
+- `reorder_norm.py p62m3.json 144 191 224 46,42,43,44,45 p62n.json` (generic: moves every CSWAP of levels 46/42/43 not blocked by
+  an anchor; 17 moved): window [174,228) = 37 CSWAPs, 5 controls, 21 cases (`wn`), for K<=36 searches.
+- merge3 second container, salt sv1202m3: PASS 100,506.50 (`verify_p62_merge3_sv1202m3.log`).
