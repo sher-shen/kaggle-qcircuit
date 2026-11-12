@@ -10,7 +10,7 @@
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
 | 电路 | Q | Toffoli（每 shot 均值） | C | cost | × 参考 | 本次复核 |
 |---|---|---|---|---|---|---|
-| **p62 + merge6（sha 4093ed04）** | 62 | **1320.48** | **1617.07** | **100,258.53** | **20.714** | 从公开 ops.json 加 `edits/merge6.json` 生成；**官方 verifier 全量 200,540,928 shot，默认 salt：PASS**（`verify_p62_merge6_default.log`，worst 0.99932 at x=161，旋转 41 个，eps 2.43e-13，max Toffoli 1490）；第二个 salt sv1207m6：见第 3 节第 5 条 |
+| **p62 + merge6（sha 4093ed04）** | 62 | **1320.48** | **1617.07** | **100,258.53** | **20.714** | 从公开 ops.json 加 `edits/merge6.json` 生成；**官方 verifier 全量 200,540,928 shot，默认 salt：PASS**（`verify_p62_merge6_default.log`，worst 0.99932 at x=161，旋转 41 个，eps 2.43e-13，max Toffoli 1490）；**第二个 salt sv1207m6 也全量 PASS（100,258.52）** |
 | p62 + merge5（sha 3ee8e97d） | 62 | 1322.48 | 1619.07 | 100,382.53 | 20.689 | 新容器重建后 sha 一致；**换 salt sv1207m5 全量 PASS**（`verify_p62_merge5_sv1207m5.log`） |
 - 倍数 = 2,076,774.23 / 100,258.53 = 20.714，用的是 verifier 输出的总 cost（score = Q × C），不是子项。
 - 硬规则检查：没有向 Kaggle 提交；没有推 main；本次新增文件都很小（merge6.json 8 KB，脚本 < 10 KB）；没有密钥；没有提交第三方电路文件，也没有比赛非公开信息。
@@ -20,15 +20,15 @@
 2. **构造**：把 normalize [144,248) 按 MAP 重标号后倒序放过来。正向的 wire-22 技巧是用测量免费擦掉一个值（断言过：HMR 前的值 = w44 & (w13 ^ w21)），倒过来时要把这个值重新算出来，用 **1 个 CCX** 写进干净线 47。这样阶梯是 49 个 CSWAP 加 1 个 CCX，共 50 个 Toffoli（原来 52 个）。剩下的线 47 = 1^w15^w41，线 60 = 1^w16^w17^w40^w41，都是活跃线的仿射函数（`gf2_fit.py`），用 CX 加 X 免费清掉，不需要测量。
 3. qcheck 217,896 个样本：worst 0.99932377，0 bad，0 dirty，均值 Toffoli 1320.49（少 2.0）。官方全量 PASS，cost 100,258.53。
 4. 想把倒过来要用的那个 CCX 也省掉：这个值在倒序阶梯用到它之前的 77 个位置上，以及 ops 46700..46816 里，都不是活跃线的仿射函数，所以没有免费的拷贝，这条路关闭。
-5. 新写 `mirror_scan.py`（找"状态相同、可以互相取逆、两边 Toffoli 数不同"的嵌套段对，步长 16，1.5k 个 x，排除含旋转的段）：除了这一处，只剩 15664~15920 的测量修正 CCZ 块，那些只算相位，不是置换，不能这样替换。这个方向在这个粒度下关闭。第二个 salt sv1207m6 的全量复核在后台跑；如果本次运行结束时还没出结果，下一次运行要先补上。
+5. 新写 `mirror_scan.py`（找"状态相同、可以互相取逆、两边 Toffoli 数不同"的嵌套段对，步长 16，1.5k 个 x，排除含旋转的段）：除了这一处，只剩 15664~15920 的测量修正 CCZ 块，那些只算相位，不是置换，不能这样替换。这个方向在这个粒度下关闭。
 
 ## 4. 问题和可疑点
-- merge6 目前只有一个 salt 全量 PASS，下次要换 salt 复核（必须做）。
+- merge6 已经在两个 salt（默认、sv1207m6）下全量 PASS。
 - mirror_scan 用的是"线值向量的多重集"做签名，忽略相位，步长 16 可能漏掉短段；结论只算抽样。
 - 以前的 lut_* 电路本次没有重跑（之前已经全量复核过，没有变）。
 
 ## 5. 下一步指示（按优先级）
-1. **复核 merge6**：新容器重建（sha 4093ed04），用新 salt 全量跑官方 verifier。
+1. **复核 merge6**：新容器重建（sha 4093ed04），再换一个新 salt 全量跑官方 verifier。
 2. **在 merge6 新阶梯上再跑 SA**：新的 unnormalize = 49 CSWAP + 1 CCX，结构和原来的 52 不同。把它当成初始网络，给 `tvmw_sa`/`cswap_win_sa` 跑 K=49（也就是说倒序的 wire-22 技巧要在 unnormalize 里换一种测量方式来实现）；normalize 窗口 K=34 一旦找到，unnormalize 会自动跟着少 1 个（取逆），**两边各少 1 个，收益翻倍**。所以要优先把额度放到 normalize 的 K=34 上（以前的最好残差是 8）。
 3. **把"取逆复用"推广**：normalize 有改进时，用 `unnorm_inv_build.py` 重新生成 unnormalize（脚本是通用的，只需要更新 NS/NE/US/UE 和 MAP）。另外检查 LZC（20 个 AND）的计算和反计算有没有类似的不对称：unnormalize 之后的两个互补条件块（每个约 10 个 Toffoli，执行概率 0.5）是在反计算计数位。可以考虑直接用 LZC 前缀链的逆（19 个 CCX 倒序，测量反计算），比较两边的代价。
 4. **mirror_scan 加细**：步长 1~4、更多 x，签名里加上相位标记（遇到 Z_POW/CCZ/CZ 就断开），在 arith_b/arith_c 的进位链（加法器的计算和反计算）里找"反计算比计算贵"的段。
@@ -118,4 +118,4 @@
 - 2026-11-12 04:45 UTC：依然没有干活的分支；本次没有重叠运行；merge5 新容器重建 sha 一致，**换 salt sv1204m5 全量 PASS（100,382.50 = 20.689×）**；完成上次的指示 1、2：新写 tv_merge3（相邻 3 换 2）和 tv_merge3g（不相邻 3 换 2），自检全部通过，wn/wu/MU 前全部 0 个；新写 ext22/tv22_init/tv22_sa/tv22_build（normalize 整段 49 个 CSWAP 加 22 号线测量的模型，修正条件是精确的 GF(2) 方程组，构建器重建原网络精确 trace 一致），K=48 SA 最好残差 12；推送 765b637、da9117b 到 invsqrt-supervisor-work；没有数值提升；NOT_APPROVED。
 - 2026-11-12 05:40 UTC：依然没有干活的分支；本次没有重叠运行；merge5 新容器重建 sha 一致，**换 salt sv1205m5 全量 PASS（100,382.55 = 20.689×）**；完成上次指示 4、2：unnormalize 扩成 52 个 CSWAP 的窗口（reorder_unnorm.py），精确 2 合 1 / 3 换 2 全部 0，K=51 SA 残差 8（缺陷固定在情形 {1,9,17,25}，线性形式表达不了），新写 nearmiss_resolve.sh，三个近似解改 1~2 个门都修不好；tv22 结构化移动 K=48 残差 12；推送 581156b；没有数值提升；NOT_APPROVED。
 - 2026-11-12 06:58 UTC：依然没有干活的分支；本次没有重叠运行；merge5 新容器重建 sha 一致，**换 salt sv1206m5 全量 PASS（100,382.58 = 20.689×）**；完成上次指示 1：新写 prep60/extmw/tvmw_init/tvmw_sa/tvmw_build（unnormalize 加 60 号线奇偶测量的模型，构建器自检一致），K=51 SA 两轮 8 条最好残差 8；推送 9b1344c；没有数值提升；NOT_APPROVED；建议转到 Q 维度 / rotation / arith 段。
-- 2026-11-12 07:45 UTC：依然没有干活的分支；本次没有重叠运行；merge5 新容器重建后 sha 一致，换 salt sv1207m5 全量 PASS（20.689×）；**监工接手：发现 unnormalize 阶梯是 normalize 的逆（重标号后逐线相等），换成倒序的 normalize（49 CSWAP + 1 CCX，原来 52），merge6 = 62 q / 1320.48 / 100,258.53 = 20.714×，官方 verifier 默认 salt 全量 PASS**；新写 unnorm_inv_build/gf2_fit/mirror_scan；推送 8f1f2bb，更新 PR #2；NOT_APPROVED。
+- 2026-11-12 07:45 UTC：依然没有干活的分支；本次没有重叠运行；merge5 新容器重建后 sha 一致，换 salt sv1207m5 全量 PASS（20.689×）；**监工接手：发现 unnormalize 阶梯是 normalize 的逆（重标号后逐线相等），换成倒序的 normalize（49 CSWAP + 1 CCX，原来 52），merge6 = 62 q / 1320.48 / 100,258.53 = 20.714×，官方 verifier 默认 salt 和 sv1207m6 都全量 PASS**；新写 unnorm_inv_build/gf2_fit/mirror_scan；推送 8f1f2bb，更新 PR #2；NOT_APPROVED。
