@@ -728,3 +728,21 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   all cases **K=21 SAT in 923 s** (a different network); `n4445_check.py` confirms it on all 3,133,453 x.
   **K=20: TIMEOUT after 2900 s (open).** Subset sweeps and a redundant progress-cardinality variant also time out. Details in `n4445_sat_result.txt`.
 - merge2 rebuilt (sha fc153f1f); official verifier full, salt sv1123mm: PASS, 100,568.56 = 20.650x (`verify_p62_merge2_sv1123mm.json`).
+
+## merge3: normalize levels 44+45 with 20 CSWAPs instead of 21 (2026-11-12 01:xx UTC, supervisor) — **20.663x**
+- The exact SAT model (n4445_sat2.py) had timed out at K=20 for hours. A plain simulated annealing over the same model
+  (`n4445_sa.c`: K gates = (wire pair, linear control form of r43,r44,r45); cost = mismatched wires summed over the 5 cases)
+  finds K=24/22/21 in seconds and **K=20 within minutes on 3/3 seeds**. K=19: best residual 2 after ~10 min x 2 seeds (open).
+- `n4445_check.py p62mm.json n4445_k20_slots.txt` -> matches the original end state on **all 3,133,453 x**.
+- `n4445_build.py ops.json n4445_k20_slots.txt edits/merge2.json edits/merge3.json` builds the region (ops 192-196, the 20
+  CSWAPs with free CX on wires 43..45 to put each form on a control wire, CX restore to q43=r43,q44=r44,q45=r45, ops 213-215).
+```
+python3 -I patch_ops.py <kickmix-macos>/tools/circuit-viewer/ops.json edits/merge3.json p62m3.json
+python3 -I ops2kmx.py p62m3.json p62m3.kmx ; (kickmix kmx->kmb as above)   # p62m3.kmb sha256 3532748e...cc029
+```
+- Exact `phase_trace.py`: mean Toffoli 1324.48, worst ratio 0.99932377 at x=161 (unchanged).
+- **Official verifier, full 200,540,928 shots, default salt: PASS, Q 62, Toffoli 1324.48, C 1621.07, score 100,506.49 = 20.663x**
+  (`verify_p62_merge3_default.log`).
+- Generic tools for other pure CSWAP windows: `cswap_win_extract.py` (per-case permutation of a window whose controls only see
+  CX among themselves) + `cswap_win_sa.c` (any number of control bits). Unnormalize ladder 46805..46859 (47 CSWAPs, 5 control
+  wires, 21 cases) extracted; SA has not yet even re-found K=47 in 200 s there (needs better moves / longer runs).
