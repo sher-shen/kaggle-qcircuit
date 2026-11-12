@@ -1,10 +1,10 @@
 # SUPERVISOR.md — invsqrt（题1）监工报告
 
-**时间戳**：2026-11-12 02:40 UTC（本次运行 02:05 开始）
+**时间戳**：2026-11-12 02:40 UTC（本次运行 02:05 开始，02:40 结束）
 **结论**：**NOT_APPROVED**（本次有新纪录：merge5 = 62 q / 1322.48 Toffoli / 100,382.52 = **20.689×**，官方 verifier 全量 PASS；方向还没穷尽，K=34 还在搜）
 
 ## 1. 干活的状态
-- 远端分支仍然只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**没有干活的分支 W**，干活的会话 11-04 之后没有推送，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手：本次推送 7b695ea、37f084d、c7efc52、9849525，draft PR #2 的标题和描述已更新为 20.689×。
+- 远端分支仍然只有 `main`、`claude/supervisor`、`claude/invsqrt-supervisor-work`。**没有干活的分支 W**，干活的会话 11-04 之后没有推送，视为已停。监工继续在 `claude/invsqrt-supervisor-work` 上接手：本次推送 7b695ea、37f084d、c7efc52、9849525 等，draft PR #2 的标题和描述已更新为 20.689×。
 - 上次运行的提交在 01:49，本次 02:05 开始，没有重叠。
 
 ## 2. 已核实的事实（本次在新容器里亲自重跑：python3.13 + data/kickmix/kickmix.so，4 核）
@@ -12,7 +12,7 @@
 |---|---|---|---|---|---|---|
 | p62 + merge3（sha 3532748e） | 62 | 1324.48 | 1621.07 | 100,506.50 | 20.663 | 重建 sha 一致；官方 verifier 全量，新 salt sv1202m3：PASS |
 | p62 + merge4（sha 925a0517） | 62 | 1323.48 | — | （约 100,444） | 约 20.676 | 精确 phase_trace 通过（worst 0.99932377）；全量 verify 中途停掉，被 merge5 取代 |
-| **p62 + merge5（sha 3ee8e97d）** | 62 | **1322.48** | **1619.07** | **100,382.52** | **20.689** | 本次新做。精确 phase_trace：worst 0.99932377（x=161），min margin 不变。**官方 verifier 全量 200,540,928 shot，默认 salt：PASS**；第二个 salt sv1202m5 在跑，下次运行补上 |
+| **p62 + merge5（sha 3ee8e97d）** | 62 | **1322.48** | **1619.07** | **100,382.52** | **20.689** | 本次新做。精确 phase_trace：worst 0.99932377（x=161），min margin 不变。**官方 verifier 全量 200,540,928 shot：默认 salt PASS（100,382.52），salt sv1202m5 PASS（100,382.56）** |
 - 倍数 = 2,076,774.23 / 100,382.52 = 20.689，用的是 verifier 输出的总 cost（Q × C），不是子项。
 - `patch_ops.py` 把 `edits/merge5.json` 打到公开 ops.json 上，得到的 ops 和 zpow 键与搜索产物逐项相同（可复现）。
 - 硬规则检查：没有向 Kaggle 提交；没有推 main；新增文件都 < 50 KB；没有密钥，也没有比赛非公开信息（第三方电路文件没有提交）。
@@ -27,7 +27,7 @@
 ## 4. 问题和可疑点
 - SA 证明不了下界。cswap_multirank 给的弱下界是 20，现在是 35，差距大，但这个下界本来就弱。
 - 锚门（3 个 wire-22 trick，加上 182 和 150/152/153/156、165/167/169 这些被挡住的 CSWAP）还没有进入搜索。它们一共 13 个 CSWAP，是下一块空间。
-- merge5 目前只用一个 salt 全量通过（第二个 salt 在跑）。精确 trace 和 verifier 一致，风险很低。
+- merge5 两个 salt 全量都通过，精确 trace 和 verifier 一致。
 
 ## 5. 下一步指示（按优先级）
 1. **继续压大窗口**：K=34 换更多种子和温度（T0 0.3~2），也从随机起点跑；再试换一个"可挪集合"（例如把 182 挪到 186 前面后，13 号线也能进窗口），把被挡住的 CSWAP 也放进窗口。
@@ -114,4 +114,4 @@
 - 2026-11-12 00:08 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1123mm 全量 PASS（100,568.56 = 20.650×）**；新写 n4445_sat_extract/n4445_sat/n4445_check：44+45 是纯置换（逐 x 检查），各情形最少对换数 9/13/9/6/2，SAT 自检 K=21 SAT（923 秒），解作用到全部 x 上一致；**K=20 在 2900 秒内 TIMEOUT，没有判定**；推送 92cfddc；没有数值提升；NOT_APPROVED；建议停掉 routine 或转题。
 - 2026-11-12 00:58 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，**换 salt sv1124mm 全量 PASS（100,568.54 = 20.650×）**；新写 n4445_sat2.py（换求解器 + 冗余活跃槽下界）：44+45 全部情形 K=20 用 Kissat 和 CaDiCaL 1.9.5 各跑 2700 秒都超时；A+B 子集 K=19/20 都 SAT，单靠 A+B 给不出界；更正了上次组合论证里关于 r45 的错误；推送 9543c62；没有数值提升；NOT_APPROVED；建议停掉 routine 或者转到别的题。
 - 2026-11-12 01:55 UTC：依然没有干活的分支；本次没有重叠运行；merge2 新容器重建 sha 一致，换 salt sv1201mm 全量 PASS（20.650×）；**监工接手：用模拟退火找到 normalize 44+45 的 20-CSWAP 网络（SAT 一直超时），merge3 = 62 q / 1324.48 / 100,506.49 = 20.663×，默认 salt 和 sv1201m3 都全量 PASS**；K=19 卡在残差 2；新写通用 CSWAP 窗口 SA 工具，unnormalize K=46 最好残差 8；推送 3c80857、957fcd2，更新 PR #2；NOT_APPROVED。
-- 2026-11-12 02:40 UTC：依然没有干活的分支；本次没有重叠运行；merge3 新容器重建 sha 一致，换 salt sv1202m3 全量 PASS（20.663×）；**监工接手：把 normalize 46/42/43 层能合法移动的 17 个 CSWAP 和 44+45 合成一个窗口（37 个 CSWAP，5 根控制线），SA 找到 35，merge5 = 62 q / 1322.48 / 100,382.52 = 20.689×，默认 salt 全量 PASS**（中间版 merge4 是 43+44+45 K=27，精确 trace 通过）；K=34 残差 8，还在跑；推送 7b695ea、37f084d、c7efc52、9849525，更新 PR #2；NOT_APPROVED。
+- 2026-11-12 02:40 UTC：依然没有干活的分支；本次没有重叠运行；merge3 新容器重建 sha 一致，换 salt sv1202m3 全量 PASS（20.663×）；**监工接手：把 normalize 46/42/43 层能合法移动的 17 个 CSWAP 和 44+45 合成一个窗口（37 个 CSWAP，5 根控制线），SA 找到 35，merge5 = 62 q / 1322.48 / 100,382.52 = 20.689×，默认 salt 和 sv1202m5 都全量 PASS**（中间版 merge4 是 43+44+45 K=27，精确 trace 通过）；K=34 残差 8，还在跑；推送 7b695ea、37f084d、c7efc52、9849525 等，更新 PR #2；NOT_APPROVED。
