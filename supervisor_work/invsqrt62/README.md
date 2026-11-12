@@ -760,3 +760,14 @@ python3 -I ops2kmx.py p62m3.json p62m3.kmx ; (kickmix kmx->kmb as above)   # p62
 - `reorder_norm.py p62m3.json 144 191 224 46,42,43,44,45 p62n.json` (generic: moves every CSWAP of levels 46/42/43 not blocked by
   an anchor; 17 moved): window [174,228) = 37 CSWAPs, 5 controls, 21 cases (`wn`), for K<=36 searches.
 - merge3 second container, salt sv1202m3: PASS 100,506.50 (`verify_p62_merge3_sv1202m3.log`).
+
+## merge5: normalize levels 46/42/43 (movable part) + 44+45 in one window, 35 instead of 37 (2026-11-12 02:2x UTC, supervisor)
+- Window `wn` of `reorder_norm.py` output (37 CSWAPs: 3 of 46, 6 of 42, 8 of 43, 20 of 44+45; 5 controls 46,42..45; 21 cases).
+  SA (`cswap_win_sa.c`): K=36 random-ish seeded run (seed 32, T0 1.0) found; **K=35 seeded from the K=36 network (seed 42, T0 0.5)
+  found** (`wn_k35_sa.log`). K=34 seeded from K=35: running (best residual 8 after the first restart).
+- `cswap_win_build.py p62n.json wn.json wn_k35_sa.log p62m5.json`; folded into `edits/merge5.json` (merge2 edits + region edit on
+  original ops 144..218), patch_ops on the public ops.json reproduces it exactly. p62m5.kmb sha256
+  `3ee8e97d776ed66c9db00e951f8ebdf3a8fe454fd744fa9610ed09b00ef8bee0`.
+- Exact `phase_trace.py`: **mean Toffoli 1322.48**, worst ratio 0.99932377 at x=161, min margin 58,597,850 (all unchanged).
+  Expected cost 62 x (1322.48 + 296.59) = 100,382.5 = **20.689x** (official full verifier running, see SUPERVISOR.md).
+- merge4 (27-CSWAP 43+44+45 window) is superseded by merge5; its full verify was stopped to free the cores (exact trace passed).
