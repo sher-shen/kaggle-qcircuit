@@ -4,6 +4,8 @@
 // fixable by outcome-conditioned Clifford gates: z_c = q0(c) ^ sum_w lam_w(c) s_c[w] (w != 22), lam_w affine in the case bits
 // (CZ ctl-data, Z data), q0 quadratic in the case bits (CZ/Z among controls).
 // cost = sum_{c,w} popcount(end ^ target)  +  ZW * (cases with z not in span  +  sum_w dist(lam_w, affine)  +  [q0 not quadratic]).
+// PCS >= 2 (arg 9): structured moves only: CSWAPs, optionally decorated with wire 22 in v (the trick form L={a,b}, v={a,b,22}),
+// endpoint moves keeping the decoration, toggling wire 22 in L or v, MU / S / order moves. Added 2026-11-12 05:xx UTC.
 // Usage: ./tv22_sa in.txt K seed iters [restarts [init.txt|- [T0 [ZW]]]]   init: first line "MU mu 0xS", then "0xL 0xv f" lines
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +49,7 @@ double cost(){int tot=0; zmiss=0;
   zres=zfix(); return tot+ZW*zres;}
 double PCS=0.5;
 void randcswap(int t){int a=rnd()%W,b;do b=rnd()%W;while(b==a);gL[t]=gv[t]=(1u<<a)|(1u<<b);gf[t]=1+rnd()%NF;}
-void randgate(int t){ if((rnd()%1000)/1000.0<PCS){randcswap(t);return;}
+void randgate(int t){ if(PCS>=2.0){randcswap(t); if(rnd()%4==0 && !(gL[t]>>Z&1)) gv[t]|=1u<<Z; return;} if((rnd()%1000)/1000.0<PCS){randcswap(t);return;}
   unsigned L,v; do{L=(rnd()&((1u<<W)-1))&(rnd()|rnd()&rnd()); v=1u<<(rnd()%W); if(rnd()&1) v|=1u<<(rnd()%W);}while(!ok(L,v)); gL[t]=L;gv[t]=v;gf[t]=1+rnd()%NF;}
 int main(int argc,char**argv){FILE*F=fopen(argv[1],"r");if(fscanf(F,"%d %d %d",&W,&NCT,&NC)!=3)return 1;NF=(1<<NCT)-1;Z=W-1;
   for(int c=0;c<NC;c++){unsigned zz;fscanf(F,"%d",&cm[c]);for(int w=0;w<W;w++)fscanf(F,"%u",&st[c][w]);for(int w=0;w<W;w++)fscanf(F,"%u",&en[c][w]);fscanf(F,"%u",&zz);}
@@ -72,7 +74,13 @@ int main(int argc,char**argv){FILE*F=fopen(argv[1],"r");if(fscanf(F,"%d %d %d",&
     else {for(int t=0;t<K;t++)randgate(t); MU=rnd()%(K+1); SM=0;}
     double cur=cost();
     for(long long it=0;it<IT;it++){double T=T0*(1-(double)it/IT)+0.05;
-      int t=rnd()%K,t2=-1;unsigned sL=gL[t],sv=gv[t];int sf=gf[t]; int smu=MU; unsigned ssm=SM; int mv=rnd()%8; if(PCS>=1.0 && mv>=2 && mv<=4){ if(gL[t]==gv[t] && __builtin_popcount(gL[t])==2){ int a=__builtin_ctz(gL[t]); unsigned rest=gL[t]&~(1u<<a); int b; do b=rnd()%W; while(rest>>b&1); gL[t]=gv[t]=rest|(1u<<b); if(__builtin_popcount(gL[t])!=2){gL[t]=sL;gv[t]=sv;} } mv=99; }
+      int t=rnd()%K,t2=-1;unsigned sL=gL[t],sv=gv[t];int sf=gf[t]; int smu=MU; unsigned ssm=SM; int mv=rnd()%8; if(PCS>=2.0 && mv>=2 && mv<=4){ unsigned zb=1u<<Z; int r=rnd()%4; unsigned Lb=gL[t]&~zb, vb=gv[t]&~zb;
+        if(r==0){ if(!(gL[t]&zb)) gv[t]^=zb; }            /* toggle wire 22 in v (overlap unchanged) */
+        else if(r==1){ if(!(gv[t]&zb)) gL[t]^=zb; }       /* toggle wire 22 in L */
+        else if(Lb==vb && __builtin_popcount(Lb)==2){ int a=__builtin_ctz(Lb); if(rnd()&1) a=31-__builtin_clz(Lb); unsigned rest=Lb&~(1u<<a); int b; do b=rnd()%Z; while(rest>>b&1);
+          unsigned nb=rest|(1u<<b); gL[t]=(gL[t]&zb)|nb; gv[t]=(gv[t]&zb)|nb; }   /* move a CSWAP endpoint, keep the 22 decoration */
+        if(!ok(gL[t],gv[t])){gL[t]=sL;gv[t]=sv;} mv=99; }
+      else if(PCS>=1.0 && mv>=2 && mv<=4){ if(gL[t]==gv[t] && __builtin_popcount(gL[t])==2){ int a=__builtin_ctz(gL[t]); unsigned rest=gL[t]&~(1u<<a); int b; do b=rnd()%W; while(rest>>b&1); gL[t]=gv[t]=rest|(1u<<b); if(__builtin_popcount(gL[t])!=2){gL[t]=sL;gv[t]=sv;} } mv=99; }
       if(mv==0) randgate(t);
       else if(mv==1) gf[t]=1+rnd()%NF;
       else if(mv==2){unsigned L=gL[t]^(1u<<(rnd()%W)); if(!ok(L,gv[t])) L^=1u<<(rnd()%W); if(ok(L,gv[t])) gL[t]=L;}

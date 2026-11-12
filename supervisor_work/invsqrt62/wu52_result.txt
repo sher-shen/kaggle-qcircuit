@@ -1,0 +1,11 @@
+# 2026-11-12 05:xx UTC supervisor. Extended unnormalize window wu52 = p62u.json (reorder_unnorm.py on p62m5) [46822,46882), 52 CSWAPs, ctl 15,18,14,16,19, 22 data wires, 21 cases
+K=52 from original: cost 0 (self-consistent)
+tv_merge2 (exact 2->1): found 0
+tv_merge3 (exact adjacent 3->2): found 0   selftest: selftest pairs 51 miss 0 planted 3->2 8 hit 8 
+tv_merge3g (exact non-adjacent 3->2): found 0   selftest: selftest gap<=7 pairs 336 miss 0
+cswap_win_sa K=51 (seeded from original, T0 0.5/0.8/1.2, ~10 min each): best 8, 8, 30
+cswap_win_tv K=51 (T0 0.5, pcswap 0.5, ~10 min): best 8
+residual-8 state (sa_dump, seed 555): exactly one swap missing in cases 1,9,17,25 (err 2 each); no linear control form is active on exactly {1,9,17,25} among the 21 cases (forces f2=1 -> active in case 4), so this near-miss cannot be closed by 1 CSWAP.
+near-miss repair (nearmiss_resolve.sh: 51-gate residual-8 SA states + dummy, exact tv_merge2 / tv_merge3 / tv_merge3g):
+  seeds 555, 556, 557 (all residual 8, all fail exactly in cases 1,9,17,25): 0 / 0 / 0 merges each.
+  self-test: original 52 with gate 20 corrupted (1 11 6 -> 1 14 6) + dummy: tv_merge2 1, tv_merge3 2, tv_merge3g 61 repairs found.

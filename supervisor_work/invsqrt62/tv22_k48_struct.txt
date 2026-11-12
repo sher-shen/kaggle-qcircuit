@@ -1,0 +1,6 @@
+# 2026-11-12 05:16-05:37 UTC supervisor. tv22_sa.c K=48, structured moves (PCS=2), ZW=2, seeded from x22_k49_init.txt (regenerated: ext22.py + tv22_init.py on p62m5, byte-identical), 4M iters/restart, 21 min each
+seed 301 T0 0.3: restart 5 best 12.0
+seed 302 T0 0.6: restart 7 best 12.0
+seed 303 T0 1.0: restart 4 best 12.0
+seed 304 T0 1.5: restart 4 best 12.0
+-> best residual 12 in all runs (= cost of just deleting one gate); structured moves did not help.

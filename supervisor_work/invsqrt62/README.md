@@ -828,3 +828,21 @@ python3 -I ops2kmx.py p62m3.json p62m3.kmx ; (kickmix kmx->kmb as above)   # p62
 - `tv_merge3g.py`: **exact 3->2 for NON-adjacent pairs** (drop i, re-solve any j<k with the gates between fixed): with
   b = <Lk, Y_c> (state after k) the condition X ^ M^-1 Y = a vj ^ b M^-1 vk is linear in (Lj, Lk). Self-test: every original
   pair with gap <= 7 re-found (wn 217/217, wu 301/301, pre 70/70). **Result: wn 0, wu 0, pre-MU 0** (`tv_merge3g_result.log`).
+
+## 2026-11-12 05:xx UTC — extended unnormalize window (52 CSWAPs), structured tv22 moves (supervisor)
+- New container: merge5 rebuilt from the public ops.json + `edits/merge5.json`, sha `3ee8e97d...` again. **Official verifier, full
+  200,540,928 shots, new salt sv1205m5: PASS, Q 62, Toffoli 1322.48, score 100,382.55 = 20.689x** (`verify_p62_merge5_sv1205m5.log`).
+- `reorder_unnorm.py p62m5.json p62u.json`: legal reorder (qcheck 24,902 samples: worst 0.99932377, 0 bad, 0 dirty): the CX block
+  46821-46823 (41^=15, 50^=15) goes in front of the level-15 CSWAPs 46819/46820, and the level-19 CSWAPs 46889-46891 go in front of
+  the wire-60 block 46879-46888 (which touches none of wires 0..5; its CZ(19,*) are diagonal on the control). Pure window
+  `wu52` = [46822,46882) of p62u: 52 CSWAPs (12 + 10 + 10 + 10 + 10), controls 15,18,14,16,19, 22 data wires, 21 cases.
+- Results (`wu52_result.txt`): K=52 self-consistent; exact tv_merge2 0, tv_merge3 0 (self-test 51/51, planted 8/8), tv_merge3g 0
+  (self-test 336/336); CSWAP SA K=51 best residual 8 (3 seeds), transvection SA K=51 best 8. The residual-8 state
+  (`cswap_win_sa_dump.c`) misses exactly one swap in cases {1,9,17,25}; no linear control form is active on exactly those cases, so
+  it cannot be patched with one CSWAP. Unnormalize CSWAP ladder looks closed at 52 (unproven).
+- `tv22_sa.c` new option PCS >= 2 (structured moves: CSWAPs optionally decorated with wire 22 in v = the trick form, endpoint moves
+  keeping the decoration, toggling 22 in L or v, plus the MU / S / order moves). K=48, 4 runs x 21 min (T0 0.3..1.5): **best residual 12** again (`tv22_k48_struct.txt`), not found.
+- `nearmiss_resolve.sh in_tv.txt dump.log out`: exact repair test for SA near-misses (last best gate list of a
+  `cswap_win_sa_dump.c` log + 1 dummy gate, then tv_merge2/3/3g with `TV_NEARMISS=1`; any MERGE is asserted exact). Self-test with a
+  corrupted original gate: repaired (1 / 2 / 61 hits). Three K=51 residual-8 states of wu52 (seeds 555-557, all failing in cases
+  {1,9,17,25}): **0 repairs** with 1 or 2 re-solved gates.
