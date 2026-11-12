@@ -1,0 +1,38 @@
+restart 0 best 24
+restart 1 best 8
+restart 4 best 0
+gate 0 pair 11 19 form 14
+gate 1 pair 2 3 form 1
+gate 2 pair 1 4 form 1
+gate 3 pair 3 7 form 6
+gate 4 pair 2 4 form 3
+gate 5 pair 8 20 form 3
+gate 6 pair 12 16 form 5
+gate 7 pair 0 5 form 1
+gate 8 pair 10 18 form 3
+gate 9 pair 1 5 form 5
+gate 10 pair 12 18 form 6
+gate 11 pair 1 3 form 2
+gate 12 pair 5 7 form 18
+gate 13 pair 0 6 form 3
+gate 14 pair 10 20 form 22
+gate 15 pair 2 6 form 6
+gate 16 pair 3 11 form 8
+gate 17 pair 3 15 form 8
+gate 18 pair 1 9 form 8
+gate 19 pair 5 13 form 28
+gate 20 pair 14 18 form 6
+gate 21 pair 16 18 form 14
+gate 22 pair 2 10 form 8
+gate 23 pair 4 12 form 8
+gate 24 pair 14 20 form 24
+gate 25 pair 2 18 form 28
+gate 26 pair 0 8 form 14
+gate 27 pair 8 12 form 20
+gate 28 pair 0 4 form 24
+gate 29 pair 6 14 form 28
+gate 30 pair 1 17 form 28
+gate 31 pair 7 15 form 28
+gate 32 pair 0 20 form 28
+gate 33 pair 4 16 form 28
+gate 34 pair 3 19 form 20
