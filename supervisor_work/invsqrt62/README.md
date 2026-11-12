@@ -770,5 +770,5 @@ python3 -I ops2kmx.py p62m3.json p62m3.kmx ; (kickmix kmx->kmb as above)   # p62
   `3ee8e97d776ed66c9db00e951f8ebdf3a8fe454fd744fa9610ed09b00ef8bee0`.
 - Exact `phase_trace.py`: **mean Toffoli 1322.48**, worst ratio 0.99932377 at x=161, min margin 58,597,850 (all unchanged).
   Expected cost 62 x (1322.48 + 296.59) = 100,382.5 = **20.689x** 
-- **Official verifier, full 200,540,928 shots, default salt: PASS, Q 62, Toffoli 1322.48, C 1619.07, score 100,382.52 = 20.689x** (`verify_p62_merge5_default.log`).
+- **Official verifier, full 200,540,928 shots, default salt: PASS, Q 62, Toffoli 1322.48, C 1619.07, score 100,382.52 = 20.689x** (`verify_p62_merge5_default.log`). Second salt sv1202m5: PASS 100,382.56 (`verify_p62_merge5_sv1202m5.log`).
 - merge4 (27-CSWAP 43+44+45 window) is superseded by merge5; its full verify was stopped to free the cores (exact trace passed).
