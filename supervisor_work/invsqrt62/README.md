@@ -798,3 +798,27 @@ python3 -I ops2kmx.py p62m3.json p62m3.kmx ; (kickmix kmx->kmb as above)   # p62
   15343); the other ~91 are isolated. No other dense CSWAP window exists.
 - Next: put normalize ops 144..227 incl. wire 22 (the wire-22 trick is a transvection with L = x^x21, v = x^x21^22) into the model,
   with wire 22's end value allowed to be any data form whose coefficients are affine in the case bits (fixed by free CZ/Z after HMR).
+
+## 2026-11-12 04:xx UTC — exact 3->2 test; normalize region incl. wire 22 in the transvection model (supervisor)
+- New container: merge5 rebuilt from the public ops.json + `edits/merge5.json`, sha `3ee8e97d...` again. **Official verifier, full
+  200,540,928 shots, new salt sv1204m5: PASS, Q 62, Toffoli 1322.48, score 100,382.50 = 20.689x** (`verify_p62_merge5_sv1204m5.log`).
+- `tv_merge3.py in_tv.txt gates.txt [selftest]`: **exact 3->2 test** in the transvection model: drop gate i anywhere, re-solve an adjacent
+  pair (p, p+1) of the rest as two new transvections (fj, fk enumerated; vj/vk pinned by the rank-1 case classes or enumerated in
+  the span of the both-active class; beta = <Lk,vj> guessed; then one GF(2) system over (Lj, Lk) incl. the even-overlap constraints).
+  Self-tests: every adjacent pair of the original network is re-found (wn 34/34, wu 46/46); planted 3->2 (x y with the same v
+  inserted) 8/8 hit on both windows (`tv_merge3_selftest.log`).
+  **Result: wn (K=35) 0, wu (K=47) 0** (`tv_merge3_wn.log`, `tv_merge3_wu.log`).
+- `tv_walk3.py`: plateau walk with exact pair moves (re-solve a random adjacent pair, optionally swapped) + the 3->2 test every 40
+  moves. wn: 2 seeds, ~10,000 + ~5,000 moves (16 of 35 gates changed after 160 moves, so it does move); wu: ~4,500 moves. **0 merges.**
+- `ext22.py ops.json 144 243 46,42,43,44,45 x22 2` (p62m5 layout): region [144,243) = the 14 blocked CSWAPs of levels 46/42/43, the
+  wire-22 trick (CX a->22 / CSWAP / CX a->22, CX 22->13, 22->21, HMR 22, 2 conditioned CZ) and the 35-CSWAP window. 23 data wires
+  (wire 22 is a clean 0 at op 144), 22 cases, 49 CSWAPs + 8 free CX. z (wire 22 at the HMR) is 0, 1 or 1^d_k per case.
+- `tv22_init.py`: pushes the free CX through (L'' = P^T L, v'' = P^-1 v): K=49 transvections, MU=14, S={13,21}; the 3 trick CSWAPs
+  become L={a,21}, v={a,21,22}. Self-check on all cases OK (`x22_k49_init.txt`).
+- `tv22_sa.c`: SA in this model: gates + split MU + S; at MU the z value must be **exactly fixable** by outcome-conditioned Clifford
+  gates: z_c = q0(c) ^ sum_w lam_w(c) s_c[w] with lam_w affine and q0 quadratic in the 5 case bits — one GF(2) system over
+  148 unknowns (greedy per case, inconsistent cases counted). Original K=49: cost 0 (a canonical per-case decomposition gave a false
+  residual 4 because of constant wires; the joint system fixes that). Wrong S or MU give cost 24 / 16.
+- `tv22_build.py ops.json x22.json x22.txt sa.log out.json`: builder (gates, CTL to raw bits, CX 22->S, HMR, Z/CZ fix-ups from the
+  solved system, gates, CTL end forms). **Self-test: rebuilding the K=49 original gives exact `phase_trace.py` mean Toffoli 1322.48,
+  worst 0.99932377 at x=161, min margin 58,597,850 — identical to merge5.**
