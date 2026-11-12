@@ -887,3 +887,4 @@ python3 -I ops2kmx.py p62m3.json p62m3.kmx ; (kickmix kmx->kmb as above)   # p62
 - `mirror_scan.py ops.json 16 1500`: nested equal-state segment pairs (state = multiset of wire value vectors, so it ignores phase), skipping
   halves that contain rotations, reporting pairs where the backward half costs more. On p62m6 it finds only the measurement fix-up CCZ
   blocks at 15664..15920, which are phase-only, so they can't be swapped for an inverse. No other mirror at this granularity.
+- Second salt sv1207m6: **PASS, score 100,258.52 = 20.714x** (`verify_p62_merge6_sv1207m6.log`).
