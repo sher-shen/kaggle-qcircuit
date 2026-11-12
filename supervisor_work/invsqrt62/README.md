@@ -745,4 +745,4 @@ python3 -I ops2kmx.py p62m3.json p62m3.kmx ; (kickmix kmx->kmb as above)   # p62
   (`verify_p62_merge3_default.log`).
 - Generic tools for other pure CSWAP windows: `cswap_win_extract.py` (per-case permutation of a window whose controls only see
   CX among themselves) + `cswap_win_sa.c` (any number of control bits). Unnormalize ladder 46805..46859 (47 CSWAPs, 5 control
-  wires, 21 cases) extracted; SA has not yet even re-found K=47 in 200 s there (needs better moves / longer runs).
+  wires, 21 cases) extracted; seeded K=46 runs reach residual 8 only (see cswap_sa_result.txt). Second salt sv1201m3: PASS 100,506.55 (`verify_p62_merge3_sv1201m3.log`).

@@ -1,0 +1,9 @@
+# 2026-11-12 01:xx UTC, supervisor. SA results (cswap_win_sa.c / n4445_sa.c), 4-core container, runs overlapped.
+normalize 44+45 (5 cases, linear forms of r43,r44,r45; model of n4445_sat2.py):
+  K=24, 22, 21: found in seconds (random start).  K=20: found by 3/3 seeds within 15 min; all 3 match original on all x.
+  K=19 random start: best residual 2 (2 seeds x ~10 min).
+  K=19 affine forms (+const bit, case 000 must be identity): best residual 2 (2 seeds x 20 min).
+  K=19 seeded from the K=20 network (drop 1 gate, re-anneal T0=1): best residual 2 (~15 min).  -> K=19 looks infeasible (unproven).
+unnormalize ladder ops 46805..46859 of p62m3 (47 CSWAPs, controls 15,18,14,16,19, 22 data wires, 21 cases):
+  K=47 from original network: cost 0 (extraction self-consistent).
+  K=46 seeded from original (drop 1, T0=0.7): best residual 8 (~18 min).  K=46 random start: best 39.  -> no gain found.
