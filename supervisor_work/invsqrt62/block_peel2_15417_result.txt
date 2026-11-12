@@ -1,0 +1,5 @@
+0 ops 15417 .. 15451 n 20 tof 5 K 4 |D| 2859 hull 19 nodes 21 cand 20 NONE(exact)
+
+real	0m29.666s
+user	0m29.714s
+sys	0m0.057s

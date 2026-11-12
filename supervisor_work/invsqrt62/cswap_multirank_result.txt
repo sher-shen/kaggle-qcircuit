@@ -1,0 +1,17 @@
+# 2026-11-11 07:xx UTC, supervisor
+$ python3.13 cswap_multirank.py ops.json      (all 3,133,453 x; lower bound = rank(output wires mod affine(input wires)))
+levels [46, 42, 43, 44, 45] counts [11, 10, 10, 9, 12]
+group [46, 42] CSWAPs 21 lower bound 21
+group [46, 42, 43] CSWAPs 31 lower bound 21
+group [46, 42, 43, 44] CSWAPs 40 lower bound 20
+group [46, 42, 43, 44, 45] CSWAPs 52 lower bound 20
+group [42, 43] CSWAPs 20 lower bound 20
+group [42, 43, 44] CSWAPs 29 lower bound 19
+group [42, 43, 44, 45] CSWAPs 41 lower bound 19
+group [43, 44] CSWAPs 19 lower bound 19
+group [43, 44, 45] CSWAPs 31 lower bound 19
+group [44, 45] CSWAPs 21 lower bound 19
+(adjacent pairs 46+42, 42+43, 43+44 are tight -> no cross-level saving there; 44+45 has gap 2 under this weak bound; groups of >= 3
+ saturate at the ~20 live data wires, so the bound says nothing for them)
+$ python3.13 phase_trace.py p62mm_drop2.json   (merge2 with CSWAP 216 and 217 deleted; they matter for only 31 / 30 x)
+mean tof 1323.48, worst ratio 4.3e7 at x 31  -> FAIL by far; the rare swaps cannot simply be dropped.

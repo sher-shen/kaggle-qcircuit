@@ -1,0 +1,28 @@
+# 2026-11-11 23:xx UTC, supervisor. Exact SAT for normalize levels 44+45 on merge2 (sha fc153f1f).
+# Region (legal reordering, disjoint wires): trick 192-196 first, then the 21 CSWAPs 186-191,197-199,202-211,216,217,
+# then 213-215. In this region the circuit is a pure case-dependent wire permutation of wires 0..21 (checked on all x).
+# Case maps (wires moved): A=100 18, B=010 21, C=110 18, D=001 12, E=101 4; case 000 identity.
+# Minimal transposition counts per case (z/o interchangeable): A 9, B 13 (5 residue-mod-8 paths of 3 + 3 of 2), C 9, D 6, E 2.
+# Model: K CSWAPs on pairs of wires 0..21, each controlled by a linear form of (r43,r44,r45) (free CX on 43..45).
+# Not covered: complemented controls (active on case 000), CX between data wires, non-linear (AND) controls.
+#
+# Encoding self-tests:
+#   cases D+E only: K=5,6,7 UNSAT; K=8 SAT.
+#   all cases K=21: SAT in 923 s (a different 21-gate network from the original);
+#   n4445_check.py applies that network to all 3,133,453 x: matches the original end state on every x.
+# Main result:
+#   K=20 (plain, cadical153, 2900 s limit): TIMEOUT (no answer) -> K=20 open
+#   K=20 with redundant progress cardinality (PROG=1, 1200 s limit): TIMEOUT (no answer)
+#   K=21 with PROG=1 (1200 s): TIMEOUT (slower than the plain encoding; the redundant constraints do not help)
+#   AB / BCD subset sweeps from K=13: each timed out at 600 s even at K=13 (UNSAT side is hard for CDCL here).
+# Usage: python3.13 n4445_sat_extract.py p62mm.json cases.json ; [PROG=1] python3.13 n4445_sat.py cases.json K timeout 1
+#        python3.13 n4445_check.py p62mm.json sat_output.log
+#
+# 2026-11-12 00:xx UTC, supervisor (n4445_sat2.py: selectable pysat solver + CARD=1 redundant per-case active-slot lower bounds)
+#   self-test D+E only, Kissat404+CARD: K=7 UNSAT (5.9 s), K=8 SAT (1.7 s) -> consistent with n4445_sat.py
+#   all cases K=20, Kissat404+CARD, 2700 s: TIMEOUT (no answer)
+#   all cases K=20, Cadical195+CARD, 2700 s: TIMEOUT (no answer)
+#   cases A+B only: K=20 SAT (Kissat, 235 s; 6 gates on form r43^r44^r45 active on both, A 10 / B 15 active),
+#                   K=19 SAT (Kissat, 406 s) -> the A+B subset alone gives no bound >= 21; C/D/E are what makes 21 tight (if it is).
+#   Correction to the earlier combinatorial note: form r45 (mask 4) is active on D and E only, not on A or B.
+#   The bound total >= |N_A u N_B| >= 22 - |N_A n N_B| still holds; A+B can share 6 gates via non-minimal chains.

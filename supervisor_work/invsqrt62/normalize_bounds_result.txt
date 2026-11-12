@@ -1,0 +1,14 @@
+# 2026-11-11 06:xx UTC, supervisor
+$ python3.13 lzc_deg.py
+c0 degree on x21=0 cube: 21 -> MC >= 20
+c1 degree on x21=0 cube: 21 -> MC >= 20
+c2 degree on x21=0 cube: 19 -> MC >= 18
+c3 degree on x21=0 cube: 15 -> MC >= 14
+c4 degree on x21=0 cube: 15 -> MC >= 14
+(normalize uses 19 CCX in the prefix chain + op 85 = 20 ANDs: optimal for c0 alone)
+$ python3.13 cswap_rank.py ops.json      (all 3,133,453 x)
+level ctrl q42: 10 CSWAPs, product rank mod affine(live wires) = 10
+level ctrl q43: 10 CSWAPs, product rank mod affine(live wires) = 10
+level ctrl q44: 9 CSWAPs, product rank mod affine(live wires) = 9
+level ctrl q45: 12 CSWAPs, product rank mod affine(live wires) = 12
+level ctrl q46: 11 CSWAPs, product rank mod affine(live wires) = 11

@@ -1,0 +1,2 @@
+n 6 gates 39060
+NONE (exact): no 3-Toffoli circuit on 6 wires

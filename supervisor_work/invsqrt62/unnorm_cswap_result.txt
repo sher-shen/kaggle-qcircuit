@@ -1,0 +1,27 @@
+# 2026-11-11 21:xx UTC, supervisor
+$ python3.13 unnorm_cswap_rank.py p62mm.json 20000 7   (random 20k x; subset rank is a valid lower bound only where it equals the count)
+levels [(0, 15), (1, 18), (2, 14), (3, 16), (4, 19)] counts [12, 10, 10, 10, 10] N 20000
+level (0, 15) CSWAPs 12 product rank mod affine(live) 10
+level (1, 18) CSWAPs 10 product rank mod affine(live) 10
+level (2, 14) CSWAPs 10 product rank mod affine(live) 10
+level (3, 16) CSWAPs 10 product rank mod affine(live) 10
+level (4, 19) CSWAPs 10 product rank mod affine(live) 10
+group [(0, 15), (1, 18)] CSWAPs 22 lower bound 20
+group [(0, 15), (1, 18), (2, 14)] CSWAPs 32 lower bound 20
+group [(0, 15), (1, 18), (2, 14), (3, 16)] CSWAPs 42 lower bound 20
+group [(0, 15), (1, 18), (2, 14), (3, 16), (4, 19)] CSWAPs 52 lower bound 20
+group [(1, 18), (2, 14)] CSWAPs 20 lower bound 20
+group [(1, 18), (2, 14), (3, 16)] CSWAPs 30 lower bound 20
+group [(1, 18), (2, 14), (3, 16), (4, 19)] CSWAPs 40 lower bound 20
+group [(2, 14), (3, 16)] CSWAPs 20 lower bound 20
+group [(2, 14), (3, 16), (4, 19)] CSWAPs 30 lower bound 20
+group [(3, 16), (4, 19)] CSWAPs 20 lower bound 20
+$ python3.13 unnorm_l15_dep.py p62mm.json 100000 3  -> only 46791, 46792 dependent (they never fire on the sample)
+$ python3.13 unnorm_fire_full.py p62mm.json 11 300000   (all 3,133,453 x)
+sys	0m0.393s
+FINAL {46791: 30, 46792: 31} q15=1 count 64
+  -> 46791/46792 swap differing values on 30/31 x, all x < 300k: the mirror of normalize 216/217 (31/30 x)
+$ python3 drop_ops.py p62mm.json p62mm_drop4.json 216,217,46791,46792 ; python3.13 phase_trace.py p62mm_drop4.json
+n_rot ops 41 mean fired 13.765420692578026 mean tof 1321.4815656981502
+worst ratio 11214517.432537578 at x 3 min margin -7.119012423634204e+18 at x 3
+  -> FAIL (dropping the rare shift in both normalize and unnormalize still breaks small x). Closed.

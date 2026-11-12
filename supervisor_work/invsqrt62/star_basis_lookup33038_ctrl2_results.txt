@@ -1,0 +1,11 @@
+c_33038-33122-L3_349 S 0+1 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242070416 leaves=0 solutions=0 
+c_33038-33122-L3_349 S 1+2 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242069701 leaves=0 solutions=0 
+c_33038-33122-L3_349 S 0+2 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242069377 leaves=0 solutions=0 
+c_33038-33122-L3_349 S 0+3 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242074307 leaves=0 solutions=0 
+c_33038-33122-L3_349 S 0+1+2 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242070041 leaves=0 solutions=0 
+c_33038-33122-L3_349 S 0+2+3 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242074046 leaves=0 solutions=0 
+c_33038-33122-L3_349 S 0+1+2+3 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242067933 leaves=0 solutions=0 
+c_33038-33122-L3_349 S 1+3 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242067813 leaves=0 solutions=0 
+c_33038-33122-L3_349 S 2+3 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242069947 leaves=0 solutions=0 
+c_33038-33122-L3_349 S 0+1+3 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242069184 leaves=0 solutions=0 
+c_33038-33122-L3_349 S 1+2+3 n=61 k=349 rankK=349 block=35 Q0 in span(K): False | RESULT NONE(exact) s=35 ne=246 nodes=242071124 leaves=0 solutions=0 

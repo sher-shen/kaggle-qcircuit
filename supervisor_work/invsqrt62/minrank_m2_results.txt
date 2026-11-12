@@ -1,0 +1,71 @@
+pair 15288 15290 t=28 exec=1.000 end=15291 tested=n=70 k=632 SKIP(k>KMAX) -> none None
+pair 15297 15299 t=28 exec=1.000 end=15300 tested=n=71 k=631 SKIP(k>KMAX) -> none None
+pair 15363 15364 t=28 exec=1.000 end=15365 tested=n=74 k=711 SKIP(k>KMAX) -> none None
+pair 15417 15418 t=28 exec=1.000 end=15419 tested=n=75 k=711 SKIP(k>KMAX) -> none None
+pair 21884 21928 t=14 exec=1.000 end=22040 tested=n=70 k=73 lin-inconsistent rows=11008 rank=2694/2701 -> none None
+pair 21928 21966 t=14 exec=1.000 end=22040 tested=n=67 k=73 lin-inconsistent rows=11008 rank=2695/2701 -> none None
+pair 21966 21993 t=14 exec=1.000 end=22040 tested=n=64 k=73 lin-inconsistent rows=11008 rank=2695/2701 -> none None
+pair 21993 22016 t=14 exec=1.000 end=22040 tested=n=63 k=73 lin-inconsistent rows=11008 rank=2695/2701 -> none None
+pair 22213 22250 t=16 exec=1.000 end=22561 tested=n=55 k=157 lin-inconsistent rows=22205 rank=12390/12403 -> none None
+pair 22250 22289 t=16 exec=1.000 end=22561 tested=n=55 k=157 lin-inconsistent rows=22205 rank=12390/12403 -> none None
+pair 22414 22454 t=20 exec=1.000 end=22562 tested=n=55 k=154 lin-inconsistent rows=22205 rank=11925/11935 -> none None
+pair 22454 22496 t=20 exec=1.000 end=22562 tested=n=55 k=154 lin-inconsistent rows=22205 rank=11925/11935 -> none None
+pair 22496 22532 t=20 exec=1.000 end=22562 tested=n=55 k=154 lin-inconsistent rows=22205 rank=11925/11935 -> none None
+pair 22686 22729 t=25 exec=1.000 end=23129 tested=n=55 k=156 lin-inconsistent rows=22205 rank=12241/12246 -> none None
+pair 22729 22767 t=25 exec=1.000 end=23167 tested=n=55 k=156 lin-inconsistent rows=22205 rank=12241/12246 -> none None
+pair 22767 22797 t=25 exec=1.000 end=23197 tested=n=55 k=156 lin-inconsistent rows=25773 rank=12241/12246 -> none None
+pair 22797 22825 t=25 exec=1.000 end=23225 tested=n=55 k=157 lin-inconsistent rows=26285 rank=12398/12403 -> none None
+pair 22825 22852 t=25 exec=1.000 end=23252 tested=n=55 k=157 lin-inconsistent rows=22205 rank=12398/12403 -> none None
+pair 22903 22952 t=19 exec=1.000 end=23352 tested=n=55 k=156 lin-inconsistent rows=22205 rank=12241/12246 -> none None
+pair 22952 22997 t=19 exec=1.000 end=23397 tested=n=55 k=156 lin-inconsistent rows=22205 rank=12241/12246 -> none None
+pair 22997 23030 t=19 exec=1.000 end=23430 tested=n=55 k=156 lin-inconsistent rows=25773 rank=12241/12246 -> none None
+pair 23030 23059 t=19 exec=1.000 end=23459 tested=n=55 k=156 lin-inconsistent rows=25125 rank=12241/12246 -> none None
+pair 23207 23248 t=17 exec=1.000 end=23544 tested=n=55 k=155 lin-inconsistent rows=22205 rank=12085/12090 -> none None
+pair 23248 23283 t=17 exec=1.000 end=23544 tested=n=55 k=155 lin-inconsistent rows=26045 rank=12085/12090 -> none None
+pair 23283 23316 t=17 exec=1.000 end=23544 tested=n=55 k=155 lin-inconsistent rows=22205 rank=12085/12090 -> none None
+pair 23356 23395 t=26 exec=1.000 end=23540 tested=n=55 k=154 lin-inconsistent rows=22205 rank=11930/11935 -> none None
+pair 23395 23440 t=26 exec=1.000 end=23540 tested=n=55 k=154 lin-inconsistent rows=22205 rank=11930/11935 -> none None
+pair 23440 23478 t=26 exec=1.000 end=23540 tested=n=55 k=154 lin-inconsistent rows=27075 rank=11930/11935 -> none None
+pair 23478 23508 t=26 exec=1.000 end=23540 tested=n=55 k=154 lin-inconsistent rows=22205 rank=11930/11935 -> none None
+pair 25610 25613 t=25 exec=1.000 end=25869 tested=notquad n=85 -> none None
+pair 25746 25748 t=50 exec=1.000 end=25749 tested=n=93 k=248 OPEN T4:kT3:exh-found T8:kT7:exh-found T8:kT7:exh-found T8:kT7:exh-found T12:kT11:exh-found T12:kT11:exh-found T12:kT22:OPEN,rows=75,rank=75/253 T16:kT16:exh-found T16:kT31:OPEN,rows=157,rank=157/496 T16:kT15:exh-found T20:kT20:OPEN,rows=33,rank=33/210 T20:kT20:OPEN,rows=33,rank=33/210 T20:kT20:OPEN,rows=33,rank=33/210 T28:kT56:OPEN,rows=505,rank=505/1596 T28:kT54:OPEN,rows=419,rank=419/1485 T28:kT53:OPEN,rows=373,rank=373/1431 -> HIT ('restricted all consistent',)
+pair 25755 25758 t=50 exec=1.000 end=25760 tested=n=93 k=248 OPEN T4:kT3:exh-found T8:kT7:exh-found T8:kT7:exh-found T8:kT8:exh-found T12:kT12:exh-found T12:kT13:exh-found T12:kT11:exh-found T16:kT30:OPEN,rows=137,rank=137/465 T16:kT29:OPEN,rows=115,rank=115/435 T16:kT29:OPEN,rows=115,rank=115/435 T20:kT21:OPEN,rows=48,rank=48/231 T20:kT19:OPEN,rows=17,rank=17/190 T20:kT21:OPEN,rows=48,rank=48/231 T28:kT54:OPEN,rows=419,rank=419/1485 T28:kT57:OPEN,rows=557,rank=557/1653 T28:kT54:OPEN,rows=419,rank=419/1485 -> HIT ('restricted all consistent',)
+pair 25766 25769 t=50 exec=1.000 end=25771 tested=n=94 k=252 OPEN T4:kT3:exh-found T8:kT8:exh-found T8:kT7:exh-found T8:kT7:exh-found T12:kT21:OPEN,rows=61,rank=61/231 T12:kT30:OPEN,rows=138,rank=138/465 T12:kT12:exh-found T16:kT15:exh-found T16:kT15:exh-found T16:kT15:exh-found T20:kT37:OPEN,rows=185,rank=185/703 T20:kT19:OPEN,rows=17,rank=17/190 T20:kT37:OPEN,rows=185,rank=185/703 T28:kT53:OPEN,rows=373,rank=373/1431 T28:kT29:OPEN,rows=76,rank=76/435 T28:kT55:OPEN,rows=463,rank=463/1540 -> HIT ('restricted all consistent',)
+pair 25777 25780 t=50 exec=1.000 end=25782 tested=n=95 k=256 OPEN T4:kT3:exh-found T8:kT7:exh-found T8:kT8:exh-found T8:kT13:exh-found T12:kT21:OPEN,rows=61,rank=61/231 T12:kT12:exh-found T12:kT11:exh-found T16:kT29:OPEN,rows=115,rank=115/435 T16:kT16:exh-found T16:kT16:exh-found T20:kT38:OPEN,rows=215,rank=215/741 T20:kT38:OPEN,rows=215,rank=215/741 T20:kT21:OPEN,rows=48,rank=48/231 T28:kT53:OPEN,rows=373,rank=373/1431 T28:kT30:OPEN,rows=94,rank=94/465 T28:kT28:OPEN,rows=49,rank=49/406 -> HIT ('restricted all consistent',)
+pair 25788 25791 t=50 exec=1.000 end=25793 tested=n=96 k=260 OPEN T4:kT3:exh-found T8:kT7:exh-found T8:kT13:exh-found T8:kT7:exh-found T12:kT21:OPEN,rows=61,rank=61/231 T12:kT12:exh-found T12:kT11:exh-found T16:kT16:exh-found T16:kT29:OPEN,rows=115,rank=115/435 T16:kT15:exh-found T20:kT54:OPEN,rows=470,rank=470/1485 T20:kT37:OPEN,rows=185,rank=185/703 T20:kT20:OPEN,rows=33,rank=33/210 T28:kT104:OPEN,rows=2005,rank=2005/5460 T28:kT56:OPEN,rows=511,rank=511/1596 T28:kT55:OPEN,rows=463,rank=463/1540 -> HIT ('restricted all consistent',)
+pair 25838 25841 t=50 exec=1.000 end=25843 tested=n=95 k=256 OPEN T4:kT3:exh-found T8:kT7:exh-found T8:kT13:exh-found T8:kT7:exh-found T12:kT21:OPEN,rows=61,rank=61/231 T12:kT12:exh-found T12:kT12:exh-found T16:kT29:OPEN,rows=115,rank=115/435 T16:kT16:exh-found T16:kT30:OPEN,rows=137,rank=137/465 T20:kT19:OPEN,rows=17,rank=17/190 T20:kT38:OPEN,rows=215,rank=215/741 T20:kT55:OPEN,rows=512,rank=512/1540 T28:kT27:OPEN,rows=25,rank=25/378 T28:kT54:OPEN,rows=419,rank=419/1485 T28:kT56:OPEN,rows=511,rank=511/1596 -> HIT ('restricted all consistent',)
+pair 25849 25852 t=50 exec=1.000 end=25854 tested=n=95 k=256 OPEN T4:kT3:exh-found T8:kT8:exh-found T8:kT14:exh-found T8:kT8:exh-found T12:kT12:exh-found T12:kT11:exh-found T12:kT11:exh-found T16:kT30:OPEN,rows=137,rank=137/465 T16:kT43:OPEN,rows=310,rank=310/946 T16:kT15:exh-found T20:kT37:OPEN,rows=185,rank=185/703 T20:kT38:OPEN,rows=215,rank=215/741 T20:kT54:OPEN,rows=470,rank=470/1485 T28:kT53:OPEN,rows=373,rank=373/1431 T28:kT28:OPEN,rows=49,rank=49/406 T28:kT30:OPEN,rows=94,rank=94/465 -> HIT ('restricted all consistent',)
+pair 25860 25863 t=50 exec=1.000 end=25865 tested=n=96 k=260 OPEN T4:kT3:exh-found T8:kT7:exh-found T8:kT8:exh-found T8:kT7:exh-found T12:kT12:exh-found T12:kT12:exh-found T12:kT21:OPEN,rows=61,rank=61/231 T16:kT17:exh-found T16:kT15:exh-found T16:kT17:exh-found T20:kT19:OPEN,rows=17,rank=17/190 T20:kT20:OPEN,rows=33,rank=33/210 T20:kT37:OPEN,rows=185,rank=185/703 T28:kT56:OPEN,rows=505,rank=505/1596 T28:kT54:OPEN,rows=419,rank=419/1485 T28:kT29:OPEN,rows=72,rank=72/435 -> HIT ('restricted all consistent',)
+pair 25871 25874 t=50 exec=1.000 end=25876 tested=n=95 k=256 OPEN T4:kT3:exh-found T8:kT7:exh-found T8:kT7:exh-found T8:kT8:exh-found T12:kT22:OPEN,rows=78,rank=78/253 T12:kT21:OPEN,rows=61,rank=61/231 T12:kT12:exh-found T16:kT30:OPEN,rows=137,rank=137/465 T16:kT31:OPEN,rows=157,rank=157/496 T16:kT30:OPEN,rows=137,rank=137/465 T20:kT19:OPEN,rows=17,rank=17/190 T20:kT38:OPEN,rows=218,rank=218/741 T20:kT20:OPEN,rows=33,rank=33/210 T28:kT54:OPEN,rows=419,rank=419/1485 T28:kT54:OPEN,rows=419,rank=419/1485 T28:kT29:OPEN,rows=72,rank=72/435 -> HIT ('restricted all consistent',)
+pair 25880 25881 t=50 exec=1.000 end=25882 tested=n=96 k=260 OPEN T4:kT3:exh-found T8:kT7:exh-found T8:kT7:exh-found T8:kT7:exh-found T12:kT11:exh-found T12:kT11:exh-found T12:kT11:exh-found T16:kT16:exh-found T16:kT29:OPEN,rows=115,rank=115/435 T16:kT16:exh-found T20:kT20:OPEN,rows=33,rank=33/210 T20:kT19:OPEN,rows=17,rank=17/190 T20:kT37:OPEN,rows=185,rank=185/703 T28:kT29:OPEN,rows=72,rank=72/435 T28:kT82:OPEN,rows=1256,rank=1256/3403 T28:kT28:OPEN,rows=49,rank=49/406 -> HIT ('restricted all consistent',)
+pair 28849 28852 t=25 exec=1.000 end=29252 tested=notquad n=64 -> none None
+pair 33038 33080 t=57 exec=1.000 end=33480 tested=n=61 k=348 SKIP(k>KMAX) -> none None
+pair 33080 33122 t=57 exec=1.000 end=33522 tested=n=61 k=349 SKIP(k>KMAX) -> none None
+pair 33122 33156 t=57 exec=1.000 end=33556 tested=n=61 k=349 SKIP(k>KMAX) -> none None
+pair 33195 33235 t=50 exec=1.000 end=33635 tested=n=61 k=349 SKIP(k>KMAX) -> none None
+pair 33235 33267 t=50 exec=1.000 end=33667 tested=n=61 k=349 SKIP(k>KMAX) -> none None
+pair 33267 33297 t=50 exec=1.000 end=33697 tested=n=61 k=349 SKIP(k>KMAX) -> none None
+pair 33329 33367 t=61 exec=1.000 end=33767 tested=n=61 k=349 SKIP(k>KMAX) -> none None
+pair 33367 33403 t=61 exec=1.000 end=33803 tested=n=61 k=349 SKIP(k>KMAX) -> none None
+pair 33403 33430 t=61 exec=1.000 end=33830 tested=n=61 k=349 SKIP(k>KMAX) -> none None
+pair 33430 33451 t=61 exec=1.000 end=33851 tested=n=61 k=349 SKIP(k>KMAX) -> none None
+pair 33481 33525 t=51 exec=1.000 end=33925 tested=n=61 k=350 SKIP(k>KMAX) -> none None
+pair 33525 33569 t=51 exec=1.000 end=33969 tested=n=61 k=350 SKIP(k>KMAX) -> none None
+pair 33569 33598 t=51 exec=1.000 end=33998 tested=n=61 k=350 SKIP(k>KMAX) -> none None
+pair 33623 33657 t=28 exec=1.000 end=34057 tested=n=61 k=349 SKIP(k>KMAX) -> none None
+pair 33657 33693 t=28 exec=1.000 end=34093 tested=n=61 k=349 SKIP(k>KMAX) -> none None
+pair 33693 33726 t=28 exec=1.000 end=34126 tested=n=61 k=349 SKIP(k>KMAX) -> none None
+pair 33763 33798 t=40 exec=1.000 end=34172 tested=n=61 k=348 SKIP(k>KMAX) -> none None
+pair 33798 33826 t=40 exec=1.000 end=34172 tested=n=61 k=348 SKIP(k>KMAX) -> none None
+pair 33826 33852 t=40 exec=1.000 end=34172 tested=n=61 k=348 SKIP(k>KMAX) -> none None
+pair 33888 33930 t=41 exec=1.000 end=34218 tested=n=61 k=347 SKIP(k>KMAX) -> none None
+pair 33930 33963 t=41 exec=1.000 end=34218 tested=n=61 k=347 SKIP(k>KMAX) -> none None
+pair 33963 33991 t=41 exec=1.000 end=34218 tested=n=61 k=347 SKIP(k>KMAX) -> none None
+pair 34192 34240 t=18 exec=1.000 end=34640 tested=n=61 k=311 SKIP(k>KMAX) -> none None
+pair 34240 34286 t=18 exec=1.000 end=34686 tested=n=61 k=311 SKIP(k>KMAX) -> none None
+pair 34604 34653 t=27 exec=1.000 end=34901 tested=n=61 k=346 SKIP(k>KMAX) -> none None
+pair 34653 34699 t=27 exec=1.000 end=34901 tested=n=61 k=346 SKIP(k>KMAX) -> none None
+pair 34699 34743 t=27 exec=1.000 end=34901 tested=n=61 k=346 SKIP(k>KMAX) -> none None
+pair 34743 34783 t=27 exec=1.000 end=34901 tested=n=61 k=346 SKIP(k>KMAX) -> none None
+pair 34783 34819 t=27 exec=1.000 end=34901 tested=n=61 k=346 SKIP(k>KMAX) -> none None
+pair 34819 34848 t=27 exec=1.000 end=34901 tested=n=61 k=346 SKIP(k>KMAX) -> none None

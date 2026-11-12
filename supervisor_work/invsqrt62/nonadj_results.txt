@@ -1,0 +1,77 @@
+# non-adjacent same-target pairs on merge2 (supervisor 2026-11-09): lookup_c / late_curvature_norm via minrank_block (ORDER=auto2)
+n_33038-33122-NA_349.npz RESULT NONE(exact) s=36 ne=281 nodes=199119939 leaves=0 solutions=0
+n_33195-33267-NA_349.npz n=61 k=349 rankK=349 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=281 nodes=199136774 leaves=0 solutions=0  314s
+n_33080-33156-NA_349.npz n=61 k=349 rankK=349 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=281 nodes=199121604 leaves=0 solutions=0  314s
+n_33038-33156-NA_349.npz n=61 k=349 rankK=349 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=281 nodes=199131405 leaves=0 solutions=0  315s
+n_33195-33297-NA_349.npz n=61 k=349 rankK=349 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=281 nodes=199121698 leaves=0 solutions=0  258s
+n_33329-33403-NA_349.npz n=61 k=349 rankK=349 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=281 nodes=199125105 leaves=0 solutions=0  258s
+n_33235-33297-NA_349.npz n=61 k=349 rankK=349 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=281 nodes=199125326 leaves=0 solutions=0  261s
+n_33329-33430-NA_349.npz n=61 k=349 rankK=349 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=281 nodes=199131063 leaves=0 solutions=0  357s
+n_33329-33451-NA_349.npz n=61 k=349 rankK=349 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=281 nodes=199144246 leaves=0 solutions=0  360s
+n_33367-33430-NA_349.npz n=61 k=349 rankK=349 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=281 nodes=199133360 leaves=0 solutions=0  359s
+n_33403-33451-NA_349.npz n=61 k=349 rankK=349 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=281 nodes=199144126 leaves=0 solutions=0  350s
+n_33367-33451-NA_349.npz n=61 k=349 rankK=349 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=281 nodes=199130902 leaves=0 solutions=0  356s
+n_33481-33569-NA_350.npz n=61 k=350 rankK=350 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=280 nodes=199148545 leaves=0 solutions=0  354s
+n_33623-33693-NA_349.npz n=61 k=349 rankK=349 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=281 nodes=168936897 leaves=0 solutions=0  325s
+n_33481-33598-NA_350.npz n=61 k=350 rankK=350 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=280 nodes=199168965 leaves=0 solutions=0  359s
+n_33525-33598-NA_350.npz n=61 k=350 rankK=350 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=280 nodes=199163265 leaves=0 solutions=0  359s
+n_33763-33826-NA_348.npz n=61 k=348 rankK=348 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=282 nodes=129472129 leaves=0 solutions=0  287s
+n_33623-33726-NA_349.npz n=61 k=349 rankK=349 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=281 nodes=168914405 leaves=0 solutions=0  321s
+n_33657-33726-NA_349.npz n=61 k=349 rankK=349 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=281 nodes=168920440 leaves=0 solutions=0  322s
+n_33763-33852-NA_348.npz n=61 k=348 rankK=348 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=282 nodes=129481926 leaves=0 solutions=0  285s
+n_33798-33852-NA_348.npz n=61 k=348 rankK=348 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=282 nodes=129500969 leaves=0 solutions=0  284s
+n_33888-33963-NA_347.npz n=61 k=347 rankK=347 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=283 nodes=129426075 leaves=0 solutions=0  288s
+n_34192-34286-NA_311.npz n=61 k=311 rankK=311 block=35 Q0 in span(K): False RESULT NONE(exact) s=35 ne=284 nodes=24791530 leaves=0 solutions=0  43s
+n_33888-33991-NA_347.npz n=61 k=347 rankK=347 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=283 nodes=129422605 leaves=0 solutions=0  205s
+n_33930-33991-NA_347.npz n=61 k=347 rankK=347 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=283 nodes=129423591 leaves=0 solutions=0  204s
+n_34604-34699-NA_346.npz n=61 k=346 rankK=346 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=284 nodes=106733695 leaves=0 solutions=0  179s
+n_34604-34783-NA_346.npz n=61 k=346 rankK=346 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=284 nodes=85316123 leaves=0 solutions=0  160s
+n_34604-34743-NA_346.npz n=61 k=346 rankK=346 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=284 nodes=99166892 leaves=0 solutions=0  172s
+n_34604-34819-NA_346.npz n=61 k=346 rankK=346 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=284 nodes=80678635 leaves=0 solutions=0  160s
+n_34604-34848-NA_346.npz n=61 k=346 rankK=346 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=284 nodes=80690679 leaves=0 solutions=0  161s
+n_34653-34743-NA_346.npz n=61 k=346 rankK=346 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=284 nodes=99165424 leaves=0 solutions=0  175s
+n_34653-34783-NA_346.npz n=61 k=346 rankK=346 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=284 nodes=85301868 leaves=0 solutions=0  161s
+n_34653-34819-NA_346.npz n=61 k=346 rankK=346 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=284 nodes=80693580 leaves=0 solutions=0  159s
+n_34653-34848-NA_346.npz n=61 k=346 rankK=346 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=284 nodes=80683413 leaves=0 solutions=0  158s
+n_34699-34783-NA_346.npz n=61 k=346 rankK=346 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=284 nodes=85304031 leaves=0 solutions=0  163s
+n_34699-34819-NA_346.npz n=61 k=346 rankK=346 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=284 nodes=80687081 leaves=0 solutions=0  159s
+n_34699-34848-NA_346.npz n=61 k=346 rankK=346 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=284 nodes=80690464 leaves=0 solutions=0  160s
+n_34743-34819-NA_346.npz n=61 k=346 rankK=346 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=284 nodes=80687144 leaves=0 solutions=0  159s
+n_34743-34848-NA_346.npz n=61 k=346 rankK=346 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=284 nodes=80687597 leaves=0 solutions=0  159s
+n_34783-34848-NA_346.npz n=61 k=346 rankK=346 block=36 Q0 in span(K): False RESULT NONE(exact) s=36 ne=284 nodes=80687794 leaves=0 solutions=0  160s
+# carry chains via minrank_core linearisation
+pair 21884-21966-NA 21966 t=14 exec=1.000 end=22040 tested=n=67 k=73 lin-inconsistent rows=11008 rank=2695/2701 -> none None
+pair 21884-21993-NA 21993 t=14 exec=1.000 end=22040 tested=n=64 k=73 lin-inconsistent rows=11008 rank=2695/2701 -> none None
+pair 21928-21993-NA 21993 t=14 exec=1.000 end=22040 tested=n=64 k=73 lin-inconsistent rows=11008 rank=2695/2701 -> none None
+pair 21884-22016-NA 22016 t=14 exec=1.000 end=22040 tested=n=63 k=73 lin-inconsistent rows=11008 rank=2695/2701 -> none None
+pair 21928-22016-NA 22016 t=14 exec=1.000 end=22040 tested=n=63 k=73 lin-inconsistent rows=11008 rank=2695/2701 -> none None
+pair 21966-22016-NA 22016 t=14 exec=1.000 end=22040 tested=n=63 k=73 lin-inconsistent rows=11008 rank=2695/2701 -> none None
+pair 22213-22289-NA 22289 t=16 exec=1.000 end=22561 tested=n=55 k=157 lin-inconsistent rows=22205 rank=12390/12403 -> none None
+pair 22414-22496-NA 22496 t=20 exec=1.000 end=22562 tested=n=55 k=154 lin-inconsistent rows=22205 rank=11925/11935 -> none None
+pair 22414-22532-NA 22532 t=20 exec=1.000 end=22562 tested=n=55 k=154 lin-inconsistent rows=25467 rank=11925/11935 -> none None
+pair 22454-22532-NA 22532 t=20 exec=1.000 end=22562 tested=n=55 k=154 lin-inconsistent rows=25467 rank=11925/11935 -> none None
+pair 22729-22797-NA 22797 t=25 exec=1.000 end=23197 tested=n=55 k=156 lin-inconsistent rows=25467 rank=12241/12246 -> none None
+pair 22729-22825-NA 22825 t=25 exec=1.000 end=23225 tested=n=55 k=157 lin-inconsistent rows=26045 rank=12398/12403 -> none None
+pair 22767-22825-NA 22825 t=25 exec=1.000 end=23225 tested=n=55 k=157 lin-inconsistent rows=26045 rank=12398/12403 -> none None
+pair 22729-22852-NA 22852 t=25 exec=1.000 end=23252 tested=n=55 k=157 lin-inconsistent rows=22205 rank=12398/12403 -> none None
+pair 22767-22852-NA 22852 t=25 exec=1.000 end=23252 tested=n=55 k=157 lin-inconsistent rows=22205 rank=12398/12403 -> none None
+pair 22797-22852-NA 22852 t=25 exec=1.000 end=23252 tested=n=55 k=157 lin-inconsistent rows=22205 rank=12398/12403 -> none None
+pair 22903-22997-NA 22997 t=19 exec=1.000 end=23397 tested=n=55 k=156 lin-inconsistent rows=22205 rank=12241/12246 -> none None
+pair 22903-23030-NA 23030 t=19 exec=1.000 end=23430 tested=n=55 k=156 lin-inconsistent rows=25773 rank=12241/12246 -> none None
+pair 22952-23030-NA 23030 t=19 exec=1.000 end=23430 tested=n=55 k=156 lin-inconsistent rows=25773 rank=12241/12246 -> none None
+pair 22903-23059-NA 23059 t=19 exec=1.000 end=23459 tested=n=55 k=156 lin-inconsistent rows=25125 rank=12241/12246 -> none None
+pair 22952-23059-NA 23059 t=19 exec=1.000 end=23459 tested=n=55 k=156 lin-inconsistent rows=25125 rank=12241/12246 -> none None
+pair 22997-23059-NA 23059 t=19 exec=1.000 end=23459 tested=n=55 k=156 lin-inconsistent rows=25125 rank=12241/12246 -> none None
+pair 23356-23440-NA 23440 t=26 exec=1.000 end=23540 tested=n=55 k=154 lin-inconsistent rows=22205 rank=11930/11935 -> none None
+pair 23356-23478-NA 23478 t=26 exec=1.000 end=23540 tested=n=55 k=154 lin-inconsistent rows=27075 rank=11930/11935 -> none None
+pair 23395-23478-NA 23478 t=26 exec=1.000 end=23540 tested=n=55 k=154 lin-inconsistent rows=27075 rank=11930/11935 -> none None
+pair 23356-23508-NA 23508 t=26 exec=1.000 end=23540 tested=n=55 k=154 lin-inconsistent rows=22205 rank=11930/11935 -> none None
+pair 23395-23508-NA 23508 t=26 exec=1.000 end=23540 tested=n=55 k=154 lin-inconsistent rows=22205 rank=11930/11935 -> none None
+pair 23440-23508-NA 23508 t=26 exec=1.000 end=23540 tested=n=55 k=154 lin-inconsistent rows=22205 rank=11930/11935 -> none None
+pair 23207-23283-NA 23283 t=17 exec=1.000 end=23544 tested=n=55 k=155 lin-inconsistent rows=26045 rank=12085/12090 -> none None
+pair 23207-23316-NA 23316 t=17 exec=1.000 end=23544 tested=n=55 k=155 lin-inconsistent rows=22205 rank=12085/12090 -> none None
+pair 23248-23316-NA 23316 t=17 exec=1.000 end=23544 tested=n=55 k=155 lin-inconsistent rows=22205 rank=12085/12090 -> none None
+pair 22686-22767-NA 22767 t=25 exec=1.000 end=23167 tested=n=55 k=156 lin-inconsistent rows=22205 rank=12241/12246 -> none None
+pair 22686-22797-NA 22797 t=25 exec=1.000 end=23197 tested=n=55 k=156 lin-inconsistent rows=25467 rank=12241/12246 -> none None
+pair 22686-22825-NA 22825 t=25 exec=1.000 end=23225 tested=n=55 k=157 lin-inconsistent rows=26045 rank=12398/12403 -> none None
+pair 22686-22852-NA 22852 t=25 exec=1.000 end=23252 tested=n=55 k=157 lin-inconsistent rows=22205 rank=12398/12403 -> none None

@@ -1,0 +1,4 @@
+# block_dc3 (4 -> 3 exact on reach D, seed 7, all x), 2026-11-11 03:xx UTC; blocks = block_extract2 NMAX 20 OPEN idx 86, 122
+86 ops 25608 .. 25615 n 5 tof 4 |D| 29 K 3 tested 18835600 NONE(exact, K=3 on D)
+122 ops 28847 .. 28854 n 5 tof 4 |D| 29 K 3 tested 18835600 NONE(exact, K=3 on D)
+# self-tests on block 86's D: planted A g3 g2 g1 (random gates, random affine A), seeds 1, 2, 3 -> HIT, HIT, HIT

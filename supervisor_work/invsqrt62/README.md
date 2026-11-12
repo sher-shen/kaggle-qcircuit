@@ -1,0 +1,890 @@
+# invsqrt — starting from the public 62-qubit circuit (supervisor, 2026-11-05 22:xx UTC)
+
+Nothing here was submitted to Kaggle. No third-party circuit file is committed; the source op list is
+`tools/circuit-viewer/ops.json` of the public Apache-2.0 repo `manwithacat/kickmix-macos`
+(`git clone --depth 1 https://github.com/manwithacat/kickmix-macos`; the cloud git proxy serves it).
+
+## Reproduce the public frontier circuit in the cloud
+```
+python3 -I supervisor_work/invsqrt62/ops2kmx.py <kickmix-macos>/tools/circuit-viewer/ops.json p62.kmx
+PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_file('p62.kmx',format='kmx').to_file('p62.kmb',format='kmb')"
+# p62.kmb sha256 = 67482db6c53896348eadba126924868ed3011d7e1576a6d0abb6f7c137ae4997 (byte-identical to the public file)
+PYTHONPATH=data/kickmix python3.13 data/verifiers/invsqrt/verify_submission_invsqrt.py p62.kmb   # ~10 min on 4 cores
+```
+Official verifier, full 200,540,928 shots, default salt: **PASS, Q 62, Toffoli 1327.48 (mean), C 1624.07, score 100,692.58 = 20.625x**
+(`verify_public62.json`). Rotations: 41 per shot, eps 2.43e-13 -> 41 x 28.8 T = 295 Toffoli-eq (18% of C).
+Note: ops.json Z_POW angles are in turns (numerator / 2^128 in `zpow_exact`); kickmix Z_POW takes half-turns.
+
+## Analysis tools (all run on ops.json, no kickmix needed)
+- `phase_trace.py ops.json out.npz`: exact basis-state trace over all 3,133,452 x (~4 min): phase error vs the
+  verifier's target, tol, which rotation fired per x, executed Toffolis. Reproduces the verifier exactly
+  (worst ratio 0.99932377 at x=161, mean Toffoli 1327.48). Absolute min margin 5.86e7 (2^-64 turns) at x=52229.
+- `angle_lp.py trace.npz deltas.npy`: cutting-plane LP re-fitting the 41 free rotation angles to maximise the
+  min margin (which sets eps). **Result: no gain (x1.0000000)** — the published angles are already minimax-optimal.
+  Upper bound of this direction anyway: margin <= min tol (~10x) -> at most ~20 Toffoli-eq (1.2%).
+- `peephole_scan.py ops.json [N]`: Toffoli-class gates with constant / equal / complementary controls on every
+  execution. **Result: none that run on more than 1.6% of inputs** (only rare measurement-conditioned CCZs; < 0.1 Toffoli total).
+- `pair_scan.py ops.json`: static scan for two ANDs into one target sharing a control (yoyobar's 3->2 AND trick)
+  with nothing in between. **Result: 0 pairs left.**
+
+## Width analysis (2026-11-05 23:xx UTC): can the public circuit drop to 61 qubits?
+- `live_trace.py ops.json live.npz [stride]`: exact liveness over **all** x (~50 s). A qubit that is 0 for every x
+  is genuinely |0> (no Hadamards outside HMR). Result: **peak 62 on 15,720 ops**, first/last at op 3823 / 36834.
+- `windows.py stages.json live_occ.npy wins.npy`: the 62-wide stretches, merged (gaps <= 3 ops) and split by stage:
+  coeff_lookup 1 window (10,578 ops), early_phase_taps 4 (627), front_decoder_compute 7 (2,090), arith_b 16 (88),
+  fine_phase_stream 7 (224), arith_c 17 (156), lookup_c 2 (1,773), late_curvature_norm 13 (218) — **67 windows**.
+- `rank_win.py ops.json wins.npy`: affine GF(2) rank of the live wires at the start/middle/end of each window
+  (10k x sample, incl. all x <= 4096). 176 of 200 probes are **full rank**: only late_curvature_norm (deficit 7..14)
+  and 3 tiny windows (ops 16630, 24269, 24746; deficit 1) could be freed with CNOTs alone.
+- So 61 qubits needs non-linear re-synthesis of coeff_lookup, the front decoder, lookup_c and ~33 adder carry
+  windows. Break-even budget for one wire is ~26 Toffoli-eq (1/62 of C); the 63->62 step already cost 5 ANDs in
+  coeff_lookup alone. Not attempted further.
+
+## Linear-AND scan (2026-11-05 23:xx UTC): any Toffoli whose product is affine in the live wires?
+- `linear_and_scan.py` (one shot per x) reported 55 "hits" (12 gates executed on >= 5% of shots, ~2.1 Toffoli mean,
+  mostly measurement-conditioned CCZ in phase_merge_repair and unnormalize whose product looked always 0).
+- `linearize.py` replaced those 12 by Clifford gates -> **official verifier FAIL** (x=3, phase error 0.5).
+  Cause: wire values depend on the HMR outcome history (classically controlled CX fix-ups), and one shot per x
+  sees only one history. Re-run with every x repeated 32 times (`linearize.py ... 0.05 3000 "" 32`): **0 gates**.
+  With minfrac 0 it only finds 40 gates that are essentially never executed (artefacts). **Direction closed.**
+- Lesson: any sampling search on this circuit must repeat each x over many outcome draws (the verifier uses 64).
+
+## Rotation drop scan + conditional-block stats (2026-11-06 00:xx UTC, supervisor)
+- Re-ran `phase_trace.py` in a fresh container: identical (worst ratio 0.99932377 at x=161, min margin 58,597,850 at
+  x=52229, mean Toffoli 1327.48). Note: the verifier counts **all 41** rotation ops per shot (unconditioned Z_POW),
+  although on average only 13.8 have their qubit = 1.
+- `drop_rot.py trace.npz [ks]`: fix one rotation to the nearest multiple of 1/8 turn (usually 0 = delete) and LP re-fit the
+  other 40 angles. Tested the smallest group-2 angles (rot 15..18, 1.4e-11..1.2e-10 turn), rot 0 (3.8e-6 turn) and the
+  rarely-firing high rotations (13, 14, 40: fire only for x <= 1023 / 255 / 252). **All INFEASIBLE** (best margin
+  -1.1e9 units for rot 15, much worse for the rest). Deleting a rotation is not possible; direction closed.
+- `cond_stats.py ops.json 3000 16` (each x repeated 16 times, ~2 s): 142 outermost PUSH_CONDITION blocks hold only
+  **51.5 of the 1327.5 mean Toffolis**, all with p ~ 0.5 (measurement-based uncompute fix-ups). The typical block
+  (e.g. ops 29805-29831) is AND + CCZ = 2 Toffolis evaluating a degree-4 phase polynomial, which needs >= 2 non-Clifford
+  gates, so it is locally optimal. The two big ones (46862-46981 and 46982-47211, ~10 static each, p 0.5) are the only
+  ones worth a closer look (<= ~5 Toffoli mean, 0.4%).
+
+## Commutation-aware AND pairs + CSWAP target scan (2026-11-06 01:xx UTC, supervisor)
+- Re-built `p62.kmb` from ops.json in a fresh container: sha 67482db6... byte-identical again.
+- `comm_pair_scan.py ops.json 1500`: generalises `pair_scan.py` with a per-qubit role model (Z = control/diagonal,
+  X = X-type target, O = other); a pair may be brought together if everything between commutes with one of them
+  (incl. CX onto the shared target, ops inside nested condition blocks, condition bit not rewritten).
+  Patterns CCX a b t/CCX a c t, CCZ sharing 2 qubits, identical CCX pairs. Checked on a synthetic case (finds it).
+  **Result on the public circuit: 0 pairs** (window 1500 ops, no early stop). Direction closed.
+- `peephole_scan2.py` (peephole_scan + CSWAP targets complementary when control=1 -> 2 CX; one target 0 is info only):
+  **0 complementary CSWAPs**. 9 CSWAPs in unnormalize (46766, 46793-46800) and 29531 always have one target 0 when
+  the control is 1, which does not save a Toffoli. A one-seed hit "47040 CCZ control const 0 (p 0.124)" disappears with
+  another seed (sampling artefact, same lesson as the linear-AND scan).
+- Verifier detail relevant to future work: `n_rot` is the *mean executed* count of non-Clifford rotations
+  (`num_z_pow(min_clifford_hierarchy_level=4)` / shots), so a rotation inside a measurement-conditioned block only
+  costs its execution probability. All 41 rotations here are unconditioned.
+
+## 62q vs 63q stage diff: where the extra Toffolis of the 62-wide build sit (2026-11-06 02:xx UTC, supervisor)
+- `segtof.py <viewer> <stage>` counts static Toffoli-class gates between consecutive Z_POWs, 62q vs busyaprime's 63q
+  `9a8627`. early_phase_taps differs at the 2^-10 and 2^-6 rotation segments (+1 each) and in the tail; fine_phase_stream
+  in the first segment (40 vs 37) and the 2^-17 segment (+1).
+- `patch_ops.py in.json edits.json out.json`: range-replacement edits on ops.json with zpow_exact re-keying.
+  `qcheck.py out.json 20000 1 2`: sampled exact check (phase, final cleanliness, mean Toffoli), ~2.5 s.
+- **Try 1 (early_phase_taps op 15528, CCX 32 16 1)**: the 63q build erases the gated quadratic of the last coarse step by
+  HMR + conditioned CZ (0 Toffoli); the 62q build uses a Toffoli. Rewrote it as CX-chain + HMR q1 + conditioned CZ ->
+  **FAIL** (qcheck: 27% dirty). Probe: q1 is non-zero on 12.3% of inputs after op 15559 and is consumed at op 16161
+  (`CX 21 1`, `CZ 23 1`): the 62q design keeps q1 alive as a rolling register instead of a fresh wire, so the Toffoli
+  is the price of the saved wire. Closed.
+- **Try 2 (fine_phase_stream op 25874-25875)**: 62q computes `q50 = q23*a ^ q21*b` with 2 Toffolis where 63q uses 1 plus
+  an AND stored earlier on the 63rd wire. q21/q23 are mutually exclusive (q21&q23 = 0, q21 0.3 %, q23 20 %) but not
+  complementary, so `s1*a ^ s2*b` still needs 2 ANDs without the stored product. Closed unless a wire is freed.
+
+## Per-stage width vs Toffoli, 62q vs 63q (2026-11-06 03:xx UTC, supervisor)
+`live_trace.py` occupancy per stage (all x) next to the stage mean Toffoli of the 62q build and of 63q `9a8627`:
+
+| stage | max occ | ops at 62 | Tof 62q | Tof 63q |
+|---|---|---|---|---|
+| coeff_lookup | 62 | 10,578 | 177.0 | 172.0 |
+| early_phase_taps | 62 | 614 | 80.0 | 76.0 |
+| front_decoder_compute | 62 | 2,090 | 33.0 | 33.0 |
+| arith_a | **61** | 0 | 68.0 | 87.0 |
+| lookup_b | **56** | 0 | 43.0 | 43.0 |
+| arith_b | 62 | 86 | 198.0 | 197.0 |
+| fine_phase_stream | 62 | 210 | 133.0 | 129.0 |
+| phase_merge_repair | **60** | 0 | 6.0 | 6.0 |
+| arith_c | 62 | 154 | 248.3 | 246.3 |
+| lookup_c | 62 | 1,773 | 62.0 | 62.0 |
+| late_curvature_norm | 62 | 215 | 134.0 | 134.0 |
+| unnormalize | **36** | 0 | 67.14 | 66.53 |
+
+- Every stage where 63q is cheaper is already 62 wide in the 62q build, except `unnormalize`, which has 26 spare wires but
+  only differs by 0.6 Toffoli (0.04 %). `segpat.py` shows the differing decoder at ops 46752-46776 maps the 5 bits
+  (q0..q3, q23) to the CSWAP-ladder flags (29 patterns); a hand re-synthesis is possible but caps out at 0.6 Toffoli.
+- The arith_c difference (2.0) is spread over ~50 re-ordered blocks of the op diff, and the static counts balance out.
+  There's no single place to transplant.
+- The last two complementary condition blocks (46862-46981 under bit 318 and 46982-47211 under its inverse 8045) share a
+  6-AND carry chain. Exactly one branch runs per shot, so hoisting that chain saves nothing. **Closed.**
+
+## unnormalize decoder: provably minimal; 63q stage transplant blocked (2026-11-06 04:xx UTC, supervisor)
+- `segmap.py ops.json 46753 46777 0,1,2,3,23,14,15,16,17,18,60 <same> 13000 20000 4`: exact truth table of the decoder
+  (deterministic, 29 reachable inputs). With a=q0, b=q1, c=q2, d=q3, f=q23, G=f(a|b): outputs q14=fb, q15=fa~c, q16=fac,
+  q17=G, q60=Gd, q23=f^G^q60, q0..q3 = swap(b,a,d,c) masked by ~G; extra phase = bit13000 & f & ~(a|b).
+- Rank check: over the 29 reachable inputs, {fa, fb, fac, fab, Gd} are 5-dimensional modulo affine functions, and each
+  Toffoli/CSWAP adds at most one new product, so this output contract needs **>= 5 Toffolis**. The 62q decoder uses exactly 5.
+- `stage_match.py 46744 45095 ops62.json ops63.json` (+ `simto.py`): at the start of unnormalize, 22 of the live wires map
+  1:1 onto 63q `9a8627`, but 62q's q0,q2,q3,q23 (4 wires) and 63q's q0,q2,q3,q23,q56 (5 wires) are **not affine-related**.
+  This is the shift-count compression that saved the 62nd wire. Re-expanding it costs Toffolis, so the 63q stage
+  (3 ANDs in its decoder, 0.6 cheaper in total) can't be transplanted for free. **Direction closed.**
+
+## coeff_lookup (177 AND) structure and bounds (2026-11-06 05:xx UTC, supervisor)
+Run from a scratch dir that has a `w/` subdir (the scripts read and write `w/cl.npz` and `w/F.npy`):
+`lut_tt.py ops.json 238 15214 w/cl.npz` (wire states at stage start/end, ~2 s) -> `lut_outputs.py w/cl.npz w/F.npy`
+(truth tables over the 8-bit address q14..q21) -> `lut_anf.py`, `lut_split_rank.py`, `lut_andlist.py`, `lut_spanchk.py`.
+- The stage computes **35 output wires** (22, 24, 29..61). Each one is an exact function of the address (all 256 covered), and the stage
+  phase is a function of the address too. ANF: every output has degree 7-8 and 103-145 monomials. All 247 non-affine
+  monomials show up, and the outputs have rank 35 modulo affine functions. So they look like random functions, except
+  q60/q41/q44/q43/q57/q40/q59 (3..35 transitions over the sorted address), which are step-like high coefficient bits.
+- **The bilinear 4+4 split doesn't help**: for f_k = sum_j m_j(hi) g_kj(lo), the sum of row ranks is **225 for all 35 splits**,
+  i.e. 22+225 = 247 ANDs, much worse than 177. The public circuit is not a monomial scheme: `lut_andlist.py` shows
+  that 170 of its 177 ANDs multiply two degree-7/8 functions, so it is a general multiplicative-complexity (XAG) circuit.
+- `lut_spanchk.py`: no CCX product is in the affine span of the wires that are live at that point (exact over 256 addresses).
+  **0 hits**, so no AND can be swapped for CNOTs in place.
+- Counting bound (non-constructive): XAG circuits with r ANDs and 35 outputs number about 2^(r^2+53r+315), against 2^8960
+  tables, so r >= ~70-85. There may be room below 172, but only a real MC search (SAT/XAG resynthesis) could reach it.
+- `lut_flip.c` + `lut_mk_tensor.py`: a GF(2) flip-graph tensor-rank walk. **It doesn't work here**: started from the trivial
+  225-term decomposition, it can't even recover a planted rank-60 15x15x35 tensor in 60 s. Do not use it as-is.
+
+## coeff_lookup as XAG + table slack (2026-11-06 06:xx UTC, supervisor)
+- Re-built `p62.kmb` (sha 67482db6..., byte-identical) and re-ran the **official verifier, full 200,540,928 shots: PASS**,
+  Toffoli 1327.483, C 1624.07, score 100,692.58 (`verify_public62_0606.json`).
+- `lut_extract_xag.py ops.json 238 15214 cl.v`: exports the stage as an 8-input / 35-output XAG in Verilog (177 ANDs, no
+  conditional blocks inside, the 15 live payload wires q0..q13,q23 are never touched). Ready to feed an external MC
+  optimiser (mockturtle `cut_rewriting` + `future::xag_minmc_resynthesis`). **Compiling mockturtle in the cloud session was
+  blocked by the permission classifier (external code)**, so this was not run.
+- `lut_xag_rank.py cl.v`: none of the 177 AND products is in the GF(2) span of 1, the inputs and the earlier products
+  (XAG-level redundancy 0).
+- `lut_dcare.py ops.json 30000 5 2 out.npz`: flips each output wire right after the stage, with the first later HMR of every
+  output wire forced to outcome 0 (= a perfectly consistent phase fix-up), and records the worst error per address.
+  The fix-ups of the measured-out coefficient wires are Z-only one-hot lookups, so their Toffoli cost doesn't depend on
+  the table, and don't-cares would be usable. **But there is no slack**: the 5 early-tap wires (40, 41, 50, 51, 57) give
+  >= 6.6e4 x tolerance on every address, and the other 30 make the state dirty (the coefficient feeds in-place arithmetic
+  that is uncomputed later). A table don't-care search on single bits is **closed**. A cheaper table would have to change
+  the arithmetic contract too.
+
+## coeff_lookup MFFC check + AND-recomputable wire scan (2026-11-06 07:xx UTC, supervisor)
+- Re-built `p62.kmb` again (sha 67482db6..., identical). Re-ran the official verifier on our own `invsqrt_lut_U2.kmb`
+  with a new salt `sv0706` (full 200,540,928 shots): **PASS, score 204,973.19 = 10.132x** (`../invsqrt/verify_lut_U2_sv0706.json`).
+- `xag_affine.py cl.v xag.json` converts the exported XAG into affine form (every signal = const ^ XOR of inputs and AND
+  outputs). `xag_mffc.py xag.json` does the AND-level fanout and MFFC analysis. **Every one of the 177 ANDs has an MFFC of size 1**
+  (fanout 1..137, most ANDs feed dozens of later ANDs as linear terms). Cut rewriting (mockturtle `cut_rewriting` +
+  `xag_minmc_resynthesis` included) gains `|MFFC| - new ANDs`, so a single pass can only win if a node's function is in
+  the affine span of existing nodes. `lut_xag_rank.py` already showed that never happens. **Local MC re-synthesis (instructions 1/2
+  of the 06:45 report) is closed: expected gain 0 without zero-gain restructuring or a global SAT/exact MC search.**
+- `andfree_scan.py ops.json wins.npy 2000 3`: at the start and middle of all 67 62-wide windows (each x repeated 3 times), looks for a live
+  wire w = (a&b) ^ affine(other live wires). Such a wire could be measured out for free and recomputed later with 1 Toffoli, freeing a line.
+  **coeff_lookup (the 10,578-op window): 0 such wires**, and also 0 in front_decoder_compute. They show up only in
+  short (4..40-op) arith_b/arith_c/fine_phase_stream carry windows. So 61q costs much more than 1 Toffoli per
+  window, and freeing a line just for fine_phase_stream does not lower Q.
+- 63q's cheaper 2^-17 tap (63q ops 27162-27168) uses q48 as a **long-lived rolling register** (holds q21*q54 ^ ... from
+  earlier in the stream, 19% non-zero), not a transient scratch wire. 62q is 62 wide at ops 25860-25880, so the trick can't be
+  transplanted (consistent with try 2 above). Closed.
+
+## coeff_lookup output re-encoding check (2026-11-06 21:xx UTC, supervisor)
+Run on `F.npy` from `lut_outputs.py` (35 x 256 truth tables, address q14 = LSB .. q21; the two 128-halves are separate regimes).
+- `lut_counter_chain.py F.npy`: toggle sets per half. Two **exact binary-counter chains** stand out (each wire toggles only where
+  the next-lower one does, and half as often): **A = q41,q57,q40,q51,q50** (MSB->LSB; 3/6/13/26/52 toggles in half 0) and
+  **B = q60,q44,q43,q59,q24,q42** (1/3/7/14/28/57). These are the 7 "step-like" outputs from the 05:35 report plus 4 more.
+- `lut_counter_fit.py F.npy`: decoded as signed integers mod 2^5 / 2^6 they are smooth decreasing sequences that wrap around.
+  B in half 0 = round(cubic(a)) (max residual 0.65), so these wires are the **low n bits of smooth polynomial coefficients**,
+  which the downstream arithmetic uses modulo 2^n.
+- `lut_counter_extend.py F.npy`: greedy search for a 7th/8th counter bit among the other 24 outputs, also allowing XOR with up to
+  2 address/counter bits (free CNOT re-encoding). **No candidate is clearly smoother than a random bit** (best 696 vs 742 random for
+  A, 747 vs 841 for B, then gains fade), so the other 24 outputs are not lower bits of A/B under any cheap affine re-encoding.
+- Consequence for "change the coefficient contract": only 11 of 35 outputs are smooth. Producing them arithmetically
+  (round(p(a)) mod 2^n needs constant-multiply adders, ~15-40 Toffolis) costs more than their amortised share of the 177-AND
+  table. The 24 random-looking bits carry the precision and have no single-bit slack (06:45 check). **Offline re-encoding gain: none
+  found.** Remaining route is global exact MC synthesis (SAT) of the 24-bit block, not re-encoding.
+
+## coeff_lookup split-by-MSB + SAT exact-MC scaling (2026-11-06 22:xx UTC, supervisor)
+- Re-built `invsqrt_lut_U2.kmb` from `lutpoly7.py` (sha 27d75c8f..., byte-identical) and re-ran the official verifier with salt
+  `sv0611` (full 200,540,928 shots): **PASS, 204,973.19 = 10.132x** (`../invsqrt/verify_lut_U2_sv0611.json`).
+- `lut_split7.py xag.json F.npy` (xag.json from `xag_affine.py`; also writes the 35x256 truth tables): the 35 outputs use
+  **all 247** degree>=2 monomials of the 8 address bits. Split on the MSB (q21): f = g(x') ^ x7*h(x'), rank g = rank h = 35,
+  g uses all 120 and h all 127 7-var monomials. 120 + 35 = **155 ANDs only if the 35 h_k are held in 35 extra scratch wires**
+  (Q 62 -> ~97, cost x1.5). Inside the 4-wire scratch budget a monomial DFS needs 247, and the "compute h into the outputs,
+  multiply by x7, MBU + phase-fixup DFS" variant needs ~275. **Split-table direction closed (worse than 177 at width 62).**
+- `lut_profile.py F.npy`: toggle counts and ANF degree per output. Even the simplest output (row 33, 1+2 toggles, a threshold
+  function) has ANF degree 8.
+- `lut_mcsat.py F.npy ROWS r TL`: exact XAG multiplicative-complexity SAT encoding (affine operands over inputs and earlier ANDs,
+  CaDiCaL via python-sat). See the SUPERVISOR.md of this run for the timings.
+  Single output row 33 (threshold, degree 8, so MC >= 7 and a 7-AND comparator exists): r=6 (36.5k vars) and r=7 (46k vars)
+  **both hit the 200 s limit without an answer**. Exact SAT MC does not even reach one 7-AND output, so a 24-output ~150-AND
+  block is far out of reach. **SAT exact-MC direction closed** (it would need a heavy external tool like mockturtle's
+  exact XAG synthesis with cut enumeration, which is blocked in the cloud session).
+- U2 maxq re-check: maxq 108 -> 1636 static Toffoli, maxq 104 -> 1734 (109 -> 1618). Q x C does not improve below 109.
+
+## unnormalize already uses per-stage flag measurement (2026-11-08 03:xx UTC, supervisor)
+- Dumped ops 46744-47248: 57 unconditioned Toffoli-class gates (5-AND decoder + 52 CSWAP ladder, one CSWAP already replaced by Özer's patch),
+  then the shift flags are X-measured one by one (HMR q19 -> bit 318, q16 -> 319, q14 -> 320, q15 -> 322, q18 -> 321) with nested
+  PUSH_CONDITION blocks holding the AND-chain / CCZ phase fix-ups (44 static, ~10 mean). This is the same trick as our lut_AF
+  normalize_inv (expected 11). **Porting AE/AF measurement-erasure to the 62q circuit (instruction 1 of 02:40) brings nothing: already there.**
+
+## First improvement over the public 62q circuit: merging Toffoli pairs (2026-11-08 04:xx UTC, supervisor)
+- `xag_window_rank.py xag.json` / `xag_qform.py` / `xag_window_and1.py` / `xag_window_and2.py` (coeff_lookup, old instruction 1):
+  all 186 truth tables (const, 8 inputs, 177 ANDs) are GF(2)-independent, so a window of k ANDs can only be re-synthesised with k-1
+  if the consumers see a <= k-1 dim projection. 230 windows are rank-1 (several CCX into one wire), but (a) formal symplectic rank is
+  always full and (b) no single AND(g,h) with g,h in span(const, window operands) or affine/AND x affine candidates matches the sum
+  mod earlier signals (sanity: k=1 finds all 177 trivially). **coeff_lookup window re-synthesis closed.**
+- `stage_xag.py ops.json A B out.json` (symbolic AND-level affine form of any op range; formal variables = wires at op A; CSWAP,
+  classically controlled ops, HMR handled) + `stage_qform.py out.json K [SPAN]` (all windows of <= K ANDs, consecutive or inside a span
+  of SPAN ANDs: rank of the consumer projection, best basis by symplectic rank -> minimal formal product count). Run on every stage.
+  Minimal hits: arith_a (ops 21455, 21459, 21473), fine_phase_stream (25505, 25509, 25523), fine (25604, 25607), arith_c (28843, 28846).
+- The last two are artefacts: they are dirty-ancilla CCCX blocks (the same product XORed twice into a non-clean wire, `dirty_pairs.py`
+  finds 12 such pairs in the whole circuit, all at width 62, so no clean wire exists to shortcut them).
+- The first two are the same real building block: `q_t ^= x*n` then `q_t ^= y*(n+q9+x+q8)` (two CCX into one target, with the shared
+  control re-encoded by CNOTs in between) and later a third AND `a = y*(q8+q9)`. Since only the sum reaches the rest of the circuit,
+  `x n + y(n + q9 + x + q8) = (x+n)(y+n) + n + a`, so the two CCX become **one CCX on (x+n),(y+n)**, a CX from n, and a CX copying `a`
+  from the wire that holds it right after it is computed (the target is idle in between: q19 until op 21584, q40 until op 25536).
+  Wire contents after the block are identical, so the circuit is the same permutation + phases on every basis state.
+  Edits: `edits/arith_a_merge1.json` (arith_a only) and `edits/merge2.json` (both).
+```
+python3 -I supervisor_work/invsqrt62/patch_ops.py <kickmix-macos>/tools/circuit-viewer/ops.json supervisor_work/invsqrt62/edits/merge2.json p62mm.json
+python3 -I supervisor_work/invsqrt62/ops2kmx.py p62mm.json p62mm.kmx
+PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_file('p62mm.kmx',format='kmx').to_file('p62mm.kmb',format='kmb')"
+# merge1 -> sha acd2304a..., merge2 -> sha fc153f1f...
+```
+- **merge1: official verifier full 200,540,928 shots PASS, Q 62, Toffoli 1326.48, C 1623.07, score 100,630.56 = 20.638x** (`verify_p62_merge1.json`).
+- merge2: exact phase trace (`phase_trace.py`) mean Toffoli 1325.48, worst ratio 0.99932377 at x=161 (unchanged).
+- **merge2: official verifier full 200,540,928 shots PASS, Q 62, Toffoli 1325.48, C 1622.07, score 100,568.56 = 20.650x**
+  (`verify_p62_merge2.json`, worst 0.99932377 at x=161, sha fc153f1f). Nothing was submitted to Kaggle.
+- Other checks this run: `uncompute_scan.py` (formal) finds **0** CCX in the whole circuit whose target is affine afterwards (all uncomputes
+  are already measurement-based); `dirty_pairs.py`: the 12 dirty-ancilla compute/uncompute pairs all sit at width 62.
+- merge2 with salt sv0804mm: full PASS, 100,568.57 (`verify_p62_merge2_sv0804mm.json`).
+- Span-40 triple scan (`stage_qform.py st.json 3 40`) adds a periodic series in fine_phase_stream (25707/25749/25752, ...). These are
+  **artefacts**: the identity needs a49 again at op 25749, but its wire q50 was HMR-measured at 25715. TODO: restrict factors to the span
+  of live wire masks at the window's op. Width-62 dirty chains (25583, 28822): live wires + const are full rank (`lut_tt.py` sample), so a
+  wire can't be freed with CNOTs.
+
+## 2026-11-08 05:xx UTC (supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv0805mm: PASS,
+  score 100,568.535 = 20.650x** (`verify_p62_merge2_sv0805mm.json`).
+- Span-40 triple scan (`stage_qform.py st.json 3 40`) finished for arith_b, arith_c, late_curvature_norm, early_phase_taps,
+  lookup_c, unnormalize: only arith_c 28843 (known dirty-CCCX artefact) and early_phase_taps hits.
+- `stage_qform_plus.py st.json 2 SPAN` ("one AND away": a 2-AND window whose XOR sum + some other AND of the stage is a single
+  product) — finds both merge2 edits (sanity). New hits only in the two phase-tap streams (early 15288/15290 + 15364, ..., fine
+  25749/25752 + 25707, ...): every tap computes `q_tap = c1*u + c2*v` into a fresh wire that is rotated and HMR'd at once, and the
+  shared AND lives in a *different* tap. Using it needs that AND held on an extra wire between the taps; occupancy there is 61..62
+  (the 61 is just the tap wire itself), and a dirty copy costs 2 Toffolis (compute + uncompute) = no gain. **Closed.**
+- `func_pair_scan.py ops.json 2000 8 80` (sampled/functional, x repeated 8x, recent measurement bits allowed in the remainder,
+  remainder may become available on a live wire up to 400 ops later): 125 same-target CCX pairs in the whole circuit, **hits = the
+  2 merge2 pairs only**. Nonlinear relations between wires do not open further pair merges.
+
+## General affine factors, tap pairs, wire freeing, triples (2026-11-08 06:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv0806mm: PASS,
+  score 100,568.51 = 20.650x** (`verify_p62_merge2_sv0806mm.json`). Nothing was submitted to Kaggle.
+- `quad_rel_scan.py ops.json 15000 1`: the reachable states DO satisfy many quadratic relations at every same-target CCX pair
+  (15..711 independent degree-2 relations among the 52..61 live wires; e.g. live AND outputs). So the formal symplectic rank of
+  stage_qform is only an upper bound, and a functional test with arbitrary affine factors is needed (next item).
+- `func_affine_scan.py ops.json n reps maxgap EXTRA [A B]`: exact sampled criterion for f = p_i + p_j = g*h + r with g, h, r
+  affine in V = live wires at j and at the next read of t + recent measurement bits:  f|{g=0} in V|{g=0} and f|{g=1} in V|{g=1}.
+  g = span(4 control values) XOR up to EXTRA further live wires. Sanity on the original ops.json (EXTRA 0): finds exactly the
+  two merge2 pairs. On merge2: EXTRA 1 -> **0 of 72 pairs**; EXTRA 2 (~23k-28k g per pair, run in 5 shards) -> **0 of 72 pairs**. **Instruction 1 (pairs) closed for g of weight <= 2 beyond the controls.**
+- `tap_pair_scan.py ops.json A B wire n reps DMAX EXTRA` (instruction 2): for every pair of phase-tap values (Z_POW on the tap wire,
+  distance <= 4 taps) tests v_i + v_j = g*h + r (g = any live wire or XOR of two, V = live at both taps + bits).
+  early_phase_taps (wire 28, 16 taps, 54 pairs) and fine_phase_stream (wire 50, 21 taps, 74 pairs): **0 hits** -> computing tap j
+  from tap i on the same wire cannot use fewer than 2 + 2 ANDs (for such g). Note also that the early stream's CSWAP(20,28,3) /
+  CSWAP(27,28,0) is a delay line (shift-dependent angle), so tap order is fixed anyway. **Instruction 2 closed.**
+- `wire_free_scan.py ops.json P Q n reps EXTRA` (instruction 3): every live wire untouched in the dirty block [P,Q) tested for
+  w = g*h + r (other live wires + bits, at P and at Q). Dirty chains 25601-25622 and 28840-28861: **0 of 51 wires** (EXTRA 2).
+  The width profile (`occ` sample) has 4-5 free wires only at ~25557-25571, but the chain inputs 40/21/41 are computed after that;
+  wire 41 (= erased21 * 47, degree 3) would cost >= 2 Toffoli to recompute plus a non-Clifford fix-up. **Instruction 3 closed.**
+- `triple_func_scan.py ops.json n reps maxgap` (3 -> 2): quadrant criterion f|{g1=b,g2=c} in V for g1, g2 = XOR of <= 2 of the six
+  control values. Sanity (synthetic: two copies of a CCX inserted after the merge2 pair): both triples HIT. On merge2: **0 of 39 triples**.
+
+## Support-directed affine factors (2026-11-08 07:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv0807mm: PASS,
+  score 100,568.57 = 20.650x** (`verify_p62_merge2_sv0807mm.json`). Nothing was submitted to Kaggle.
+- `support_g_scan.py ops.json n reps maxgap L MAXD [A B]` (instruction 1 of 06:50): for each same-target CCX pair, formal window
+  [i-L, j] (wire values at i-L + AND outputs; measurement-conditioned ops give fresh variables, dropped); supp = variables of the
+  4 control masks plus the 4 control values themselves; G = V cap span(1, supp) by exact linear algebra on the samples; every g in G
+  (if dim G <= MAXD, else 2^MAXD random g) is tested with the func_affine_scan criterion. Sanity on the original ops.json: finds the
+  arith_a merge2 pair (L 30 and L 400). Bug caught during sanity: V must be copied at op j (numpy views of q mutate later).
+- Result on merge2, L 400, MAXD 13: **0 of 71 pairs** (22 pairs exhaustive with dim G <= 13; the other 49 have dim G 14..28 and
+  were sampled with 8192 g each). L 60, MAXD 15: **0 of 71 pairs** (18 exhaustive with dim G <= 15, 53 sampled with 32768 g each; 1.73M g tested).
+- Notes: the phase_merge_repair CCZ ladders (4 x 19 CCZ on (18|27, 23|21, *)) are already pivot-search reductions (nested
+  "all previous bits zero" conditions -> exactly one CCZ executes), and the seed_phase_retire_2 CCX pairs likewise; no gain there.
+
+## Linear relaxation of the affine-factor test (2026-11-08 21:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv0821mm: PASS,
+  score 100,568.55 = 20.650x** (`verify_p62_merge2_sv0821mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `lin_filter_scan.py ops.json n reps maxgap L MAXD` (same arguments as support_g_scan; MAXD unused): tests the *necessary* condition
+  f in span(V, G_k*V for all basis vectors G_k of G) with one exact packed GF(2) elimination per pair. A rejection would close
+  every g in G at once, whatever dim G is. Run with n 6000, reps 2 (N = 14,030 samples > rows <= 3,567, so a rejection is meaningful).
+- Result: original ops.json 71 of 73 pairs **not rejected**, merge2 69 of 71 **not rejected** (only the dirty 25604/28843 pairs
+  are rejected, which were already known artefacts). Reason: for these chains the four control values are still live at j, so
+  c1, c2, c3, c4 are in G and f = c1*c2 + c3*c4 is in G*V trivially. The relaxation drops the rank-1 condition (h_k = c_k h), and
+  that condition is the whole question. So this relaxation cannot replace the per-g search. The 49 pairs with dim G 14..28 stay
+  sampled, not exhaustive. An exact method would need a rank-1 completion search over the kernel of (r, h_1..h_d) -> r + sum G_k h_k.
+  That kernel includes all the trivial symmetric relations G_k*G_l = G_l*G_k, roughly d^2/2 of them, so it is not cheap.
+
+## Exact pair test by MinRank (2026-11-08 22:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv0822mm: PASS,
+  score 100,568.51 = 20.650x** (`verify_p62_merge2_sv0822mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `minrank_core.py` + `minrank_pair_scan.py ops.json n reps maxgap 0 [A B]` (same pair list / sampling as func_affine_scan): the
+  question "f = p_i + p_j = g*h + r with g, h ANY affine functions of V_j (live wires + recent bits at j), r in V_j + V_end" is
+  rewritten exactly as MinRank: on a basis v of V_j (control values put first), every degree<=2 representation of f is
+  Q0 + span(K_1..K_k) (K = quadratic relations of the sampled reachable states, a superset of the true ones, so a rejection is
+  sound), and g*h has an alternating quadratic part of rank <= 2. rank(B(l)) <= 2 <=> all 4x4 Pfaffians vanish (quadratic in l).
+  k <= 18: all 2^k l enumerated; k <= 160: linearised (unknowns 1, l_i, l_i l_j), inconsistency = proof that no (g, h) exists;
+  k > 160: only principal-submatrix necessary tests (too weak, see below). Sanity: on the original ops.json the merge2 pair
+  21455/21459 is NOT rejected (consistent).
+- Result on merge2 (n 3000, reps 2, maxgap 60), 71 pairs:
+  - **25 pairs exactly rejected** (carry chains 21884..23478, k 73..157: the linearised Pfaffian system is inconsistent).
+    This closes these pairs for ALL affine g, h of any weight; support_g_scan had only sampled the high-dim-G ones among them.
+  - 2 dirty-CCCX pairs (25610, 28849): f is not even quadratic in V_j -> rejected (known artefacts).
+  - 14 phase-tap pairs (early 15288..15417 k 631..711, fine 25746..25880 k 248..260): not decided by MinRank; already closed
+    by the tap-wire argument (shared AND sits in another tap, needs an extra wire at width 62).
+  - **30 pairs in 33038..34819 (lookup_c / late_curvature_norm chains, k 311..350): OPEN.** Linearisation would need ~60k unknowns;
+    the principal-submatrix restrictions are always feasible because the relations (product wires) make almost every entry free.
+
+## Exact block search closes the k~350 pairs (2026-11-08 23:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv0823mm: PASS,
+  score 100,568.57 = 20.650x** (`verify_p62_merge2_sv0823mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `minrank_sat.py` (MR_SAT=1 in minrank_core): CryptoMiniSat with native XOR clauses for `Q0 + sum l_i K_i = u^w`.
+  Finds the merge2 witness instantly (21455/21459 on the original ops.json), but cannot prove UNSAT even for a k=154 pair that the
+  linearisation rejects (600 s timeout). Kept only as a witness finder.
+- Structure of the 30 open pairs (dumps via `MR_DUMP=prefix`): Q0 = c0^c1 + c2^c3 (weight 2), and only **36 of the 61 basis wires
+  are touched by any relation** (the touched graph is ~K_36 minus 7 edges). So u^w (a complete 3-partite graph on the classes
+  {u,w} = 10/01/11) must live inside that 36-wire block; any wire outside must be 00 (or u^w = 0, which means Q0 in span K: tested, false).
+- `minrank_block.py dump.npz [--plant]` + `minrank_block.c`: eliminate l (equations c.(u^w) = c.Q0 for c in Ann(K), 280..284 of them),
+  write each as u^T C w, and assign (u_a, w_a) vertex by vertex in reduced echelon form (GL2 symmetry removed). After m vertices,
+  every equation whose entries all touch an assigned vertex is linear in the unassigned (u_R, w_R); the system is kept in echelon form
+  incrementally (pivot = highest bit, interleaved bits, substitution clears the lowest bits) and any inconsistency prunes.
+  Exhaustive => exact. Vertex order `ORDER=auto2` (Q0 wires first, then the reverse of the greedy order): the tree dies at depth 16.
+  Self-test `--plant` (Q0 replaced by a random u^w + K l): the planted solution is found for 4/4 seeds (11k..189M nodes).
+- **Result: all 30 pairs NONE(exact)** (25M..199M nodes, 42..235 s each; `minrank_block_results.txt`). Together with the 25 carry-chain
+  pairs (linearisation), the 2 dirty pairs (not quadratic) and the 14 tap pairs (tap-wire argument), every same-target CCX pair of
+  merge2 within maxgap 60 is now closed for arbitrary affine g, h (relative to the sampled relations, so rejections are sound).
+
+## Chain 3->2 and non-adjacent pairs (2026-11-09 00:xx-01:xx UTC, supervisor)
+- merge2 rebuilt (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv0900mm: PASS, score 100,568.52 = 20.650x**
+  (`verify_p62_merge2_sv0900mm.json`). Nothing was submitted to Kaggle.
+- `chain_dump_scan.py` (MR_KMAX=0 MR_DUMP=prefix): MinRank systems for the chain sums F = p_i1 + ... + p_im of same-target CCX chains
+  (carry L 3..6, k 73..157; lookup_c / late_curvature_norm L 3..7, k 311..350).
+- `rank4_sat.py` (rank <= 2(L-1) witness search, CryptoMiniSat): planted rank-4 found at k=73 in 50 s, but NOT found in 100 s at k=154/349;
+  real 21884 L=3 chain: TIMEOUT after 2400 s. Inconclusive tool for large k.
+- `chain_rank_bound.py`: rank(Q0[:, untouched]) = 0 for all 39 chains -> no bound.
+- Exact block search for rank 4 would need ~2^48 nodes (rank 2: 2^28). Chain 3->2 in general stays UNDECIDED.
+- `nonadj_pair_scan.py`: decidable sub-case, non-adjacent pairs (ia, ic) of a chain (p_ib stays; same-target CCX commute).
+  Lookup: **40 pairs, all NONE(exact)** via minrank_block (plant self-test on one dump: found, 284k nodes). Carry: **all lin-inconsistent**
+  (exact reject). `nonadj_results.txt`.
+
+## Star 3->2 / two-star 4->3 (2026-11-09 02:xx UTC, supervisor)
+- merge2 rebuilt (sha fc153f1f); **official verifier full run, salt sv0902mm: PASS, score 100,568.59 = 20.650x**
+  (`verify_p62_merge2_sv0902mm.json`). Nothing was submitted to Kaggle.
+- New decidable sub-case of chain 3->2 (rank 4 is out of reach): one of the two new ANDs uses a basis wire v,
+  F = v*w1 + u*w (w1, u, w arbitrary affine). Since v*w1 = sum_i w1_i (v^e_i), every entry (v, i) is free: drop the pairs that
+  contain v and run the exact rank<=2 block search. `star_scan.py dump.npz out [v,...]` (dumps from `chain_dump_scan.py`,
+  MR_KMAX=0 MR_DUMP=prefix, on merge2 with 3000 2 60). `STAR2=1`: two stars v1, v2 (F = v1 w1 + v2 w2 + u w, 4 -> 3; this also
+  covers a 3->2 star on a mid-chain triple, since the left-over original AND is itself a star on its control).
+- Self-test `star_plant.py` (plants v^w1 + u^w + K l): 3/3 HIT (296..665 nodes); two-star plant: HIT (653 nodes).
+- **Carry L3 chains (7 chains, k 73..157, every touched vertex v): 196 / 196 NONE(exact)** (`star_carry_L3_results.txt`, < 1 s each).
+- **Carry L4 chains, two stars (6 chains, all vertex pairs): 2526 / 2526 NONE(exact)** (`star2_carry_L4_results.txt`, ~10 min on 4 cores).
+  So on the carry chains no 3->2 with a wire-star and no 4->3 with two wire-stars exists (relative to the sampled relations: sound rejections).
+
+## Independent re-run (2026-11-09 01:05-03:00 UTC, overlapping supervisor run)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full run, salt sv0901mm: PASS, score 100,568.50 = 20.650x**
+  (`verify_p62_merge2_sv0901mm.json`). Nothing was submitted to Kaggle.
+- Re-ran `nonadj_pair_scan.py` from scratch in a separate container: same result, 35 carry pairs lin-inconsistent, 40 lookup pairs
+  NONE(exact) (`nonadj_results_rerun0901.txt`). `rank4_sat.py --T 2000` on the 21884 chain also as L=4 (R=3): TIMEOUT too.
+
+## Star 3->2 (continued, 2026-11-09 02:xx UTC run)
+- **Lookup L3 chain 33038-33122 (k 349), star on vertex v, ORDER=auto2: 9 of the 35 block vertices NONE(exact)**
+  (v 0, 1, 2, 3, 18, 19, 20, 21, 22; ~2.4e8 nodes, ~5 min each; `star_lookup_33038_results.txt`). The greedy order (ORDER='') hits a
+  4e8-node limit on v 0, so use auto2. Not done: the other 26 vertices of this chain and the other 8 lookup L3 chains
+  (~35 x 5 min each, ~6.5 h on 4 cores in total), and two-star on the lookup L4 chains (C(35,2) per chain, not feasible this way).
+
+## Star 3->2: lookup chain 33038 finished, general star centre on carry chains (2026-11-09 03:xx-04:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv0904mm: PASS,
+  score 100,568.53 = 20.650x** (`verify_p62_merge2_sv0904mm.json`). Nothing was submitted to Kaggle.
+- Lookup L3 chain 33038-33122 (k 349): the remaining 27 vertices done (ORDER=auto2, ~2.4e8 nodes each) -> **all 36 touched
+  vertices NONE(exact)** (`star_lookup_33038_results.txt`; the one LIMIT line is the old greedy-order attempt on v 0).
+- `star_basis.py dump.npz out COMBOS`: star centre v = any XOR of basis wires (basis change x'_{c0} = v, A -> M^T A M, then the
+  star_scan test). Plant self-test with v = 0+1, 2+5+9, 3+20: 3/3 HIT. Carry L3 chains (7), v in span of the 4 control values
+  (11 non-basis combos each): **77 / 77 NONE(exact)** (`star_basis_carry_ctrl2_results.txt`). Weight-2 centres over the whole block
+  (2961 combos): **2961 / 2961 NONE(exact)** (`star_basis_carry_pairs_results.txt`, ~1 s each).
+- Lookup chain 33195 star (single basis centre) started: 8 / 36 vertices NONE(exact) so far (`star_lookup_33195_partial.txt`).
+
+## Faster block solver; lookup star on 34604 (2026-11-09 04:06-05:05 UTC, overlapping supervisor run)
+- merge2 rebuilt in another fresh container (sha fc153f1f); official verifier full run with the same salt sv0904mm:
+  **PASS, score 100,568.5291 (identical to the other run's result, so the verifier is deterministic across containers)**
+  (`verify_p62_merge2_sv0904mm_rerun.json`). Nothing was submitted to Kaggle.
+- `minrank_block.c` sped up about 1.4x (45 s -> 32 s for 2e7 nodes): BMI2 `pdep` in spread(), the cleared basis rows are computed
+  once per node and shared by the children, and the Su/Sw arrays are shared when the bit is 0 and updated only for equations
+  that are not yet linear. The search order and pruning are unchanged: same stdout and node counts by depth at a 2e7 limit,
+  the same full exact count on 34604 v0 (238,855,440 nodes), and the star_plant self-test on 34604 is 2/2 HIT (seeds 5, 11). Needs x86 BMI2.
+  Profile note: the Su/Sw update loop is NOT the bottleneck (restricting it gave ~5%); the remaining cost is in insert() and the order.
+- Lookup L3 chain 34604-34699 (k 346), single-wire star, ORDER=auto2: partial results in `star_lookup_rev_partial.txt`
+  (all NONE(exact) so far; job list runs 34604 -> 34192 -> 33888, so it does not overlap the other run's 33195).
+
+## Lookup star on 34604 finished; 34192 started (2026-11-09 05:06-06:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv0905mm: PASS,
+  score 100,568.544 = 20.650x** (`verify_p62_merge2_sv0905mm.json`). Nothing was submitted to Kaggle.
+- Chain dumps regenerated from scratch (`chain_dump_scan.py p62mm.json 3000 2 60`, python3.13; same k per chain as before).
+- Plant self-test on the new chain 34192 (`star_plant.py ... 7`, v 58): **HIT** (4.8e7 nodes).
+- **Lookup L3 chain 34604-34699 (k 346): remaining 20 vertices done -> all 36 touched vertices NONE(exact)**
+  (`star_lookup_34604_results.txt`, ~5 min each at 4 parallel jobs; the 5 vertices the overlapping 04:06 run also finished (31-34, 44) have identical node counts).
+- **Lookup L3 chain 34192-34286 (k 311): all 35 touched vertices NONE(exact)** (`star_lookup_34192_results.txt`, ~3 min each).
+- **Lookup L3 chain 33888-33963 (k 347): all 36 touched vertices NONE(exact)** (`star_lookup_33888_results.txt`).
+- Lookup L3 single-wire star status: 33038, 34604, 34192, 33888 closed; 33195 8/36; 33329, 33481, 33623, 33763 not started.
+
+## Lookup chain 33195 finished (2026-11-09 06:10-07:00 UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv0906mm: PASS,
+  score 100,568.526 = 20.650x** (`verify_p62_merge2_sv0906mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- **Lookup L3 chain 33195-33267 (k 349): remaining 28 vertices done -> all 36 touched vertices NONE(exact)**
+  (`star_lookup_33195_results.txt`, ~6.5 min each at 4 parallel jobs while the verifier ran, 2.39e8..2.41e8 nodes each).
+- Lookup L3 single-wire star status: 33038, 34604, 34192, 33888, 33195 closed; 33329 4/36 (v 0-3 NONE(exact),
+  `star_lookup_33329_partial.txt`); 33481, 33623, 33763 not started.
+
+## 2026-11-09 07:10 UTC run (supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv0907mm: PASS,
+  score 100,568.527 = 20.650x** (`verify_p62_merge2_sv0907mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- **Lookup L3 chain 33329-33403 (k 349): remaining 32 vertices done -> all 36 touched vertices NONE(exact)**
+  (`star_lookup_33329_results.txt`, 2.39e8..2.42e8 nodes each, ~5 min each at 4 parallel jobs).
+- Lookup L3 single-centre star status: 33038, 34604, 34192, 33888, 33195, 33329 closed; 33481, 33623, 33763 not started.
+
+## 2026-11-09 22:05 UTC run (supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv0922mm: PASS,
+  score 100,568.537 = 20.650x** (`verify_p62_merge2_sv0922mm.json`). Nothing was submitted to Kaggle.
+- Plant self-test on chain 33481 (`star_plant.py ... 13`, v 57): **HIT** (8.8e5 nodes).
+- Lookup L3 chain 33481-33569 (k 350): partial, all NONE(exact) so far (`star_lookup_33481_partial.txt`);
+  chain 33763-33826 (k 348): partial, all NONE(exact) (`star_lookup_33763_partial.txt`). 2.39e8..2.42e8 nodes each, ~8-10 min at 4 jobs.
+
+## 2026-11-10 00:06 UTC run (supervisor): all 9 lookup chains closed for the single-centre star
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1000mm: PASS,
+  score 100,568.568 = 20.650x** (`verify_p62_merge2_sv1000mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- Plant self-test on chain 33623 (`star_plant.py ... 17`, v 49): **HIT** (8.5e5 nodes).
+- **Lookup L3 chain 33763-33826 (k 348): all 36 touched vertices NONE(exact)** (`star_lookup_33763_results.txt`).
+- **Lookup L3 chain 33623-33693 (k 349): all 36 touched vertices NONE(exact)** (`star_lookup_33623_results.txt`).
+  -> single-centre star closed on all 9 lookup L3 chains (33038, 33195, 33329, 33481, 33623, 33763, 33888, 34192, 34604).
+- star_basis ctrl2 on lookup 33038 (11 centres = XOR combos of control values 0..3): **11/11 NONE(exact)**, 2.42e8 nodes each
+  (`star_basis_lookup33038_ctrl2_results.txt`). The 6 weight-2 combos were also run by the overlapping 01:07 run: node counts identical.
+- star_basis ctrl2 on lookup 33623 and 33763 (11 centres each): **22/22 NONE(exact)** (`star_basis_lookup33623_ctrl2_results.txt`,
+  `star_basis_lookup33763_ctrl2_results.txt`). The overlapping run covers 34604, 34192, 33888, 33195, 33329 (`star_basis_lookup_ctrl2_partial.txt`).
+
+## 2026-11-10 02:06 UTC run (supervisor): ctrl2 closed on all 9 lookup chains; depth profile of the block search
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1002mm: PASS,
+  score 100,568.552 = 20.650x** (`verify_p62_merge2_sv1002mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- star_basis ctrl2 on 33481 (11/11), 33329 (0+1+2, 0+1+3, 0+2+3, 1+2+3, 0+1+2+3), 33195 (0+1+3, 0+2+3, 1+2+3, 0+1+2+3) and the
+  missing 0+1+2+3 on 34604 / 33888: **22 / 22 NONE(exact)** (`star_basis_lookup_ctrl2_run0206.txt`). Together with the overlapping
+  runs' files, **ctrl2 (11 centres) is now closed on all 9 lookup L3 chains**.
+- Note: parallel star_basis jobs share `/tmp/minrank_block_c` by default and the first compile races ("Text file busy");
+  set a separate `MR_BIN` per job or compile once before starting them.
+- Depth profile (plain L3 test on 33195, ORDER=auto2, s=36, 281 equations): linear equations by depth
+  0,0,0,1,2,2,3,4,5,6,7,8,10,**28**,50,71,91,... and nodes by depth 1,2,5,15,51,187,715,...,1.1e7,4.5e7,**1.4e8**,353,0.
+  So the first 12 vertices carry ~1 equation each (x4 per level, almost no pruning) and everything dies at depth 15-16.
+  The whole cost is the 4^~14 enumeration of the low-equation prefix: a faster exact solver must treat that prefix by
+  linear algebra (or meet-in-the-middle over the depth-13..15 equations) instead of enumerating it.
+- 2026-11-10 03:40 UTC: merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv1003mm:
+  PASS, score 100,568.56 = 20.650x** (`verify_p62_merge2_sv1003mm.json`). star_basis plant self-test on 33329 (0+1+2): HIT (58 nodes).
+  Remaining ctrl2 combos (33195 x3, 33329 x5, 33481 x8): **16/16 NONE(exact)** (`star_basis_lookup_ctrl2_rest_1003.txt`).
+  These 16 overlap the 02:06 run's 22 (independent duplicate, all agree); node counts bit-identical on all 16. Nothing was submitted to Kaggle.
+
+## 2026-11-10 04:06 UTC run (supervisor): 14 phase-tap pairs closed exactly; vertex order does not help
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1004mm: PASS,
+  score 100,568.540 = 20.650x** (`verify_p62_merge2_sv1004mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `minrank_block_big.py`: Python big-int port of `minrank_block.c` (same .txt input from `MR_NOC=1 minrank_block.py`), no s<=64 limit.
+  Agrees with the C solver node-for-node on the four s=58/60 dumps; plant self-test on 25746 (s=93): HIT in 108 nodes.
+- **14 phase-tap pairs (early 15288..15417 s 58/60, fine 25746..25880 s 93..96): all NONE(exact)**, 8..28 nodes each
+  (`tap_pairs_exact_1004.txt`). This replaces the earlier tap-wire argument by an exact proof: no affine g, h with f = g*h + r.
+  Every same-target CCX pair of merge2 within maxgap 60 is now closed by exact tests.
+- Vertex-order experiment for the block solver (`order_experiment_33195_1004.txt`, 33195 L3, s 36): auto2 1.99e8 nodes, plain greedy
+  2.35e8, greedy NFIX=0 2.35e8. Greedy front-loads 59 equations by depth 4, then **11 vertices in a row add no equation**
+  (59 flat up to depth 14) and the tree grows x4 per level, exactly like auto2. The 4^~11 plateau is intrinsic to vertex branching,
+  so ordering alone cannot give the 10-s solver; a different branching variable (e.g. on the linear forms of the depth-15+ equations)
+  would be needed.
+
+## 2026-11-10 05:05 UTC run (supervisor): cross-stage-boundary windows (instruction 3 of 04:40)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1005mm: PASS,
+  score 100,568.533 = 20.650x** (`verify_p62_merge2_sv1005mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `boundary_qform_core.py st.json K SPAN BND out.json`: stage_qform's formal window test on a `stage_xag.py` range [BND-500, BND+500),
+  keeping only windows whose ANDs straddle the stage boundary BND (stage table from kickmix-macos `stages.json`; all 16 boundaries).
+- K=3, span 40: straddling windows only at 25425 (arith_b -> fine_phase_stream), 11 of them, **all contain the known dirty-CCCX pair
+  (25610, 25613)** (q0 dirty, `(q28*q17)*q19 -> q25` computed twice; that pair alone is already the within-stage (2,1) artefact),
+  so the third AND only tags along. Every other boundary: 0. K=4, span 12: see `boundary_scan_1005.txt`.
+- **Instruction 3 closed**: no cross-stage 3->2 / 4->3 candidate, even formally.
+- K=4, span 12: 0 straddling windows at all 16 boundaries (`boundary_scan_1005.txt`).
+- **Same-target CCX pairs with gap > 60** (the exact closures so far only covered maxgap <= 60): `func_pair_scan.py p62mm.json 2000 8 5000`
+  -> 215 candidate pairs (vs 71 at maxgap 60), **hits 0**. Sanity: the same command on the original ops.json (217 pairs) finds exactly
+  the 2 merge2 pairs (21455/21459, 25505/25509). Sampled test, so 0 hits = no candidate to send to the exact solver. **Closed.**
+
+## 2026-11-10 06:xx UTC (supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); official verifier full 200,540,928 shots, salt sv1006mm: **PASS, score 100,568.59 = 20.650x** (`verify_p62_merge2_sv1006mm.json`, worst 0.99932 at x=161).
+- Instruction 3 (dirty-CCCX -> phase form) **closed**: the 12 dirty compute/uncompute pairs (`dirty_pairs.py`, all at width 62, no clean
+  wire) include the two 4-Toffoli CCCX blocks 25608..25614 / 28847..28853, which compute `q19 ^= q28 q17` and `q25 ^= q28 q17 q19`.
+  The target q25 is live (not clean) before the block (`live_trace.py`) and is later consumed **as data** (CX source at 25869/25870,
+  CCX control at 25902; CCX control at 31426 for the second block), so it can't become a CCCZ merged into phase fix-ups.
+  The 4th Toffoli is the dirty-ancilla correction d*(~u), which can't be removed without a clean wire.
+- New: `cccx_enum.py` / `cccx_enum_n.py n nproc [selftest seed]`: exact test whether the dirty-CCCX block map
+  (`q19 ^= q28 q17; q25 ^= q28 q17 q19`, dirty q0 restored) equals g1 g2 g3 A (A any CNOT/X circuit, g_i = affine conjugates of a
+  Toffoli = x -> x + v[x in F], F a codim-2 flat). 5 wires: 4,340 gates, **NONE (exact)**; 6 wires (one more dirty wire restored):
+  39,060 gates, **NONE (exact)**, ~11 min on 4 cores. Planted selftests HIT (5 on n=5, 1 on n=6). So the 4-Toffoli block is optimal up to
+  6 wires. (`cccx_sat.py`, a generic SAT encoding, could not even solve K=4 in 10 min; abandoned.)
+
+## 2026-11-10 07:07 UTC run (supervisor): small-block exact optimality, with and without don't-cares (instruction 1 of 07:00)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv1007mm: PASS,
+  score 100,568.56 = 20.650x** (`verify_p62_merge2_sv1007mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `block_extract.py ops.json NMAX out.json`: grows, from every CCX/CSWAP seed, wire sets W (|W| <= NMAX) and the maximal op interval in
+  which every op touching W is a classical permutation gate (X/CX/CCX/SWAP/CSWAP) inside W with the same condition context (PUSH stack +
+  cond bit); keeps maximal blocks with >= 2 Toffolis and their 2^|W| permutation. On merge2: NMAX 5 -> 248 blocks
+  ((5,2) 244, (5,3) 1, (5,4) 2 = the dirty CCCX, (4,2) 1); NMAX 6 -> 333 ((6,2) 160, (6,3) 4, ...); 397 distinct in all.
+- `block_enum.py blocks.json n nproc [selftest seed Ks]`: exact test "P = g_K..g_1 A" (gate set of cccx_enum_n.py) with K = tof-1;
+  K=1/2 with the rank-2 quadratic filter, K=3 = cccx_enum_n. **Full domain: n=4 1/1, n=5 247/247, n=6 164/164 NONE(exact)**
+  (`block_enum5_result.txt`, `block_enum6_result.txt`). Planted selftests (`block_enum_selftest.txt`): n=4 K0..3, n=5 K1..3, n=6 K1..2 all HIT
+  (first version's selftest drew a fresh constant per x in rand_affine -> fake MISS; fixed).
+- Don't-cares: `block_reach.py` simulates all 3,133,452 x (HMR outcomes random; two seeds 7, 11) and records the reachable W-patterns D at each
+  block's entry; `block_dc.py` brute-forces P|D = (g_K..g_1 A)|D for K = tof-1 and tof-2 (no quadratic filter, it is not valid on a subset).
+  **Result: 0 hits over all 397 blocks** (tof-2 blocks K0/K1; tof-3 blocks K1, K2; dirty-CCCX K2) (`block_dc_result.txt`).
+  On a stride-97 sample (32k x) there were 31 "hits" (e.g. the prefix-AND chain ops 42..45, D={0,1,2,3,7} missing the rare all-ones
+  pattern) -- sampling artefacts that vanish with all x, but they show the machinery finds a reduction when D allows one.
+  K=2 on the 7 blocks with tof >= 3 (n=5: 3, n=6: 4; ~6 min): all NONE (`block_dc_k2_result.txt`).
+- 7 wires (`block_extract.py ... 7`, 463 7-wire blocks, reach over all x with seeds 7/11): tof-2 blocks K0/K1 and tof-3 blocks K1 (3->1):
+  **0 hits** (`block_dc7_result.txt`). Not run at n=7: K=2 (330k^2 gate pairs) and the two 6-Toffoli dirty-CCCX supersets.
+- **Instruction 1 closed** for windows of <= 6 wires (and 7 wires at depth K<=1): no 2->1, 3->2, 3->1, 4->3 (full domain, n=5), 4->2
+  block rewrite exists, even using the exact reachable entry set as don't-cares.
+
+## 2026-11-10 21:06 UTC run (supervisor): output don't-cares, 7/8-wire 3->2, 8..12-wire K=1 (instructions 1, 2 of 07:50)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv1021mm: PASS,
+  score 100,568.55 = 20.650x** (`verify_p62_merge2_sv1021mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- **Instruction 1 (output don't-cares) closed by argument + check**: a wire's value at a block exit can only be irrelevant if it is
+  later discarded by `R`. Simulating all x with R instrumented (stride 7, seed 7): **all 93 R ops act on wires that are already 0**.
+  Every other wire is either kept, HMR'd (value enters the phase via the X-basis outcome, so it must match) or used as data.
+  So there are no output don't-cares in this circuit beyond what the entry-reach sets already give.
+- New `block_dc_res.py reach.json ... -- n maxK`: fast sound K=1 test with don't-cares: if P|D = (g A)|D then mod V = {affine
+  functions restricted to D} every output bit's residue is 0 or one common r, and r is the residue of a product of two affine
+  functions. K=2 = loop g2 over all gates, test g2 P (vectorised); relaxation passes go to block_dc's exact checker.
+  Planted selftests (n=5, n=7, random D of 40..80 points): K1 and K2 HIT 6/6. Random P with |D|>=16: 0 of 330,708 g2 pass.
+  - 7 wires, tof >= 3 (137 blocks): full domain K2 135/135 NONE (`block_res7_full_result.txt`); with reach D (seeds 7, 11) K1 and K2
+    135/135 NONE, 0 relaxation passes (`block_res7_dc_result.txt`). Two 6-Toffoli dirty-CCCX supersets skipped (K>2).
+  - 8 wires, tof >= 3 (111 blocks, |G| = 2,720,340, ~70 s/block): with reach D, K1 and K2 **NONE on all** (`block_res8_dc_result.txt`).
+- New `block_k1_big.py` (no gate table, so any n): the same K=1 relaxation on 1093 blocks of 8..12 wires (`block_extract.py` NMAX 8/10/12,
+  reach over all x, seeds 7/11), tof 2..9: **1093/1093 NONE** (`block_k1_big_result.txt`); planted n=9/10/12 detected, random rejected.
+- So: no 3->2 on <= 8 wires and no k->1 on <= 12 wires exists, even with the exact reachable entry sets as don't-cares.
+
+## 2026-11-10 22:11 UTC run (supervisor): residue-rank bound for any K, exact 4->3 / 5->4 peel search (instruction 2 of 22:00)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv1022mm: PASS,
+  score 100,568.52 = 20.650x** (`verify_p62_merge2_sv1022mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- New `block_rank.py blocks.json [reach ...]`: if P|D = (g_K..g_1 A)|D then the n output-bit residues mod V (affine functions on D)
+  span <= K dimensions (each Toffoli/CSWAP adds one function f_i' to every output bit). So rank >= t closes t -> t-1 for any K, any n,
+  no gate table. Never exceeded t on 1582 blocks (0 bugs). `block_extract` NMAX 12 (1277 blocks) and NMAX 16 (1582 blocks):
+  only 52 blocks have rank < t (`block_rank12_full_result.txt`, `block_rank12_dc_result.txt` with reach D seeds 7/11 -> same open set,
+  `block_rank16_full_summary.txt`, `block_rank16_dc_summary.txt`; all 13..16-wire blocks except 5 have rank = t).
+- New `block_rank_prod.py`: when rank r == t-1 == K, R must contain res(a*b) for the first gate, and (inverse on P(D)) for the last;
+  for fixed a, b -> a*b is linear, so it is a rank test. Planted selftest: 18/18 rank==K cases pass both sides (sound); random perms fail.
+  **Full domain 33/34 NONE, reach D 48/49 NONE (12- and 16-wire extractions)** (`block_rank_prod_full_result.txt`, `block_rank_prod_dc_result.txt`), including
+  the three 16-wire 2-Toffoli rank-1 blocks and the 12/16-wire tap-stream heads 15363/15417. Only block 260 (ops 25671..25682,
+  fine_phase_stream head, 10 wires, 5 Toffoli, rank 4) passes.
+- New `block_peel.py`: exact recursive search P = Q o T, T(x) = x + w a(x) b(x) with U = span{a,b} canonical, w in ker U (covers CCX and
+  CSWAP), pruned by rank and by res(ab) in R while rank == K; reports SLACK when rank < K (not searched). Planted n=6/7/10 recovered;
+  on 5 real full-rank blocks (n 9..12, K 4..6) it re-finds a K-gate decomposition in <= 4 s (`block_peel_result.txt`).
+  **Block 260 full domain K=4: NONE(exact), 256 nodes, no slack** -> no 5->4 rewrite on the full domain.
+  **With reach D (|D| = 82, seeds 7/11): NONE(exact), 16,321 nodes, no slack** (~19 min) -> no 5->4 even with don't-cares.
+  So every extracted <= 16-wire block with rank >= t-1 is closed for t -> t-1.
+- Not closed: the 8 dirty-CCCX-type blocks with rank < t-1 ((5,4) r2, (7,6) r3, (9,8) r4, (11,9) r5; ops 25583/25601/28822/28840 families)
+  — peel cannot prune there (SLACK).
+
+## Non-greedy block extraction, n <= 20 (2026-11-10 23:xx UTC, supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f, identical); **official verifier full 200,540,928 shots, salt sv1023mm: PASS,
+  score 100,568.52 = 20.650x** (`verify_p62_merge2_sv1023mm.json`). Nothing was submitted to Kaggle.
+- `block_extract2.py ops.json NMAX MAXST out.json`: same block definition as block_extract.py, but growth branches (absorb the
+  blocking op before or after, BFS, <= MAXST wire sets per seed) and the residue rank is computed vectorised (n = 20 in 36 s).
+  NMAX 20, MAXST 64: **4257 distinct blocks, 179 with rank < t, 0 with rank > t** (`block_extract2_n20_summary.txt`).
+  New: 7 blocks with 3 Toffolis and rank 1 (target ^= x1x2 + x3x4 + x5x6, ops 21942.., 22775.., 33380..) and 114 large 2-Toffoli rank-1 blocks.
+- `block_k1_anf.py`: exact K=1 test on the full domain (ANF degree <= 2, quadratic rank <= 2): **121/121 rank-1 blocks NONE**
+  (3-Toffoli ones have quadratic rank 6 = inner product, MC 3) (`block_k1_anf_n20_result.txt`).
+- `k1_split.c` + `block_dset_k1.py`: exact K=1 on the reachable set D (r|D = L + ab iff an affine hyperplane splits D into two parts
+  where r is affine; all 2^n hyperplanes in C). Self-test: planted ab found (3 hits), sum of two products rejected.
+  With D from block_reach seeds 7 and 11: **121/121 rank-1 blocks NONE on D**; no OPEN block has lower rank on D than on the full domain.
+  The 3-Toffoli blocks' six control values take 62..63 of 64 patterns on D, so 3 -> 2 is very unlikely (not proven).
+
+## 2026-11-11 00:xx UTC — exact peel for all OPEN n<=20 blocks (block_peel2)
+- merge2 rebuilt (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1100mm: PASS, score 100,568.59 = 20.650x**
+  (`verify_p62_merge2_sv1100mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- New `block_peel2.py` + `ab_enum.c`: same exact question as block_peel ("P|D = g_K..g_1 A", valid when rank on D == K), but
+  (1) "ab in R+V" is a linear condition on the alternating form a^b, so for each a the admissible b are a kernel (C, all 2^m a);
+  (2) the target w is not enumerated: inside the affine hull of D the rank drops iff w.C0 = 0, w.c0 = 1, a(w)=b(w)=0 (affine
+  space); outside the hull (e.g. a wire that is 0 on D) the rank always drops and all such w are equivalent -> one fresh hull
+  coordinate.  All 4 constant choices of (a, b) are tried.
+  Two bugs were caught by a real-structure self-test (drop one Toffoli from block 15417..15451 -> a 4-gate block with rank 4 on D
+  must HIT): missing affine constants, missing hull-escaping targets.  After the fix: drop 15417 / 15418 -> **HIT** at K=4;
+  random planted circuits HIT (`block_peel2_droptest.txt`).
+- **Block 15417..15451 (20 wires, 5 Toffoli, rank 4, |D| 2859, hull 19): K=4 NONE(exact), 21 nodes, 30 s** (D = union of
+  block_reach seeds 7 and 11, identical sets) — instruction 1 of SUPERVISOR 11-10 23:58 closed (`block_peel2_15417_result.txt`).
+- All 179 OPEN blocks of block_extract2 NMAX 20 (reach seed 7): **164 NONE(exact)** for t -> t-1 on D
+  (tof 2: 114, tof 3: 14, tof 4: 34, tof 5: 2); 15 SLACK (rank on D < t-1, not decided): the 7 three-Toffoli rank-1 blocks
+  (21942.., 22775.., 33380..) and the 8 dirty-CCCX nested blocks (25601.., 28840..).  0 HIT (`block_peel2_all_n20_result.txt`).
+
+## 2026-11-11 01:xx UTC — 3 -> 2 for the inner-product slack blocks (block_cells2)
+- merge2 rebuilt (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1101mm: PASS, score 100,568.50 = 20.650x**
+  (`verify_p62_merge2_sv1101mm.json`). Nothing was submitted to Kaggle.
+- `block_cells2.py` + `cells2.c`: exact *necessary* test for "residue f (rank 1 on D) with two AND gates". With any width and
+  free measurement-based uncompute (no borrowed dirty wire), outputs lie in span{1, y, a1b1, (al+s u1)(be+t u1)}, so
+  f = L + al be + g a1 b1, g in span{1, al, be}; in every case f is affine on each cell of two affine functions, i.e. on every
+  coset of a codim-2 subspace of the hull coordinates.  Violating 4-point dependencies of D prune the 2-dim spaces H (C, 4 procs,
+  ~4 min at m = 19); survivors get the exact per-cell test.  Self-tests on the real D: planted L+ab+cd and L+a(b+cd) HIT,
+  sum of three products NONE.
+- **Blocks 21952..22026, 22784..22865, 33381..33465 (19 wires, target ^= 3 products): 3 -> 2 NONE(exact) on D**
+  (`block_cells2_result.txt`).  The 20-wire variants (21942.., 22775.., 22784..22866, 33380..) are not run (m = 20, ~16 min each).
+
+## 2026-11-11 02:xx UTC — 20-wire inner-product variants (block_cells2b)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1102mm: PASS, score 100,568.52 = 20.650x**
+  (`verify_p62_merge2_sv1102mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- At m = 20 the quad prune leaves ~1.6M H (vs 8..26k at m = 19) and the Python per-cell loop of block_cells2.py is too slow, so
+  `cells2b.c` + `block_cells2b.py` do the exact per-cell affinity test in C (incremental GF(2) elimination of (1, y, f) per cell).
+  Self-tests on block 21952's D (m 19): planted L+ab+cd HIT, L+a(b+cd) HIT, three products NONE; block 21952 itself re-run: NONE.
+- Borrowed *uncorrelated* dirty wire (former instruction 3) is closed by argument: setting the borrowed wire to 0 turns any 2-AND circuit
+  into one with a clean ancilla, which the cells test already allows (any width), so D x {0,1} adds nothing.  Borrowing a wire whose value
+  is correlated with the block inputs is exactly the larger-block case (the 20-wire variants below).
+
+## 2026-11-11 03:xx UTC — dirty-CCCX 4 -> 3 on D (block_dc3); 20-wire inner-product variants run (block_cells2b)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1103mm: PASS, score 100,568.52 = 20.650x**
+  (`verify_p62_merge2_sv1103mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- Inputs regenerated from scratch: block_extract2 NMAX 20 MAXST 64 -> 4257 / 179 OPEN (identical counts); block_reach (stride 1, seed 7)
+  |D| identical to the earlier runs (256/256/255 for the inner-product blocks, 29/91/273/517 for the dirty-CCCX family).
+- New `dc3.c` + `block_dc3.py`: exact test "P|D = (A g3 g2 g1)|D" (g_i any affine conjugate of a Toffoli, A any affine map) for n <= 8:
+  g1, g2 enumerated (4340^2 = 18.8M pairs at n = 5), last gate by the K=1 residue criterion (every output bit = affine + w_k [y in F]),
+  so NONE is exact.  Self-tests on the real D: 3/3 planted random 3-gate circuits HIT.
+- **Blocks 25608..25615 and 28847..28854 (the 5-wire dirty CCCX, 4 Toffoli, rank 2 on D): K=3 NONE(exact) on D** (`block_dc3_result.txt`).
+  Together with the full-domain cccx_enum result, the 4-Toffoli dirty CCCX is optimal on its 5 wires even with don't-cares.
+- block_cells2b re-run on block 21952 (m 19): NONE, same as block_cells2.py.
+- (supervisor run 02:06..04:05 UTC, overlapping the run above; verifier salt sv1102mm: PASS 100,568.52, `verify_p62_merge2_sv1102mm.json`)
+- **Blocks 21942..22027, 22775..22865, 22784..22866, 33380..33466 (20 wires, target ^= 3 products): 3 -> 2 NONE(exact) on D**
+  (`block_cells2b_n20_result.txt`, ~13 min each on 4 cores; m = 20 planted L+ab+cd on block 21942's D -> HIT).  All 7 three-Toffoli
+  rank-1 slack blocks of block_extract2 NMAX 20 are now closed; of the 8 dirty-CCCX nested blocks the two 5-wire ones are closed by block_dc3 (no-ancilla model), 6 remain open.
+- Independent re-run of block_cells2b on all four 20-wire variants (fresh inputs, own build): identical quad / survivor counts, all NONE (appended to `block_cells2b_n20_result.txt`).
+
+## 2026-11-11 04:xx UTC — n=7 dirty-CCCX block via SAT (block_satk): not tractable
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1104mm: PASS, score 100,568.56 = 20.650x**
+  (`verify_p62_merge2_sv1104mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- block_reach (stride 1, seed 7) for blocks 25605..25618 / 28844..28857 (W = 26,61,28,0,19,17,25): |D| = 91 each (same as before).
+- New `block_satk.py`: CNF for "P|D = A g_K .. g_1" (g = affine conjugate Toffoli, A affine, invertibility relaxed so UNSAT is exact),
+  solved with CaDiCaL (python-sat).  Self-tests: n=3 Toffoli K=1 HIT / K=0 NONE; n=4 CCCX (odd permutation) K=1,2 NONE in 2.7 s, but
+  **K=3 did not finish in 5 min**, and the 5-wire dirty CCCX K=4 on its full domain (must be SAT) did not finish in 17 min.  With no
+  symmetry breaking the solver does not scale; the n=7 K=5 run (and K=6 sanity, planted K=5) were stopped after ~17 min without result.
+  Direction "n=7 6->5 by plain SAT" is therefore **open, not closed**.  Block function (hand derivation): with M = maj(26,61,28),
+  t=25 ^= M*17*19, 19 ^= M*17, 17 ^= M (the dirty CCCX is fused with two CX updates), 0 restored.
+
+## 2026-11-11 05:xx UTC — n=7 block analysed by hand; normalize CSWAP usage
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1105mm: PASS, score 100,568.59 = 20.650x**
+  (`verify_p62_merge2_sv1105mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- block_extract2 NMAX 20 MAXST 64 regenerated: 4257 / 179 OPEN (identical).
+- n=7 block 25605..25618 (and 28844..): it is one Cuccaro MAJ (28 = maj(26,61,28), 1 Toffoli), a carry-controlled 3-bit increment of
+  (17,19,25) with dirty wire 0 (4 Toffoli, = block 86), and the UMA (1 Toffoli, leaves 26 = sum).  The "structured" 6->5 plan of the
+  last report (fix the MAJ, ask for the rest in 3) is **the same question as block 86 4->3, already NONE(exact) on D**.  So a 5-Toffoli
+  version would have to avoid holding M in a wire at all.  An exhaustive search of that (K=5 at n=7, ~3.3e5 gates per layer) is not
+  possible with dc3 or plain SAT.  Left open, low value (1 Toffoli = +0.016x).
+- `normalize_cswap_use.py ops.json a b`: classical simulation of the normalize stage for all x.  The q45 CSWAP level (12 CSWAPs, ops
+  202..217) swaps differing values on only 0.26 % of x (ops 216/217: 31 x).  The other 40 CSWAPs and all 19 CCX are used often.  This
+  stage touches only q0..q47 (<= 48 live, 14 spare clean wires).  Unnormalize runs at <= 36.  Together they are 138 Toffoli.  Spare clean
+  wires do not make a CSWAP cheaper, though: AND into a fresh wire + free measured uncompute is also 1 Toffoli.  Any gain must come from
+  restructuring the shift itself.
+
+## 2026-11-11 06:xx UTC — normalize lower bounds (supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1106mm: PASS, score 100,568.56 = 20.650x**
+  (`verify_p62_merge2_sv1106mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `lzc_deg.py`: the leading-zero-count bit c0 restricted to x21=0 (all of it lies in the domain) has algebraic degree 21, so any circuit
+  needs >= 20 ANDs. normalize uses exactly 20 (19-CCX prefix chain + op 85): **the count part is optimal**.
+- `cswap_rank.py`: for each CSWAP level of normalize, the products c*(a^b) over all x have full GF(2) rank modulo the affine span of the
+  live wires (10/10/9/12/11). No two CSWAPs of a level can share one AND. Direction "normalize restructuring" closed at the level-local scale
+  (`normalize_bounds_result.txt`).
+
+## 2026-11-11 07:xx UTC — cross-level CSWAP bound, rare-swap drop (supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1107mm: PASS, score 100,568.50 = 20.650x**
+  (`verify_p62_merge2_sv1107mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `cswap_multirank.py`: lower bound rank(outputs mod affine(inputs)) for groups of consecutive shift levels. Adjacent pairs 46+42 (21/21),
+  42+43 (20/20), 43+44 (19/19) are tight, so merging those pairs cannot save an AND. 44+45 gives 19 vs 21 CSWAPs (gap 2, bound is weak);
+  groups of 3+ saturate at ~20 live wires (uninformative). Each level is a controlled reflection; a 4-way select per bit costs 3 ANDs vs 2
+  CSWAPs, so a generic merge is negative anyway.
+- Dropping CSWAP 216/217 (useful on only 31/30 x): exact phase trace worst ratio 4.3e7 at x=31 -> FAIL. Closed.
+  (`cswap_multirank_result.txt`)
+
+## 2026-11-11 21:xx UTC — unnormalize CSWAP ladder bounds; joint rare-swap drop (supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1121mm: PASS, score 100,568.48 = 20.650x**
+  (`verify_p62_merge2_sv1121mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `unnorm_cswap_rank.py`: unnormalize ladder levels (ctrl q15/18/14/16/19, 12/10/10/10/10 CSWAPs). Per-level product rank mod affine(live)
+  is full (10) for the four 10-CSWAP levels; all adjacent pairs among them are tight (20/20). Level q15: rank 10 of 12 on a sample.
+- `unnorm_l15_dep.py` + `unnorm_fire_full.py`: the 2 "dependent" ones are CSWAP 46791/46792, which swap differing values on 30/31 x of the
+  full domain (all x < 300k) — the mirror of normalize 216/217. Full-domain they are independent.
+- Dropping all four (216, 217, 46791, 46792; `drop_ops.py` re-keys zpow_exact): exact phase trace worst ratio 1.1e7 at x=3 -> **FAIL, closed**.
+  (`unnorm_cswap_result.txt`)
+
+## 2026-11-11 22:xx UTC — normalize levels 44+45 by raw control case (supervisor)
+- merge2 rebuilt in a fresh container (sha fc153f1f); **official verifier full 200,540,928 shots, salt sv1122mm: PASS, score 100,568.52 = 20.650x**
+  (`verify_p62_merge2_sv1122mm.json`, worst 0.99932 at x=161). Nothing was submitted to Kaggle.
+- `norm4445_*.py`: split all x by the raw control bits (r43,r44,r45). Level 44 is controlled by r44^r43, level 45 by r45^r44, 216/217 by r45.
+  Five non-identity cases with explicit wire maps (A 245760 x: R[0..12]+R[14..20]; B 15360 x: shift 8; C 960 x; D 60 x; E 4 x).
+  Per-case Delta ranks 10/14/9/6/3 -> LP bound over control parities only 17 (weaker than the global 19). Current 21.
+- The 5 single-case CSWAPs (197-199 for A, 216/217 for D) act on different pairs and cannot share an AND by relabeling. Exact 19/20 search
+  (SAT over parity-controlled generators) not done. (`norm4445_result.txt`)
+
+## Normalize 44+45 exact SAT (2026-11-11 23:xx UTC, supervisor)
+- `n4445_sat_extract.py`: with legal reordering (trick 192-196 first, 213-215 last) the 21 CSWAPs of levels 44+45 are a pure
+  case-dependent permutation of wires 0..21 (checked on all x). Minimal transposition counts per case: A 9, B 13, C 9, D 6, E 2.
+- `n4445_sat.py` (CaDiCaL, linear controls in r43..r45, commuting-pair symmetry breaking): self-tests D+E K=5..7 UNSAT / K=8 SAT;
+  all cases **K=21 SAT in 923 s** (a different network); `n4445_check.py` confirms it on all 3,133,453 x.
+  **K=20: TIMEOUT after 2900 s (open).** Subset sweeps and a redundant progress-cardinality variant also time out. Details in `n4445_sat_result.txt`.
+- merge2 rebuilt (sha fc153f1f); official verifier full, salt sv1123mm: PASS, 100,568.56 = 20.650x (`verify_p62_merge2_sv1123mm.json`).
+
+## merge3: normalize levels 44+45 with 20 CSWAPs instead of 21 (2026-11-12 01:xx UTC, supervisor) — **20.663x**
+- The exact SAT model (n4445_sat2.py) had timed out at K=20 for hours. A plain simulated annealing over the same model
+  (`n4445_sa.c`: K gates = (wire pair, linear control form of r43,r44,r45); cost = mismatched wires summed over the 5 cases)
+  finds K=24/22/21 in seconds and **K=20 within minutes on 3/3 seeds**. K=19: best residual 2 after ~10 min x 2 seeds (open).
+- `n4445_check.py p62mm.json n4445_k20_slots.txt` -> matches the original end state on **all 3,133,453 x**.
+- `n4445_build.py ops.json n4445_k20_slots.txt edits/merge2.json edits/merge3.json` builds the region (ops 192-196, the 20
+  CSWAPs with free CX on wires 43..45 to put each form on a control wire, CX restore to q43=r43,q44=r44,q45=r45, ops 213-215).
+```
+python3 -I patch_ops.py <kickmix-macos>/tools/circuit-viewer/ops.json edits/merge3.json p62m3.json
+python3 -I ops2kmx.py p62m3.json p62m3.kmx ; (kickmix kmx->kmb as above)   # p62m3.kmb sha256 3532748e...cc029
+```
+- Exact `phase_trace.py`: mean Toffoli 1324.48, worst ratio 0.99932377 at x=161 (unchanged).
+- **Official verifier, full 200,540,928 shots, default salt: PASS, Q 62, Toffoli 1324.48, C 1621.07, score 100,506.49 = 20.663x**
+  (`verify_p62_merge3_default.log`).
+- Generic tools for other pure CSWAP windows: `cswap_win_extract.py` (per-case permutation of a window whose controls only see
+  CX among themselves) + `cswap_win_sa.c` (any number of control bits). Unnormalize ladder 46805..46859 (47 CSWAPs, 5 control
+  wires, 21 cases) extracted; seeded K=46 runs reach residual 8 only (see cswap_sa_result.txt). Second salt sv1201m3: PASS 100,506.55 (`verify_p62_merge3_sv1201m3.log`).
+
+## merge4: level-43 CSWAPs joined to the 44+45 window, 27 instead of 28 (2026-11-12 02:xx UTC, supervisor) — **20.678x (pending full verify, see below)**
+- `reorder434445.py p62m3.json p62r.json`: legal reorder: 8 of the 10 level-43 CSWAPs (172-175, 179-181, 183) touch neither the
+  wire-22 trick (176-178), nor 13 (CSWAP 182 / fix-up 186-190), so they move behind 190 (control r42^r43 rebuilt with free
+  CX 42->43). qcheck: identical. Pure window [183,226) of p62r: 28 CSWAPs, controls 42..45, 21 data wires, 10 cases.
+- `cswap_win_extract.py p62r.json 183 226 42,43,44,45 w43 4` + `cswap_win_sa.c`: K=28 from the original network = cost 0
+  (self-consistent); **K=27 seeded from the original (drop 1, T0=1.0, seed 11) found within a minute** (`w43_k27_sa.log`).
+- `cswap_win_build.py p62r.json w43.json w43_k27_sa.log p62m4.json` (generic builder: BFS free CX on CTL wires, restore end forms).
+  Folded into `edits/merge4.json` (merge2 edits + one region edit on original ops 172..218); `patch_ops.py` on the public
+  ops.json gives exactly the same ops / zpow keys. p62m4.kmb sha256 `925a0517842937112cc73c66f6276e63518a713cf80f840a4a793c9457ff8910`.
+- Exact `phase_trace.py`: mean Toffoli 1323.48, worst ratio 0.99932377 at x=161 (unchanged), min margin 58,597,850 (unchanged).
+- `reorder_norm.py p62m3.json 144 191 224 46,42,43,44,45 p62n.json` (generic: moves every CSWAP of levels 46/42/43 not blocked by
+  an anchor; 17 moved): window [174,228) = 37 CSWAPs, 5 controls, 21 cases (`wn`), for K<=36 searches.
+- merge3 second container, salt sv1202m3: PASS 100,506.50 (`verify_p62_merge3_sv1202m3.log`).
+
+## merge5: normalize levels 46/42/43 (movable part) + 44+45 in one window, 35 instead of 37 (2026-11-12 02:2x UTC, supervisor)
+- Window `wn` of `reorder_norm.py` output (37 CSWAPs: 3 of 46, 6 of 42, 8 of 43, 20 of 44+45; 5 controls 46,42..45; 21 cases).
+  SA (`cswap_win_sa.c`): K=36 random-ish seeded run (seed 32, T0 1.0) found; **K=35 seeded from the K=36 network (seed 42, T0 0.5)
+  found** (`wn_k35_sa.log`). K=34 seeded from K=35: running (best residual 8 after the first restart).
+- `cswap_win_build.py p62n.json wn.json wn_k35_sa.log p62m5.json`; folded into `edits/merge5.json` (merge2 edits + region edit on
+  original ops 144..218), patch_ops on the public ops.json reproduces it exactly. p62m5.kmb sha256
+  `3ee8e97d776ed66c9db00e951f8ebdf3a8fe454fd744fa9610ed09b00ef8bee0`.
+- Exact `phase_trace.py`: **mean Toffoli 1322.48**, worst ratio 0.99932377 at x=161, min margin 58,597,850 (all unchanged).
+  Expected cost 62 x (1322.48 + 296.59) = 100,382.5 = **20.689x** 
+- **Official verifier, full 200,540,928 shots, default salt: PASS, Q 62, Toffoli 1322.48, C 1619.07, score 100,382.52 = 20.689x** (`verify_p62_merge5_default.log`). Second salt sv1202m5: PASS 100,382.56 (`verify_p62_merge5_sv1202m5.log`).
+- merge4 (27-CSWAP 43+44+45 window) is superseded by merge5; its full verify was stopped to free the cores (exact trace passed).
+
+## Transvection model for the CSWAP windows (2026-11-12 03:xx UTC, supervisor)
+- New container: `patch_ops.py` + `ops2kmx.py` + kickmix rebuild of merge5 gives sha `3ee8e97d...` again. **Official verifier, full
+  200,540,928 shots, new salt sv1203m5: PASS, Q 62, Toffoli 1322.48, score 100,382.55 = 20.689x** (`verify_p62_merge5_sv1203m5.log`).
+- Generalised gate set: `x -> x ^ f*<L,x>*v` with popcount(L&v) even (L, v masks over the window's data wires, f a control form).
+  Each one is a single CCX conjugated by a free CX network on the data wires, so it costs 1 Toffoli like a CSWAP
+  (CSWAP(a,b) = L = v = {a,b}); the CSWAP model is a strict subset.
+  - `tv_prep.py win.json out.txt`: affine-mask version of a `cswap_win_extract.py` window.
+  - `cswap_win_tv.c`: SA in that model (moves: toggle L/v bits keeping the even overlap, change form, swap order, random gate).
+  - `tv_build.py ops.json win.json tv.log out.json`: builder (A = CX synthesis by elimination, CCX, A^-1, self-checked on random
+    vectors). Fed with the K=35 CSWAP network it gives a JSON byte-identical to `cswap_win_build.py` (checked).
+  - `tv_merge2.py in_tv.txt gates.txt`: **exact 2->1 merge test**: drop gate i, re-solve gate j as the best single transvection
+    with everything else fixed (per case D_c = X_c ^ suffix^-1(target) must be 0 or rank 1 with a common v; L from a GF(2) system).
+    Validated on a planted case (drops a dummy gate and recovers the removed CSWAP).
+  - `tv_walk.py`: plateau walk (swap neighbours + exact re-solve, equivalent-gate replacement) with the merge test every 30 moves.
+  - `win_orig_gates.py ops.json win.json out.txt`: original window gates as SA init lines.
+- Results (normalize window `wn`, K=35 from merge5; unnormalize window `wu` = p62m5 ops [46824,46879), 47 CSWAPs, 22 data wires,
+  controls 15,18,14,16,19, 21 cases, extraction self-consistent at K=47):
+  - `tv_merge2.py`: **0 exact 2->1 merges** in `wn` (K=35) and in `wu` (K=47).
+  - `tv_walk.py` 1200 s each: `wn` 8280 moves / ~270 full merge tests, `wu` 3450 moves / ~115 tests: **0 merges**.
+  - `cswap_win_tv.c` K=34 on `wn` seeded from K=35 (4 seed/T0 settings, ~25 min): best residual 12 (popcount). K=46 on `wu`: best 12.
+    CSWAP-model K=34 (`cswap_win_sa.c`, ~25 min more): best residual still 8.
+- CSWAP census of p62m5: 198 CSWAPs; runs of >= 3 are only normalize (14 + 35), unnormalize (49) and two 3-CSWAP runs (ops 15275,
+  15343); the other ~91 are isolated. No other dense CSWAP window exists.
+- Next: put normalize ops 144..227 incl. wire 22 (the wire-22 trick is a transvection with L = x^x21, v = x^x21^22) into the model,
+  with wire 22's end value allowed to be any data form whose coefficients are affine in the case bits (fixed by free CZ/Z after HMR).
+
+## 2026-11-12 04:xx UTC — exact 3->2 test; normalize region incl. wire 22 in the transvection model (supervisor)
+- New container: merge5 rebuilt from the public ops.json + `edits/merge5.json`, sha `3ee8e97d...` again. **Official verifier, full
+  200,540,928 shots, new salt sv1204m5: PASS, Q 62, Toffoli 1322.48, score 100,382.50 = 20.689x** (`verify_p62_merge5_sv1204m5.log`).
+- `tv_merge3.py in_tv.txt gates.txt [selftest]`: **exact 3->2 test** in the transvection model: drop gate i anywhere, re-solve an adjacent
+  pair (p, p+1) of the rest as two new transvections (fj, fk enumerated; vj/vk pinned by the rank-1 case classes or enumerated in
+  the span of the both-active class; beta = <Lk,vj> guessed; then one GF(2) system over (Lj, Lk) incl. the even-overlap constraints).
+  Self-tests: every adjacent pair of the original network is re-found (wn 34/34, wu 46/46); planted 3->2 (x y with the same v
+  inserted) 8/8 hit on both windows (`tv_merge3_selftest.log`).
+  **Result: wn (K=35) 0, wu (K=47) 0** (`tv_merge3_wn.log`, `tv_merge3_wu.log`).
+- `tv_walk3.py`: plateau walk with exact pair moves (re-solve a random adjacent pair, optionally swapped) + the 3->2 test every 40
+  moves. wn: 2 seeds, ~10,000 + ~5,000 moves (16 of 35 gates changed after 160 moves, so it does move); wu: ~4,500 moves. **0 merges.**
+- `ext22.py ops.json 144 243 46,42,43,44,45 x22 2` (p62m5 layout): region [144,243) = the 14 blocked CSWAPs of levels 46/42/43, the
+  wire-22 trick (CX a->22 / CSWAP / CX a->22, CX 22->13, 22->21, HMR 22, 2 conditioned CZ) and the 35-CSWAP window. 23 data wires
+  (wire 22 is a clean 0 at op 144), 22 cases, 49 CSWAPs + 8 free CX. z (wire 22 at the HMR) is 0, 1 or 1^d_k per case.
+- `tv22_init.py`: pushes the free CX through (L'' = P^T L, v'' = P^-1 v): K=49 transvections, MU=14, S={13,21}; the 3 trick CSWAPs
+  become L={a,21}, v={a,21,22}. Self-check on all cases OK (`x22_k49_init.txt`).
+- `tv22_sa.c`: SA in this model: gates + split MU + S; at MU the z value must be **exactly fixable** by outcome-conditioned Clifford
+  gates: z_c = q0(c) ^ sum_w lam_w(c) s_c[w] with lam_w affine and q0 quadratic in the 5 case bits — one GF(2) system over
+  148 unknowns (greedy per case, inconsistent cases counted). Original K=49: cost 0 (a canonical per-case decomposition gave a false
+  residual 4 because of constant wires; the joint system fixes that). Wrong S or MU give cost 24 / 16.
+- `tv22_build.py ops.json x22.json x22.txt sa.log out.json`: builder (gates, CTL to raw bits, CX 22->S, HMR, Z/CZ fix-ups from the
+  solved system, gates, CTL end forms). **Self-test: rebuilding the K=49 original gives exact `phase_trace.py` mean Toffoli 1322.48,
+  worst 0.99932377 at x=161, min margin 58,597,850 — identical to merge5.**
+- Pre-MU segment alone (14 gates, W=23, end = exact state at MU): tv_merge2 0, tv_merge3 0 (self-test 13/13, planted 8/8) (`tv22_pre_merge.log`).
+- `tv22_sa.c` K=48 (seeded from K=49 minus a random gate; 6 runs, T0 0.3..2.0, ZW 1..3, two with CSWAP-only moves `PCS=1`, ~15 min
+  each): **best residual 12**, which is exactly the cost of just deleting gate 33 (single-gate drop costs: 12..40). Not found.
+- `tv_merge3g.py`: **exact 3->2 for NON-adjacent pairs** (drop i, re-solve any j<k with the gates between fixed): with
+  b = <Lk, Y_c> (state after k) the condition X ^ M^-1 Y = a vj ^ b M^-1 vk is linear in (Lj, Lk). Self-test: every original
+  pair with gap <= 7 re-found (wn 217/217, wu 301/301, pre 70/70). **Result: wn 0, wu 0, pre-MU 0** (`tv_merge3g_result.log`).
+
+## 2026-11-12 05:xx UTC — extended unnormalize window (52 CSWAPs), structured tv22 moves (supervisor)
+- New container: merge5 rebuilt from the public ops.json + `edits/merge5.json`, sha `3ee8e97d...` again. **Official verifier, full
+  200,540,928 shots, new salt sv1205m5: PASS, Q 62, Toffoli 1322.48, score 100,382.55 = 20.689x** (`verify_p62_merge5_sv1205m5.log`).
+- `reorder_unnorm.py p62m5.json p62u.json`: legal reorder (qcheck 24,902 samples: worst 0.99932377, 0 bad, 0 dirty): the CX block
+  46821-46823 (41^=15, 50^=15) goes in front of the level-15 CSWAPs 46819/46820, and the level-19 CSWAPs 46889-46891 go in front of
+  the wire-60 block 46879-46888 (which touches none of wires 0..5; its CZ(19,*) are diagonal on the control). Pure window
+  `wu52` = [46822,46882) of p62u: 52 CSWAPs (12 + 10 + 10 + 10 + 10), controls 15,18,14,16,19, 22 data wires, 21 cases.
+- Results (`wu52_result.txt`): K=52 self-consistent; exact tv_merge2 0, tv_merge3 0 (self-test 51/51, planted 8/8), tv_merge3g 0
+  (self-test 336/336); CSWAP SA K=51 best residual 8 (3 seeds), transvection SA K=51 best 8. The residual-8 state
+  (`cswap_win_sa_dump.c`) misses exactly one swap in cases {1,9,17,25}; no linear control form is active on exactly those cases, so
+  it cannot be patched with one CSWAP. Unnormalize CSWAP ladder looks closed at 52 (unproven).
+- `tv22_sa.c` new option PCS >= 2 (structured moves: CSWAPs optionally decorated with wire 22 in v = the trick form, endpoint moves
+  keeping the decoration, toggling 22 in L or v, plus the MU / S / order moves). K=48, 4 runs x 21 min (T0 0.3..1.5): **best residual 12** again (`tv22_k48_struct.txt`), not found.
+- `nearmiss_resolve.sh in_tv.txt dump.log out`: exact repair test for SA near-misses (last best gate list of a
+  `cswap_win_sa_dump.c` log + 1 dummy gate, then tv_merge2/3/3g with `TV_NEARMISS=1`; any MERGE is asserted exact). Self-test with a
+  corrupted original gate: repaired (1 / 2 / 61 hits). Three K=51 residual-8 states of wu52 (seeds 555-557, all failing in cases
+  {1,9,17,25}): **0 repairs** with 1 or 2 re-solved gates.
+
+## 2026-11-12 06:xx UTC — unnormalize incl. the wire-60 measurement (measured-parity model) (supervisor)
+- New container: merge5 rebuilt from the public ops.json + `edits/merge5.json`, sha `3ee8e97d...` again. **Official verifier, full
+  200,540,928 shots, new salt sv1206m5: PASS, Q 62, Toffoli 1322.48, score 100,382.58 = 20.689x** (`verify_p62_merge5_sv1206m5.log`).
+- `prep60.py p62u.json p62u60.json`: legal reorder of the `reorder_unnorm.py` layout: X 60 and CX 16->60 (46882/46883) move in front of
+  the wu52 window (wire 60 is untouched there, control 16 has the same value at both points). qcheck 49,802 samples: worst
+  0.99932377, 0 bad, 0 dirty, mean Toffoli 1322.495 (unchanged).
+- Generalised the wire-22 tools to any measured wire and a measured PARITY (the free CX 17/40/41 -> 60 before the HMR):
+  `extmw.py` (ext22.py + MW arg, MW last in the data list), `tvmw_init.py` (row Z of P at MU = RZ, S rows = I ^ RZ; writes
+  `MU mu 0xS 0xRZ`), `tvmw_sa.c` (z = <RZ, s>; move 6 also toggles RZ bits), `tvmw_build.py` (emits CX RZ -> MW, CX MW -> S, HMR).
+- `extmw.py p62u60.json 46824 46892 15,18,14,16,19 xu60 2 60`: 24 data wires (incl. 17 and 60), 22 cases, 52 CSWAPs + 5 free CX;
+  init K=52, MU=52, S={6,41}, RZ={17,40,41,60}, self-check OK (`xu60*.txt`, `xu60_k52_init.txt`). tvmw_sa init cost 0.
+  **Builder self-test**: rebuilding the K=52 original gives qcheck worst 0.99932377, 0 bad, 0 dirty, mean Toffoli 1322.495 (exact
+  fix-up solve picks 1 conditioned gate instead of the original 2 CZ).
+- tvmw_sa K=51 (seeded from K=52 minus a random gate), round 1: 4 runs x 21 min (T0 0.5/1.0, ZW 1/2, PCS 0.5/2): **best residual 8**
+  (same as the plain wu52 model); round 2: 4 runs x 15 min (T0 0.3..1.5, ZW 1/2/4, PCS 0.2..1): best 12 (`xu60_k51_r2.txt`). Not found: adding the wire-60
+  parity measurement (movable MU, S, RZ) does not unlock K=51.
+
+## 2026-11-12 07:xx UTC — merge6: unnormalize ladder = literal inverse of normalize, 50 instead of 52 (supervisor)
+- New container: merge5 rebuilt from the public ops.json + `edits/merge5.json`, sha `3ee8e97d...` again. **Official verifier, full
+  200,540,928 shots, new salt sv1207m5: PASS, Q 62, Toffoli 1322.48, score 100,382.53 = 20.689x** (`verify_p62_merge5_sv1207m5.log`).
+- Observation (state comparison on 128k x, all x < 8192 + random): with the wire map n -> u
+  0..13 -> same, 14->57, 15->50, 16->27, 17->61, 18->51, 19->28, 20->40, 21->41, controls 42->16, 43->14, 44->18, 45->15, 46->19,
+  the state at the unnormalize ladder end (p62m5 op 46892) equals the state at the normalize start (op 144) wire for wire, and the
+  ladder start (46816) equals the state after normalize op 247. So the unnormalize ladder (52 CSWAPs + the wire-60 measurement)
+  computes exactly the inverse permutation of normalize ops [144,248) (49 CSWAPs + the wire-22 measurement trick).
+- `unnorm_inv_build.py p62m5.json uinv.json 47`: emits relabel(reverse(normalize [144,248))). The forward wire-22 trick is a free
+  measured erase (value at its HMR = w44 & (w13 ^ w21), asserted); the inverse recomputes it with **one CCX** into clean wire 47
+  (untouched after op 46700). Result: 49 CSWAP + 1 CCX = 50 Toffoli for the ladder (was 52).
+  Leftovers after the new ladder: wire 47 = 1 ^ w15 ^ w41 and wire 60 = 1 ^ w16 ^ w17 ^ w40 ^ w41 (the decoder output the
+  original wire-60 block erased), both **affine** (`gf2_fit.py`), so they are cleared with CX + X (free, no measurement).
+- `edits/merge6.json` = merge5 edits + one region edit on original ops [46782,46858) (113 ops). patch_ops on the public ops.json ->
+  p62m6.kmb sha256 `4093ed04a806b577ba3a468aa04df4b896ef8f36f2dfa23630b2519ef2ec3580`.
+- qcheck 217,896 samples (50k x x 4 repeats): worst 0.99932377, 0 bad, 0 dirty, **mean Toffoli 1320.49 (-2.0)**.
+- **Official verifier, full 200,540,928 shots, default salt: PASS, Q 62, Toffoli 1320.48, C 1617.07, score 100,258.53 = 20.714x**
+  (`verify_p62_merge6_default.log`, worst 0.99932 at x=161, rotations 41, eps 2.43e-13, max Toffoli 1490). Nothing was submitted to Kaggle.
+- Tried to avoid the inverse-trick CCX: delta = w44 & (w13 ^ w21) is not affine in the live wires at any point of the reversed ladder
+  before its use (77 positions) nor in ops 46700..46816 (fit on 34k x). Closed.
+- `mirror_scan.py ops.json 16 1500`: nested equal-state segment pairs (state = multiset of wire value vectors, so it ignores phase), skipping
+  halves that contain rotations, reporting pairs where the backward half costs more. On p62m6 it finds only the measurement fix-up CCZ
+  blocks at 15664..15920, which are phase-only, so they can't be swapped for an inverse. No other mirror at this granularity.
+- Second salt sv1207m6: **PASS, score 100,258.52 = 20.714x** (`verify_p62_merge6_sv1207m6.log`).
