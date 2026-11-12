@@ -720,3 +720,11 @@ PYTHONPATH=data/kickmix python3.13 -c "import kickmix as km; km.Circuit.from_fil
   Per-case Delta ranks 10/14/9/6/3 -> LP bound over control parities only 17 (weaker than the global 19). Current 21.
 - The 5 single-case CSWAPs (197-199 for A, 216/217 for D) act on different pairs and cannot share an AND by relabeling. Exact 19/20 search
   (SAT over parity-controlled generators) not done. (`norm4445_result.txt`)
+
+## Normalize 44+45 exact SAT (2026-11-11 23:xx UTC, supervisor)
+- `n4445_sat_extract.py`: with legal reordering (trick 192-196 first, 213-215 last) the 21 CSWAPs of levels 44+45 are a pure
+  case-dependent permutation of wires 0..21 (checked on all x). Minimal transposition counts per case: A 9, B 13, C 9, D 6, E 2.
+- `n4445_sat.py` (CaDiCaL, linear controls in r43..r45, commuting-pair symmetry breaking): self-tests D+E K=5..7 UNSAT / K=8 SAT;
+  all cases **K=21 SAT in 923 s** (a different network); `n4445_check.py` confirms it on all 3,133,453 x.
+  **K=20: TIMEOUT after 2900 s (open).** Subset sweeps and a redundant progress-cardinality variant also time out. Details in `n4445_sat_result.txt`.
+- merge2 rebuilt (sha fc153f1f); official verifier full, salt sv1123mm: PASS, 100,568.56 = 20.650x (`verify_p62_merge2_sv1123mm.json`).
