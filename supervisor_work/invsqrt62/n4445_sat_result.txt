@@ -17,3 +17,12 @@
 #   AB / BCD subset sweeps from K=13: each timed out at 600 s even at K=13 (UNSAT side is hard for CDCL here).
 # Usage: python3.13 n4445_sat_extract.py p62mm.json cases.json ; [PROG=1] python3.13 n4445_sat.py cases.json K timeout 1
 #        python3.13 n4445_check.py p62mm.json sat_output.log
+#
+# 2026-11-12 00:xx UTC, supervisor (n4445_sat2.py: selectable pysat solver + CARD=1 redundant per-case active-slot lower bounds)
+#   self-test D+E only, Kissat404+CARD: K=7 UNSAT (5.9 s), K=8 SAT (1.7 s) -> consistent with n4445_sat.py
+#   all cases K=20, Kissat404+CARD, 2700 s: TIMEOUT (no answer)
+#   all cases K=20, Cadical195+CARD, 2700 s: TIMEOUT (no answer)
+#   cases A+B only: K=20 SAT (Kissat, 235 s; 6 gates on form r43^r44^r45 active on both, A 10 / B 15 active),
+#                   K=19 SAT (Kissat, 406 s) -> the A+B subset alone gives no bound >= 21; C/D/E are what makes 21 tight (if it is).
+#   Correction to the earlier combinatorial note: form r45 (mask 4) is active on D and E only, not on A or B.
+#   The bound total >= |N_A u N_B| >= 22 - |N_A n N_B| still holds; A+B can share 6 gates via non-minimal chains.
